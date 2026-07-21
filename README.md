@@ -1,4 +1,4 @@
-# Arsa Değer Analizi — Proje Geliştirme Platformu
+# ArsaPlan — Arsa Değer Analizi ve Proje Geliştirme
 
 Bir arsanın imar haklarını, proje kapasitesini ve **Artık Değer (Residual Land Value)**
 yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
@@ -12,12 +12,9 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 
 ## 1. GitHub'a Yükleme (ilk kurulum)
 
-1. GitHub'da yeni bir repo aç. **Repo adı tam olarak şu olmalı:**
-
-       Arsa-Deger-Analizi
-
-   (Farklı bir ad verirsen `vite.config.ts` içindeki `base` satırını da aynı adla değiştir,
-   yoksa site boş sayfa açılır.)
+1. GitHub'daki reponu kullan (adı ne olursa olsun — `ArsaPlan`, `Arsa-Deger-Analizi`…).
+   Bu sürümde yollar göreli (`base: './'`) olduğu için **repo adını değiştirsen bile
+   site çalışır**; artık `vite.config.ts` düzenlemene gerek yok.
 
 2. Bu paketin içindeki **tüm dosya ve klasörleri** repoya yükle:
 
@@ -33,7 +30,7 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 
 4. **Actions** sekmesinde çalışma yeşil olduğunda site yayında:
 
-       https://<kullanıcı-adın>.github.io/Arsa-Deger-Analizi/
+       https://<kullanıcı-adın>.github.io/<repo-adı>/
 
 ## 2. Güncelleme
 
@@ -41,19 +38,17 @@ Değişen dosyaları aynı şekilde yükle → commit → Actions yeşil → sit
 Sayfanın altındaki **sürüm damgasının** değiştiğini gör (`v1.0.0 · 2026.07.21`).
 Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
 
-## 3. Akış (9 adım)
+## 3. Akış (5 adım)
 
-    1  Değerleme konusu (konut / ticari / karma) + taşınmaz bilgileri + parsel geometrisi
-    2  Konut tipi (villa · 3-6 kat · 7-18 kat · site) — bu sürümde villa aktif
-    3  İmar bilgileri: TAKS/KAKS/Hmax **veya** doğrudan alan girişi,
-       çekme mesafeleri, bodrum (emsale dahil mi?), çatı arası (emsale dahil mi?)
-    4  Villa özellikleri
-    5  Yapım maliyeti (2026 tebliği + enflasyon + elle giriş)
-    6  Peyzaj, altyapı ve bahçe satış değeri
-    7  Satış birim değeri
-    8  Müteahhit kârı ve finansman
-    9  Kat karşılığı paylaşımı
-    →  Sonuç ekranı: KPI kartları, kapasite, fizibilite, kat karşılığı,
+    1  Taşınmaz — ne değerleniyor (konut/ticari/karma) + parsel kimliği ve alanları
+    2  İmar Durumu — lejant (liste), TAKS/KAKS/Hmax **veya** doğrudan alan girişi,
+       çekme mesafeleri (opsiyonel), bodrum ve çatı arası emsal kararları, plan notları
+    3  Proje — imar haklarına göre kapasite özeti, konut tipi ve villa kurgusu:
+       villa büyüklüğünden adede **veya** villa adedinden büyüklüğe
+    4  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
+       peyzaj/bahçe (alan otomatik gelir, elle değiştirilebilir), satış birim değeri
+    5  Değerleme — müteahhit kârı, finansman oranı, kat karşılığı (açılır/kapanır)
+    →  Sonuç ekranı: KPI kartları, kapasite dökümü, fizibilite,
        uzman değerlendirmesi · **PDF ve Excel indirme**
 
 ## 4. Proje Yapısı
@@ -86,7 +81,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (46 test)
+    npm test          motor + arayüz + dışa aktarma testleri (50 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)
@@ -102,3 +97,6 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
   blok ve site tipleri aynı motor üzerine sırayla eklenecektir.
 - Bodrum ve çatı arasının emsale dahil olup olmadığı **plan notundan teyit edilmelidir**;
   uygulama bu kararı sizin adınıza veremez, yalnızca sonucunu hesaplar.
+- **Kat karşılığı yöntemi ile artık değer yöntemi farklı sonuç verebilir.** Bu doğaldır:
+  biri paylaşım oranından, diğeri proje ekonomisinden hareket eder. İstemezseniz
+  kat karşılığı bölümünü Adım 5'ten kapatabilirsiniz.
