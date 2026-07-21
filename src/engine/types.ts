@@ -170,6 +170,12 @@ export interface CapacityResult {
   aboveGroundFloors: number;
   /** Toplam zemin oturumu — bahçe hesabında düşülen alan */
   groundCoverage: number;
+  /** Kullanılmayan emsal hakkı (m²) */
+  emsalLeftover: number;
+  /** Kullanılmayan taban alanı (m²) */
+  footprintLeftover: number;
+  /** 'alan' modunda emsali tam kullanacak villa alanı önerisi */
+  suggestedGrossPerVilla: number | null;
   countByFootprint: number;
   countByEmsal: number | null;
   unitCount: number;

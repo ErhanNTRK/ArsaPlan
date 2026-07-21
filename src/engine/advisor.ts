@@ -114,6 +114,22 @@ export function buildAdvice(
     }
   }
 
+  /* ── Kullanılmayan kapasite ── */
+  if (capacity.unitCount > 0 && capacity.kaksLimit != null && capacity.emsalLeftover > capacity.kaksLimit * 0.05) {
+    const oran = capacity.emsalLeftover / capacity.kaksLimit;
+    const tabanKisiti = capacity.binding === 'TAKS' || capacity.binding === 'DOĞRUDAN TABAN' || capacity.binding === 'ÇEKME MESAFESİ';
+    add('dikkat', 'İnşaat hakkının bir kısmı kullanılmıyor',
+      `Toplam inşaat hakkının ${m2(capacity.emsalLeftover)} kadarı (${pct(oran)}) boşta kalıyor. ` +
+      (tabanKisiti
+        ? `Sebep taban kısıtı: kullanılabilir taban ${m2(capacity.effectiveFootprint)} ve zemin üstü ${capacity.aboveGroundFloors} kat, ` +
+          `yani en fazla ${m2(capacity.effectiveFootprint * capacity.aboveGroundFloors)} zemin üstü alan üretilebiliyor. ` +
+          'Kat adedini artırmak (aynı tabanda daha fazla alan) ya da taban oturumunu büyütmek bu hakkı serbest bırakır.'
+        : capacity.suggestedGrossPerVilla != null
+          ? `Villa adedi tam sayı olduğu için artık kalıyor. Villa alanını ${m2(capacity.suggestedGrossPerVilla)} yaparsanız hak tam kullanılır; ` +
+            'ya da villa adedini bir artırıp alanı küçültebilirsiniz.'
+          : 'Villa alanını veya adedini artırarak hakkı tam kullanabilirsiniz.'));
+  }
+
   /* ── Kat kurgusu ── */
   if (capacity.unitCount > 0) {
     const kat = emsal.hasBasement

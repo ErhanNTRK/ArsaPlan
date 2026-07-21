@@ -49,6 +49,8 @@ body {
 .result-preview { border-color: var(--navy); }
 .breakdown { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
 .breakdown b { color: var(--text); }
+.leftover { background: var(--amber-dim); color: var(--amber); border-radius: 8px; padding: 9px 11px; font-size: 12.5px; line-height: 1.5; }
+.leftover b { color: var(--amber); }
 .link-btn {
   background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
   font-size: 12px; font-weight: 600; color: var(--navy-2); text-decoration: underline;

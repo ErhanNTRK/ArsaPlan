@@ -1,4 +1,4 @@
-import type { ProjectInput, AssetType, HousingType } from '../engine';
+import type { ProjectInput, AssetType } from '../engine';
 import { computeEnvelope, computeVillaCapacity } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2, fmtNum } from './fields';
@@ -61,14 +61,7 @@ export function Step1({ input, upd, setTop }: P) {
 }
 
 /* ═══════════ ADIM 2 — İMAR VE PROJE ═══════════ */
-const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boolean }> = [
-  { v: 'villa', label: 'Villa', desc: 'Müstakil / ikiz / sıralı', ready: true },
-  { v: 'apartman-3-6', label: '3-6 Kat Apartman', desc: 'Az katlı', ready: false },
-  { v: 'blok-7-18', label: '7-18 Kat Blok', desc: 'Yüksek yoğunluk', ready: false },
-  { v: 'site', label: 'Site', desc: 'Çok bloklu', ready: false },
-];
-
-export function Step2({ input, upd, setTop }: P) {
+export function Step2({ input, upd }: P) {
   const z = input.zoning;
   const e = input.emsal;
   const p = input.parcel;
@@ -104,8 +97,12 @@ export function Step2({ input, upd, setTop }: P) {
           </div>
         ) : (
           <div className="grid-2">
-            <Field label="Toplam Taban Oturumu"><Num value={z.directFootprint} onChange={(val) => upd('zoning', { directFootprint: val })} suffix="m²" /></Field>
-            <Field label="Toplam İnşaat Alanı"><Num value={z.directTotalArea} onChange={(val) => upd('zoning', { directTotalArea: val })} suffix="m²" /></Field>
+            <Field label="Toplam Taban Oturumu" hint="Opsiyonel — boş bırakırsanız taban kısıtı uygulanmaz">
+              <Num value={z.directFootprint} onChange={(val) => upd('zoning', { directFootprint: val })} suffix="m²" />
+            </Field>
+            <Field label="Toplam İnşaat Alanı" hint="Emsale konu toplam alan">
+              <Num value={z.directTotalArea} onChange={(val) => upd('zoning', { directTotalArea: val })} suffix="m²" />
+            </Field>
           </div>
         )}
         <Field label="Çekme mesafeleri hesaba katılsın mı?" hint="Kapalıyken kapasite yalnızca imar haklarından bulunur.">
@@ -201,15 +198,7 @@ export function Step2({ input, upd, setTop }: P) {
       </div>
 
       <div className="card">
-        <div className="card-title">Konut Tipi ve Villa Kurgusu</div>
-        <div className="choice-grid two">
-          {HOUSING.map((h) => (
-            <Choice key={h.v} on={input.housingType === h.v}
-                    name={h.ready ? h.label : `${h.label} — yakında`} desc={h.desc}
-                    onClick={() => h.ready && setTop('housingType', h.v)} />
-          ))}
-        </div>
-        <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '14px 0' }} />
+        <div className="card-title">Villa Kurgusu</div>
         <Field label="Hesaplama yönü">
           <Seg value={v.mode} onChange={(m) => upd('villa', { mode: m })}
                options={[
@@ -271,6 +260,14 @@ export function Step2({ input, upd, setTop }: P) {
               {c.emsalUsage != null && <> · hak kullanımı <b>%{(c.emsalUsage * 100).toFixed(0)}</b></>}
               {' '}· bağlayıcı kısıt: <b>{c.binding}</b>
             </div>
+            {c.emsalLeftover > 1 && (
+              <div className="leftover">
+                Kullanılmayan inşaat hakkı: <b>{fmtM2(c.emsalLeftover)}</b>
+                {c.suggestedGrossPerVilla != null
+                  ? <> — villa alanını <b>{fmtM2(c.suggestedGrossPerVilla)}</b> yaparsanız hak tam kullanılır.</>
+                  : <> — kat adedini artırmak ya da taban oturumunu büyütmek bu hakkı serbest bırakır.</>}
+              </div>
+            )}
           </div>
         </div>
       )}

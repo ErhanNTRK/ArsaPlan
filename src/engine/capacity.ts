@@ -120,10 +120,26 @@ export function computeVillaCapacity(
     const n = Math.max(0, Math.floor(villa.unitCountManual));
     unitCount = n;
     if (n > 0) {
-      const fpMax = effectiveFootprint > 0 ? effectiveFootprint / n : Infinity;
-      const e0 = extras(isFinite(fpMax) ? fpMax : 0);
-      const grossFromFootprint = isFinite(fpMax) ? fpMax * floorsPerUnit : Infinity;
-      const grossFromEmsal = kaksLimit != null ? Math.max(0, kaksLimit / n - e0.inEmsal) : Infinity;
+      /**
+       * Bodrum ve çatı arası otomatik boyutlanırken villa tabanına, taban da villa
+       * alanına bağlıdır. Bu döngüsel ilişki tahminle çözülemez; doğrudan çözülür:
+       *   emsal/villa = g + katsayı·g + sabit  →  g = (emsal/villa − sabit) / (1 + katsayı)
+       * Böylece emsal hakkı eksiksiz kullanılır (eski sürümde fazla rezerve edilip boşa gidiyordu).
+       */
+      const bAutoCoef = emsal.hasBasement && emsal.basementPerUnit <= 0 ? 1 / floorsPerUnit : 0;
+      const aAutoCoef = emsal.hasAttic && emsal.atticPerUnit <= 0 ? 0.4 / floorsPerUnit : 0;
+      const bFix = emsal.hasBasement && emsal.basementPerUnit > 0 ? emsal.basementPerUnit : 0;
+      const aFix = emsal.hasAttic && emsal.atticPerUnit > 0 ? emsal.atticPerUnit : 0;
+      const coefInEmsal = (emsal.basementInEmsal ? bAutoCoef : 0) + (emsal.atticInEmsal ? aAutoCoef : 0);
+      const fixInEmsal = (emsal.basementInEmsal ? bFix : 0) + (emsal.atticInEmsal ? aFix : 0);
+
+      const grossFromEmsal = kaksLimit != null
+        ? Math.max(0, (kaksLimit / n - fixInEmsal) / (1 + coefInEmsal))
+        : Infinity;
+      const grossFromFootprint = effectiveFootprint > 0
+        ? (effectiveFootprint / n) * floorsPerUnit
+        : Infinity;
+
       grossPerVilla = Math.min(grossFromFootprint, grossFromEmsal);
       if (!isFinite(grossPerVilla)) grossPerVilla = 0;
       binding = grossFromEmsal <= grossFromFootprint
@@ -200,6 +216,20 @@ export function computeVillaCapacity(
     : footprintTotal;
   const gardenArea = Math.max(0, parcel.netArea - groundCoverage);
 
+  /* Kullanılmayan kapasite ve somut öneri */
+  const emsalLeftover = kaksLimit != null ? Math.max(0, kaksLimit - emsalArea) : 0;
+  const footprintLeftover = effectiveFootprint > 0 ? Math.max(0, effectiveFootprint - footprintTotal) : 0;
+  let suggestedGrossPerVilla: number | null = null;
+  if (villa.mode === 'alan' && unitCount > 0 && emsalLeftover > 0.5 && emsalPerUnit > 0) {
+    /* Aynı adette emsali tam kullanacak villa alanı (ekler oransal olduğu için bölerek) */
+    const oran = emsalPerUnit / grossPerVilla;
+    const hedef = (kaksLimit! / unitCount) / oran;
+    /* Taban kısıtını aşmasın */
+    const tabanSiniri = effectiveFootprint > 0 ? (effectiveFootprint / unitCount) * floorsPerUnit : Infinity;
+    const oneri = Math.min(hedef, tabanSiniri);
+    if (oneri > grossPerVilla + 0.5) suggestedGrossPerVilla = oneri;
+  }
+
   if (unitCount === 0 && villa.mode === 'alan') {
     warnings.push('Girilen koşullarda hiçbir villa yerleşmiyor. Villa büyüklüğünü, çekme mesafelerini veya imar haklarını kontrol ediniz.');
   }
@@ -215,7 +245,7 @@ export function computeVillaCapacity(
 
   return {
     envelope, taksLimit, kaksLimit, layoutFootprint, effectiveFootprint, footprintPerUnit,
-    aboveGroundFloors, groundCoverage,
+    aboveGroundFloors, groundCoverage, emsalLeftover, footprintLeftover, suggestedGrossPerVilla,
     countByFootprint, countByEmsal, unitCount,
     unitCountRange: [Math.min(rangeLow, unitCount), Math.max(rangeHigh, unitCount)],
     binding, emsalPerUnit, grossPerUnit, saleablePerUnit, grossPerVilla,

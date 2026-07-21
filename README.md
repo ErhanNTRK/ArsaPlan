@@ -69,6 +69,16 @@ Girilen **kat adedi bodrumu içerir**, çatı arasını içermez:
 Villa taban alanı = villa alanı ÷ zemin üstü kat adedi. Çatı arası kat sayısına
 girmez ama alan ve maliyet hesabına girer.
 
+### Kapasitenin tam kullanılması
+
+Bodrum ve çatı arası otomatik boyutlanırken villa tabanına, taban da villa alanına
+bağlıdır. Bu döngüsel ilişki tahminle değil **doğrudan çözülür**; böylece emsal hakkı
+eksiksiz kullanılır. Artan hak kalırsa ekranda ve raporda açıkça yazar ve somut öneri
+verilir (ör. "villa alanını 200 m² yaparsanız hak tam kullanılır").
+
+Doğrudan alan modunda **taban oturumu opsiyoneldir**; boş bırakılırsa taban kısıtı
+uygulanmaz ve toplam inşaat alanının tamamı kullanılır.
+
 ### Bahçe ve satılabilir alan
 
 - **Bahçe alanı** = net parsel − **toplam zemin oturumu**. TAKS tanımlıysa yasal taban
@@ -118,7 +128,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (58 test)
+    npm test          motor + arayüz + dışa aktarma testleri (63 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)

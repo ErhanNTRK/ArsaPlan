@@ -41,7 +41,7 @@ const DEFAULT_INPUT: ProjectInput = {
 
 const STEPS = [
   { title: 'Taşınmaz', desc: 'Ne değerleniyor ve hangi parsel?' },
-  { title: 'İmar ve Proje', desc: 'Yapılaşma hakları, emsal dışı alanlar ve villa kurgusu.' },
+  { title: 'İmar ve Villa Projesi', desc: 'Yapılaşma hakları, emsal dışı alanlar ve villa kurgusu.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti, peyzaj ve satış değeri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];

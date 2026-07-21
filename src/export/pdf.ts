@@ -139,6 +139,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('VİLLA ADEDİ',
     `${c.unitCount}${c.unitCountRange[0] !== c.unitCountRange[1] ? `  (${c.unitCountRange[0]}–${c.unitCountRange[1]})` : ''}`,
     true, NAVY);
+  if (c.emsalLeftover > 1) row('Kullanılmayan İnşaat Hakkı', m2(c.emsalLeftover), false, RED);
   row('Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding);
   row('Emsale Konu Alan', m2(c.emsalArea));
   row('Villa Başına Zemin Üstü Brüt', m2(c.grossPerVilla));

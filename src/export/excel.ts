@@ -143,6 +143,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Villa Başına Taban Alanı', Math.round(c.footprintPerUnit), 'm²'],
     ['Toplam Zemin Oturumu', Math.round(c.groundCoverage), 'm²'],
     ['VİLLA ADEDİ', c.unitCount, `tahmini aralık: ${c.unitCountRange[0]}–${c.unitCountRange[1]}`],
+    ['Kullanılmayan İnşaat Hakkı', Math.round(c.emsalLeftover), 'm²'],
     ['Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding],
     ['Emsale Konu Alan', Math.round(c.emsalArea), 'm²'],
     ['Bodrum Alanı', Math.round(c.basementArea), input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'],

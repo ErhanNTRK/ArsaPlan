@@ -173,6 +173,55 @@ describe('çekme mesafeleri opsiyonel', () => {
   });
 });
 
+describe('kapasite tam kullanımı (sabit nokta çözümü)', () => {
+  const P = { ...base.parcel, area: 1000, netArea: 1000, width: 0, depth: 0 };
+  const Z = { ...base.zoning, useSetbacks: false, taks: 0.40, kaks: 0.80 };
+  const E = { ...base.emsal, basementInEmsal: true, atticInEmsal: true };
+
+  it('adet modunda emsal hakkı eksiksiz kullanılır', () => {
+    const c = computeVillaCapacity(P, Z, { ...base.villa, mode: 'adet', unitCountManual: 5, floorsPerVilla: 4 }, E);
+    expect(c.unitCount).toBe(5);
+    expect(c.emsalArea).toBeCloseTo(800, 3);      // eskiden 352 çıkıyordu
+    expect(c.emsalLeftover).toBeCloseTo(0, 3);
+    expect(c.grossPerVilla).toBeCloseTo(800 / 5 / (1 + 1.4 / 3), 3);
+  });
+
+  it('ekler emsal dışıysa emsalin tamamı villaya gider', () => {
+    const c = computeVillaCapacity(P, Z, { ...base.villa, mode: 'adet', unitCountManual: 5, floorsPerVilla: 4 },
+      { ...E, basementInEmsal: false, atticInEmsal: false });
+    expect(c.grossPerVilla).toBeCloseTo(160, 3);
+    expect(c.emsalArea).toBeCloseTo(800, 3);
+  });
+
+  it('alan modunda artan hakkı ve villa alanı önerisini bildirir', () => {
+    const c = computeVillaCapacity(P, Z, { ...base.villa, mode: 'alan', grossPerVilla: 180, floorsPerVilla: 4 },
+      { ...E, basementInEmsal: false, atticInEmsal: false });
+    expect(c.unitCount).toBe(4);
+    expect(c.emsalLeftover).toBeCloseTo(80, 3);
+    expect(c.suggestedGrossPerVilla).toBeCloseTo(200, 3);
+  });
+
+  it('doğrudan modda taban boş bırakılırsa inşaat hakkı tam kullanılır', () => {
+    const c = computeVillaCapacity(P,
+      { ...Z, mode: 'dogrudan', taks: null, kaks: null, directTotalArea: 900, directFootprint: 0 },
+      { ...base.villa, mode: 'adet', unitCountManual: 4, floorsPerVilla: 2 },
+      { ...base.emsal, hasAttic: false, basementInEmsal: false });
+    expect(c.grossPerVilla).toBeCloseTo(225, 3);
+    expect(c.emsalArea).toBeCloseTo(900, 3);
+    expect(c.binding).toBe('DOĞRUDAN İNŞAAT ALANI');
+  });
+
+  it('doğrudan modda taban girilirse kısıt olur ve artan hak bildirilir', () => {
+    const c = computeVillaCapacity(P,
+      { ...Z, mode: 'dogrudan', taks: null, kaks: null, directTotalArea: 900, directFootprint: 400 },
+      { ...base.villa, mode: 'adet', unitCountManual: 4, floorsPerVilla: 2 },
+      { ...base.emsal, hasAttic: false, basementInEmsal: false });
+    expect(c.grossPerVilla).toBeCloseTo(100, 3);   // 400/4 taban × 1 zemin üstü kat
+    expect(c.binding).toBe('DOĞRUDAN TABAN');
+    expect(c.emsalLeftover).toBeCloseTo(500, 3);
+  });
+});
+
 describe('emsal dışı satılabilir alan', () => {
   it('çatı arası emsal dışı ama satılabilirse toplam satılabilir alanı büyütür', () => {
     const c = computeVillaCapacity(base.parcel, base.zoning, base.villa, base.emsal);

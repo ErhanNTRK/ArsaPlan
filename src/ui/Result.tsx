@@ -125,6 +125,7 @@ export function Result({ input, result, version }: {
         <Row label="Bahçe / Açık Alan" value={fmtM2(c.gardenArea)} />
         <Row label="Ortalama Villa Alanı (brüt)" value={fmtM2(input.villa.grossPerVilla)} />
         <Row label="Satılabilir m² Başına Maliyet" value={fmtTLm2(f.costPerSaleableM2)} />
+        {c.emsalLeftover > 1 && <Row label="Kullanılmayan İnşaat Hakkı" value={fmtM2(c.emsalLeftover)} tone="neg" />}
         <Row label="Bağlayıcı Kısıt" value={BINDING_TEXT[c.binding] ?? c.binding} tone="total" />
       </div>
 
