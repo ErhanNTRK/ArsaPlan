@@ -34,6 +34,8 @@ export type ZoningMode = 'taks-kaks' | 'dogrudan';
 export interface Zoning {
   mode: ZoningMode;
   lejant: string;
+  /** Çekme mesafeleri hesaba katılsın mı? (TAKS/KAKS varsa opsiyoneldir) */
+  useSetbacks: boolean;
   taks: number | null;
   kaks: number | null;
   hmax: number | null;
@@ -49,19 +51,40 @@ export interface Zoning {
   planNotes: string;
 }
 
-/** Emsal istisnaları — plan notuna göre değişen alanlar */
+/**
+ * Emsal istisnaları — plan notuna göre değişen alanlar.
+ *
+ * Önemli ayrım: bir alan EMSALE DAHİL olmayabilir ama yine de SATILABİLİR olabilir.
+ * Örnek: emsale konu 500 m², emsal dışı satılabilir 50 m² → toplam satılabilir 550 m².
+ */
 export interface EmsalOptions {
   hasBasement: boolean;
   basementInEmsal: boolean;
   /** Villa başına bodrum alanı (m²). 0 → villa taban alanı kadar varsayılır. */
   basementPerUnit: number;
+  /** Bodrum satılabilir alana dahil edilsin mi? */
+  basementSaleable: boolean;
   hasAttic: boolean;
   atticInEmsal: boolean;
   /** Villa başına çatı arası piyesi (m²). 0 → taban alanının %40'ı varsayılır. */
   atticPerUnit: number;
+  /** Çatı arası satılabilir alana dahil edilsin mi? */
+  atticSaleable: boolean;
+  /** Diğer emsal dışı satılabilir alan (villa başına m²) — kapalı balkon, teras, eklenti vb. */
+  extraSaleablePerUnit: number;
 }
 
+/**
+ * Villa kurgusu iki yönden kurulabilir:
+ *  'alan' → villa büyüklüğü girilir, adet hesaplanır
+ *  'adet' → villa adedi girilir, villa büyüklüğü kapasiteden hesaplanır
+ */
+export type VillaMode = 'alan' | 'adet';
+
 export interface VillaConfig {
+  mode: VillaMode;
+  /** 'adet' modunda girilen villa sayısı */
+  unitCountManual: number;
   villaType: 'mustakil' | 'ikiz' | 'sirali';
   /** Villa başına zemin üstü brüt alan (m²) */
   grossPerVilla: number;
@@ -77,20 +100,16 @@ export interface CostInput {
   buildingClass: string;
   unitCost: number;
   inflationRate: number;
-  /** Bodrum ve çatı arası kaba yapı ağırlıklıdır; birim maliyet katsayısı */
-  basementCostFactor: number;
-  atticCostFactor: number;
   /** Proje, ruhsat, harç, müşavirlik vb. — inşaat maliyeti üzerinden oran */
   extrasRate: number;
 }
 
-/** Çevre düzenlemesi, peyzaj ve bahçe */
+/** Peyzaj ve bahçe (tek başlık) */
 export interface SiteWorks {
-  /** Peyzaj alanı (m²). 0 → net parsel − taban oturumu otomatik hesaplanır. */
+  /** Peyzaj/bahçe alanı (m²). Otomatik: net parsel − bina oturumu; elle değiştirilebilir. */
   landscapeArea: number;
+  /** Peyzaj ve çevre düzenlemesi birim maliyeti (₺/m²) */
   landscapeUnitCost: number;
-  /** İç yol, otopark, altyapı, çevre duvarı — sabit tutar */
-  infrastructureCost: number;
   /** Bahçe m² satış değeri (₺/m²). 0 → bahçe villa fiyatına dahildir. */
   gardenPricePerM2: number;
 }
@@ -98,14 +117,17 @@ export interface SiteWorks {
 export interface SalesInput { unitPrice: number; }
 
 export interface ResidualInput {
+  /** Müteahhit kâr oranı (hasılat üzerinden) */
   profitRate: number;
-  useFinance: boolean;
-  financeRate: number;
-  months: number;
-  utilization: number;
+  /** Finansman gideri — toplam maliyetin yüzdesi. 0 → hesaba katılmaz. */
+  financeRateOfCost: number;
 }
 
-export interface ShareInput { ownerShare: number; }
+export interface ShareInput {
+  /** Kat karşılığı bölümü raporda gösterilsin mi? */
+  enabled: boolean;
+  ownerShare: number;
+}
 
 export interface ProjectInput {
   assetType: AssetType;
@@ -147,6 +169,8 @@ export interface CapacityResult {
   unitCountRange: [number, number];
   binding: BindingConstraint;
   emsalPerUnit: number;
+  /** Villa başına zemin üstü brüt alan (adet modunda hesaplanır) */
+  grossPerVilla: number;
   grossPerUnit: number;
   saleablePerUnit: number;
   emsalArea: number;
@@ -154,6 +178,12 @@ export interface CapacityResult {
   saleableArea: number;
   basementArea: number;
   atticArea: number;
+  /** Diğer emsal dışı satılabilir alan toplamı */
+  extraSaleableArea: number;
+  /** Satılabilir alanın emsale konu olmayan kısmı */
+  saleableOutsideEmsal: number;
+  /** Satılabilir alanın emsale konu olan kısmı */
+  saleableWithinEmsal: number;
   footprintTotal: number;
   gardenArea: number;
   parcelEfficiency: number;
@@ -168,7 +198,6 @@ export interface FinancialResult {
   atticCost: number;
   constructionCost: number;
   landscapeCost: number;
-  infrastructureCost: number;
   extrasCost: number;
   financeCost: number;
   totalCost: number;

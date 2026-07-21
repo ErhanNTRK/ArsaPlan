@@ -15,6 +15,7 @@ export function buildAdvice(
   parcel: Parcel, zoning: Zoning, villa: VillaConfig, emsal: EmsalOptions,
   cost: CostInput, site: SiteWorks, residual: ResidualInput,
   capacity: CapacityResult, financial: FinancialResult, share: ShareResult,
+  shareEnabled: boolean,
 ): Advice[] {
   const out: Advice[] = [];
   const add = (level: Advice['level'], title: string, body: string) => out.push({ level, title, body });
@@ -48,6 +49,13 @@ export function buildAdvice(
           ? `İmar ${m2(capacity.taksLimit)} tabana izin vermesine rağmen çekmeler bunu ${m2(capacity.taksLimit - capacity.layoutFootprint)} kısıtlıyor. İkiz veya sıralı villa düzeni bu kaybı azaltır.`
           : 'İmar hakları zaten zarfın altında kaldığı için ek kayıp yok.'));
     }
+  }
+
+  /* ── Villa kurgusu ── */
+  if (villa.mode === 'adet' && capacity.unitCount > 0) {
+    add('bilgi', 'Villa adedi elle belirlendi',
+      `${capacity.unitCount} villa girildi; kapasite bu adede bölünerek villa başına ${m2(capacity.grossPerVilla)} zemin üstü brüt alan hesaplandı ` +
+      `(taban ${m2(capacity.footprintPerUnit)} × ${villa.floorsPerVilla} kat). Villa büyüklüğü hedefinizin altındaysa adedi azaltınız.`);
   }
 
   /* ── Villa–parsel ölçeği ── */
@@ -85,8 +93,7 @@ export function buildAdvice(
     } else {
       add('olumlu', 'Bodrum emsal dışı — doğru kurgu',
         `Bodrum (${m2(capacity.basementArea)}) emsal dışında; emsal hakkı tamamen zemin üstü satılabilir alana ayrılmış. ` +
-        `Not: bodrum emsale girmese de maliyete giriyor — modelde ${tl(financial.basementCost)} olarak hesaplandı ` +
-        `(birim maliyetin ${pct(cost.basementCostFactor)}'i, kaba yapı ağırlıklı olduğu için).`);
+        `Not: bodrum emsale girmese de maliyete giriyor — modelde ${tl(financial.basementCost)} olarak hesaplandı.`);
     }
   } else {
     add('bilgi', 'Bodrum öngörülmemiş',
@@ -105,6 +112,21 @@ export function buildAdvice(
         `Çatı arası piyesleri (${m2(capacity.atticArea)}) emsal dışında tutulmuş ve satılabilir alana eklenmiş. ` +
         'Villa ürününde çatı arası, m² fiyatını düşürmeden hacim algısı yarattığı için satışa doğrudan katkı verir.');
     }
+  }
+
+  /* ── Emsal dışı satılabilir alan ── */
+  if (capacity.saleableOutsideEmsal > 0 && capacity.unitCount > 0) {
+    add('olumlu', 'Emsal dışı satılabilir alan kazancı',
+      `Satılabilir alanın ${m2(capacity.saleableOutsideEmsal)} kadarı emsale konu değil ` +
+      `(toplam ${m2(capacity.saleableArea)}; emsale konu kısım ${m2(capacity.saleableWithinEmsal)}). ` +
+      `Bu, emsal hakkını tüketmeden hasılat üreten alandır ve arsa değerine doğrudan katkı verir. ` +
+      'Plan notunun bu alanları gerçekten emsal dışı saydığından emin olunuz; denetimde en sık tartışılan konu budur.');
+  }
+  if (emsal.extraSaleablePerUnit > 0 && capacity.unitCount > 0) {
+    add('dikkat', 'Diğer emsal dışı alan varsayımı',
+      `Villa başına ${m2(emsal.extraSaleablePerUnit)} "diğer emsal dışı satılabilir alan" girilmiş. ` +
+      'Bu alan hem maliyete hem hasılata giriyor; kapalı balkon/teras gibi kalemlerin gerçekten satışa konu olduğundan ve ' +
+      'plan notunda emsal dışı kabul edildiğinden emin olunuz.');
   }
 
   /* ── Peyzaj / bahçe ── */
@@ -160,20 +182,17 @@ export function buildAdvice(
   }
 
   /* ── Finansman ── */
-  if (residual.useFinance && financial.totalCost > 0) {
-    const fShare = financial.financeCost / financial.totalCost;
-    if (fShare > 0.20) {
-      add('dikkat', 'Finansman yükü ağır',
-        `Finansman gideri toplam maliyetin ${pct(fShare)}'ini oluşturuyor. Ön satış ile öz kaynak ihtiyacını azaltmak ` +
-        'bu kalemi doğrudan düşürerek arsaya kalan değeri artırır.');
-    }
-  } else if (!residual.useFinance) {
+  if (residual.financeRateOfCost > 0.20) {
+    add('dikkat', 'Finansman yükü ağır',
+      `Finansman gideri toplam maliyetin ${pct(residual.financeRateOfCost)}'i olarak alındı (${tl(financial.financeCost)}). ` +
+      'Ön satış ile bu kalem doğrudan düşer ve arsaya kalan değer artar.');
+  } else if (residual.financeRateOfCost === 0) {
     add('bilgi', 'Finansman gideri hesaba katılmadı',
-      'Proje tamamen öz kaynakla varsayılıyor. Kredi kullanılacaksa finansman açıkça modellenmelidir; aksi halde arsa değeri olduğundan yüksek çıkar.');
+      'Finansman oranı %0 girildi. Kredi kullanılacaksa bu kalem modellenmelidir; aksi halde arsa değeri olduğundan yüksek çıkar.');
   }
 
-  /* ── Kat karşılığı ── */
-  if (financial.revenue > 0 && capacity.unitCount > 0) {
+  /* ── Kat karşılığı (kapalıysa yorum üretilmez) ── */
+  if (shareEnabled && financial.revenue > 0 && capacity.unitCount > 0) {
     const t = `Artık değer yöntemine göre dengeli arsa payı ${pct(share.balancedShare, 1)}; girilen pay ${pct(share.ownerShare, 1)}.`;
     if (share.verdict === 'arsa-sahibi-lehine') {
       add('dikkat', 'Kat karşılığı oranı arsa sahibi lehine',

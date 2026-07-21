@@ -4,7 +4,9 @@
  */
 import { jsPDF } from 'jspdf';
 import type { ProjectInput, AnalysisResult } from '../engine';
-import { TEBLIG_KAYNAK, YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { BRAND } from '../brand/brand';
+import { DORA_LOGO_PNG, DORA_LOGO_W, DORA_LOGO_H } from '../brand/logo';
 import { triggerDownload } from './excel';
 
 const NAVY: [number, number, number] = [15, 42, 71];
@@ -48,12 +50,18 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   }
   function header() {
     doc.setFillColor(...NAVY);
-    doc.rect(0, 0, 210, 24, 'F');
+    doc.rect(0, 0, 210, 26, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(14); doc.setTextColor(255, 255, 255);
-    doc.text('ARSA DEĞER ANALİZİ', M, 11);
+    doc.text(`${BRAND.appName} — ARSA DEĞER ANALİZİ`, M, 11);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.5); doc.setTextColor(190, 208, 226);
     doc.text('Proje Geliştirme · Artık Değer (Residual Land Value) Yöntemi', M, 17.5);
-    y = 32;
+    /* Kurumsal logo — beyaz zemin üzerinde, sağ üstte */
+    const lh = 9.5, lw = (DORA_LOGO_W / DORA_LOGO_H) * lh;
+    const lx = 210 - M - lw, ly = 8.5;
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(lx - 2.5, ly - 2, lw + 5, lh + 4, 1.5, 1.5, 'F');
+    doc.addImage(DORA_LOGO_PNG, 'PNG', lx, ly, lw, lh);
+    y = 34;
   }
   function section(title: string) {
     pageBreak(20);
@@ -131,10 +139,20 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     true, NAVY);
   row('Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding);
   row('Emsale Konu Alan', m2(c.emsalArea));
-  if (c.basementArea > 0) row(`Bodrum (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.basementArea));
-  if (c.atticArea > 0) row(`Çatı Arası (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.atticArea));
+  row('Villa Başına Zemin Üstü Brüt', m2(c.grossPerVilla));
+  if (c.basementArea > 0) {
+    row(`Bodrum — ${c.unitCount} × ${m2(c.basementArea / Math.max(1, c.unitCount))} (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.basementArea));
+  }
+  if (c.atticArea > 0) {
+    row(`Çatı Arası — ${c.unitCount} × ${m2(c.atticArea / Math.max(1, c.unitCount))} (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.atticArea));
+  }
+  if (c.extraSaleableArea > 0) {
+    row(`Diğer Emsal Dışı Satılabilir — ${c.unitCount} × ${m2(c.extraSaleableArea / Math.max(1, c.unitCount))}`, m2(c.extraSaleableArea));
+  }
   row('Toplam İnşaat Alanı (brüt)', m2(c.grossArea));
-  row('Satılabilir Alan', m2(c.saleableArea), true);
+  row('Satılabilir Alan — emsale konu', m2(c.saleableWithinEmsal));
+  if (c.saleableOutsideEmsal > 0) row('Satılabilir Alan — emsal dışı', m2(c.saleableOutsideEmsal));
+  row('TOPLAM SATILABİLİR ALAN', m2(c.saleableArea), true, NAVY);
   row('Bahçe / Açık Alan', m2(c.gardenArea));
   y += 3;
 
@@ -144,8 +162,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('Zemin Üstü İnşaat', tl(f.aboveGroundCost));
   if (f.basementCost > 0) row('Bodrum İnşaatı', tl(f.basementCost));
   if (f.atticCost > 0) row('Çatı Arası', tl(f.atticCost));
-  if (f.landscapeCost > 0) row('Peyzaj ve Çevre Düzenlemesi', tl(f.landscapeCost));
-  if (f.infrastructureCost > 0) row('Altyapı ve Çevre İşleri', tl(f.infrastructureCost));
+  if (f.landscapeCost > 0) row('Peyzaj ve Bahçe Düzenlemesi', tl(f.landscapeCost));
   if (f.extrasCost > 0) row('Proje, Ruhsat, Harç, Müşavirlik', tl(f.extrasCost));
   if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost));
   row('TOPLAM MALİYET', tl(f.totalCost), true, RED);
@@ -159,6 +176,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('Fiyat Düşüşüne Dayanım', pct(f.safetyMargin));
   y += 3;
 
+  if (input.share.enabled) {
   section('KAT KARŞILIĞI KARŞILAŞTIRMASI');
   row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits.toFixed(1)} villa · ${tl(s.ownerValue)}`);
   row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits.toFixed(1)} villa · ${tl(s.contractorValue)}`);
@@ -168,6 +186,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('Değerlendirme',
     s.verdict === 'dengeli' ? 'Dengeli paylaşım' : s.verdict === 'arsa-sahibi-lehine' ? 'Arsa sahibi lehine' : 'Müteahhit lehine',
     true, s.verdict === 'dengeli' ? GREEN : AMBER);
+  }
   y += 3;
 
   section('UZMAN DEĞERLENDİRMESİ');
@@ -194,11 +213,12 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7); doc.setTextColor(140, 152, 165);
+    doc.text(`${BRAND.preparedBy} · ${BRAND.authorLine}`, M, 287);
+    doc.text(`${i} / ${pages}`, 210 - M, 287, { align: 'right' });
     doc.text(
-      `Yöntem: Artık Değer · Tutarlar KDV hariçtir · Birim maliyet: ${TEBLIG_KAYNAK} · ${version}`,
+      `Yöntem: Artık Değer · Tutarlar KDV hariçtir · Birim maliyet: RG 3.2.2026 / 33157 · ${BRAND.appName} ${version}`,
       M, 291,
     );
-    doc.text(`${i} / ${pages}`, 210 - M, 291, { align: 'right' });
   }
 
   const name = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.pdf`

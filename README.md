@@ -1,5 +1,7 @@
 # ArsaPlan — Arsa Değer Analizi ve Proje Geliştirme
 
+**Dora Gayrimenkul Değerleme A.Ş. tarafından hazırlanmıştır** · Düzenleyen: Hasan Erhan Öntürk
+
 Bir arsanın imar haklarını, proje kapasitesini ve **Artık Değer (Residual Land Value)**
 yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 
@@ -18,13 +20,19 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 
 2. Bu paketin içindeki **tüm dosya ve klasörleri** repoya yükle:
 
-       src/  public/  .github/  index.html  package.json  vite.config.ts
+       src/  public/  index.html  package.json  vite.config.ts
        tsconfig.json  tsconfig.app.json  tsconfig.node.json  .gitignore  README.md
+
+   **Önemli:** Sürüklemede dosyaları ve klasörleri KARIŞTIRMAYIN. Önce kök dosyaları
+   (index.html, package.json, vite.config.ts, tsconfig*.json, .gitignore, README.md)
+   birlikte sürükleyip commit edin; sonra ayrı bir yüklemede `src` klasörünü,
+   sonra yine ayrı olarak `public` klasörünü sürükleyin. Karışık sürükleme,
+   GitHub yükleyicisinde içeriklerin yanlış dosya adlarına yazılmasına yol açabiliyor.
 
    "Commit directly to the main branch" seçili olmalı.
 
-   > `.github` klasörü sürüklenemezse: **Add file → Create new file** de ve dosya adı
-   > kutusuna `.github/workflows/deploy.yml` yaz; içeriğini bu paketteki aynı dosyadan kopyala.
+   > **Not:** Bu pakette `.github` klasörü YOKTUR. Repondaki mevcut
+   > `.github/workflows/main.yml` dosyası işini görüyor; ikinci bir workflow eklemeyiniz.
 
 3. Repo → **Settings → Pages → Build and deployment → Source: GitHub Actions** seç.
 
@@ -38,18 +46,27 @@ Değişen dosyaları aynı şekilde yükle → commit → Actions yeşil → sit
 Sayfanın altındaki **sürüm damgasının** değiştiğini gör (`v1.0.0 · 2026.07.21`).
 Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
 
-## 3. Akış (5 adım)
+## 3. Akış (4 adım)
 
     1  Taşınmaz — ne değerleniyor (konut/ticari/karma) + parsel kimliği ve alanları
-    2  İmar Durumu — lejant (liste), TAKS/KAKS/Hmax **veya** doğrudan alan girişi,
-       çekme mesafeleri (opsiyonel), bodrum ve çatı arası emsal kararları, plan notları
-    3  Proje — imar haklarına göre kapasite özeti, konut tipi ve villa kurgusu:
-       villa büyüklüğünden adede **veya** villa adedinden büyüklüğe
-    4  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
+    2  İmar ve Proje — lejant (liste), TAKS/KAKS/Hmax **veya** doğrudan alan girişi,
+       çekme mesafeleri (opsiyonel), emsal dışı alanlar, konut tipi, villa kurgusu
+       ve canlı kapasite önizlemesi — hepsi tek ekranda
+    3  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
        peyzaj/bahçe (alan otomatik gelir, elle değiştirilebilir), satış birim değeri
-    5  Değerleme — müteahhit kârı, finansman oranı, kat karşılığı (açılır/kapanır)
+    4  Değerleme — müteahhit kârı, finansman oranı, kat karşılığı (açılır/kapanır)
     →  Sonuç ekranı: KPI kartları, kapasite dökümü, fizibilite,
-       uzman değerlendirmesi · **PDF ve Excel indirme**
+       uzman değerlendirmesi · **PDF ve Excel indirme** (Dora logolu)
+
+### Emsal dışı satılabilir alan
+
+Bir alanın **emsale dahil olması** ile **satılabilir olması** ayrı sorulardır.
+Bodrum ve çatı arası için ikisi ayrı ayrı sorulur; ayrıca villa başına
+"diğer emsal dışı satılabilir alan" girilebilir (kapalı balkon, teras, eklenti…).
+
+    Örnek: emsale konu 500 m² + emsal dışı satılabilir 50 m² = 550 m² satılabilir alan
+
+Sonuç ekranı ve çıktılar bu ayrımı üç satır hâlinde gösterir.
 
 ## 4. Proje Yapısı
 
@@ -60,8 +77,10 @@ Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
       advisor.ts         Kural bazlı uzman yorumları
       engine.test.ts     Golden testler (elle doğrulanmış sayılar)
     src/ui/              Arayüz bileşenleri ve tasarım sistemi
-    src/data/            2026 Bakanlık birim maliyetleri
+    src/data/            2026 Bakanlık birim maliyetleri + plan lejantları
     src/export/          PDF (jsPDF + gömülü Türkçe font) ve Excel (ExcelJS)
+    src/brand/           Kurumsal kimlik: Dora logosu (gömülü) ve ibare metinleri
+    public/dora-logo.png Arayüzde kullanılan logo
 
 Dışa aktarma modülleri **yalnızca butona basıldığında** indirilir; uygulamanın
 ilk açılışı bu yüzden hafiftir (~62 KB).
@@ -81,7 +100,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (50 test)
+    npm test          motor + arayüz + dışa aktarma testleri (54 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)

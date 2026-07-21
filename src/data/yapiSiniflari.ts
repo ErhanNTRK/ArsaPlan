@@ -62,3 +62,21 @@ export const ILLER = [
   'Niğde','Ordu','Osmaniye','Rize','Sakarya','Samsun','Siirt','Sinop','Sivas','Şanlıurfa','Şırnak',
   'Tekirdağ','Tokat','Trabzon','Tunceli','Uşak','Van','Yalova','Yozgat','Zonguldak',
 ];
+
+/** Plan lejantları — imar durumu belgelerinde en sık karşılaşılan fonksiyonlar */
+export const LEJANTLAR = [
+  'Konut Alanı',
+  'Az Yoğunluklu Konut Alanı',
+  'Orta Yoğunluklu Konut Alanı',
+  'Yüksek Yoğunluklu Konut Alanı',
+  'Gelişme Konut Alanı',
+  'Ticaret Alanı',
+  'Merkezi İş Alanı (MİA)',
+  'Ticaret + Konut Alanı (TİCK)',
+  'Konut + Ticaret Alanı',
+  'Günübirlik Tesis Alanı',
+  'Turizm Tesis Alanı',
+  'Sanayi ve Depolama Alanı',
+  'Akaryakıt ve Servis İstasyonu Alanı',
+  'Diğer (elle yazınız)',
+];

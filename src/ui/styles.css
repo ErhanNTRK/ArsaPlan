@@ -34,7 +34,38 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.app { max-width: 760px; margin: 0 auto; padding-bottom: 96px; }
+.app { max-width: 900px; margin: 0 auto; padding-bottom: 104px; }
+
+/* ── Yeni bileşenler ── */
+.cols { display: grid; gap: 12px; }
+.mini-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.mini-kpi.three { grid-template-columns: repeat(3, 1fr); }
+.mini-kpi > div {
+  background: var(--navy-50); border-radius: var(--r-sm); padding: 11px 12px;
+  display: flex; flex-direction: column; gap: 3px;
+}
+.mini-kpi span { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
+.mini-kpi b { font-size: 17px; font-weight: 700; letter-spacing: -.3px; color: var(--navy); font-variant-numeric: tabular-nums; }
+.result-preview { border-color: var(--navy); }
+.breakdown { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
+.breakdown b { color: var(--text); }
+.link-btn {
+  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
+  font-size: 12px; font-weight: 600; color: var(--navy-2); text-decoration: underline;
+}
+.blocker { background: var(--red-dim); border-color: #f3c6c2; color: var(--red); font-size: 13px; font-weight: 600; }
+.topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand-logo { height: 30px; width: auto; background: #fff; border-radius: 6px; padding: 4px 7px; flex-shrink: 0; }
+.brand-footer {
+  display: flex; align-items: center; gap: 12px; margin-top: 16px; padding: 14px 16px;
+  background: #fff; border: 1px solid var(--line); border-radius: var(--r-sm);
+  font-size: 12px; color: var(--text-2); line-height: 1.5;
+}
+.brand-footer img { height: 34px; width: auto; flex-shrink: 0; }
+.brand-footer b { color: var(--text); font-weight: 700; }
+.choice-grid.two { grid-template-columns: 1fr 1fr; }
+@media (max-width: 420px) { .choice-grid.two { grid-template-columns: 1fr; } }
+.navbar-inner { display: flex; gap: 10px; width: 100%; max-width: 900px; margin: 0 auto; }
 
 /* ── Başlık + ilerleme ── */
 .topbar {
@@ -122,10 +153,9 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 /* ── Alt gezinme ── */
 .navbar {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  background: rgba(255,255,255,.94); backdrop-filter: blur(12px);
+  background: rgba(255,255,255,.95); backdrop-filter: blur(14px);
   border-top: 1px solid var(--line);
   padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-  display: flex; gap: 10px; max-width: 760px; margin: 0 auto;
 }
 .btn {
   flex: 1; min-height: 46px; font-family: inherit; font-size: 14.5px; font-weight: 700;
@@ -184,22 +214,33 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 .advice.bilgi .advice-title { color: var(--navy); }
 
 .note-box { background: var(--navy-50); border-radius: var(--r-sm); padding: 12px 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
-.stamp { text-align: center; font-size: 11px; color: var(--text-3); padding: 14px 0 4px; }
+.stamp { text-align: center; font-size: 11px; color: var(--text-3); padding: 14px 0 4px; line-height: 1.6; }
 
 /* ── Yazdırma / PDF ── */
 @media print {
   body { background: #fff; }
   .topbar, .navbar, .no-print { display: none !important; }
   .app { max-width: none; padding: 0; }
-  .card, .kpi, .advice { box-shadow: none; break-inside: avoid; }
+  .card, .kpi, .advice, .brand-footer { box-shadow: none; break-inside: avoid; }
   .kpi.hero { background: #fff !important; border: 2px solid var(--navy) !important; }
   .kpi.hero .kpi-value { color: var(--navy) !important; }
   .kpi.hero .kpi-label, .kpi.hero .kpi-sub { color: var(--text-2) !important; }
   .step { padding: 0; }
 }
 
-@media (min-width: 700px) {
-  .step { padding: 26px 22px 10px; }
+@media (min-width: 760px) {
+  .step { padding: 28px 24px 12px; }
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .kpi.hero { grid-column: span 2; }
+  .cols { grid-template-columns: 1fr 1fr; align-items: start; }
+  .cols > .card:only-child,
+  .cols > .result-preview { grid-column: 1 / -1; }
+  .card { padding: 20px; }
+  .step-title { font-size: 26px; }
+  input, select, textarea { font-size: 15px; }
+  .topbar { padding: 16px 24px; }
+}
+@media (max-width: 380px) {
+  .grid-3 { grid-template-columns: 1fr 1fr; }
+  .mini-kpi.three { grid-template-columns: 1fr; }
 }

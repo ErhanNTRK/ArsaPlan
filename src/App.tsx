@@ -2,48 +2,48 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ProjectInput } from './engine';
 import { analyze } from './engine';
 import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
-import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8, Step9, type Upd, type SetTop } from './ui/Steps';
+import { Step1, Step2, Step3, Step4, type Upd, type SetTop } from './ui/Steps';
 import { Result } from './ui/Result';
+import { BRAND } from './brand/brand';
 
-/** Sürüm damgası — güncelleme canlıya çıktı mı, tek bakışta anlaşılır. */
-const VERSION = 'v1.1.0 · 2026.07.21';
-const DRAFT_KEY = 'arsa-analiz-taslak-v2';
+const VERSION = BRAND.version;
+const DRAFT_KEY = 'arsaplan-taslak-v2';
 
 const DEFAULT_INPUT: ProjectInput = {
   assetType: 'konut',
   housingType: 'villa',
   parcel: { il: 'İstanbul', ilce: '', mahalle: '', ada: '', parsel: '', area: 0, netArea: 0, width: 0, depth: 0 },
   zoning: {
-    mode: 'taks-kaks', lejant: '', taks: null, kaks: null, hmax: null, floors: null,
+    mode: 'taks-kaks', lejant: '', useSetbacks: false,
+    taks: null, kaks: null, hmax: null, floors: null,
     directTotalArea: 0, directFootprint: 0,
     setbackFront: 5, setbackRear: 3, setbackSideLeft: 3, setbackSideRight: 3, planNotes: '',
   },
   emsal: {
-    hasBasement: true, basementInEmsal: false, basementPerUnit: 0,
-    hasAttic: false, atticInEmsal: false, atticPerUnit: 0,
+    hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
+    hasAttic: false, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
+    extraSaleablePerUnit: 0,
   },
-  villa: { villaType: 'mustakil', grossPerVilla: 0, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.65 },
+  villa: {
+    mode: 'alan', unitCountManual: 0, villaType: 'mustakil',
+    grossPerVilla: 0, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.65,
+  },
   cost: {
     buildingClass: VILLA_DEFAULT_CLASS,
     unitCost: YAPI_SINIFLARI.find((s) => s.code === VILLA_DEFAULT_CLASS)!.unitCost,
-    inflationRate: 0, basementCostFactor: 0.6, atticCostFactor: 0.5, extrasRate: 0.12,
+    inflationRate: 0, extrasRate: 0.12,
   },
-  site: { landscapeArea: 0, landscapeUnitCost: 1200, infrastructureCost: 0, gardenPricePerM2: 0 },
+  site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 0 },
   sales: { unitPrice: 0 },
-  residual: { profitRate: 0.25, useFinance: false, financeRate: 0.35, months: 24, utilization: 0.4 },
-  share: { ownerShare: 0.45 },
+  residual: { profitRate: 0.25, financeRateOfCost: 0 },
+  share: { enabled: true, ownerShare: 0.45 },
 };
 
 const STEPS = [
-  { title: 'Değerleme Konusu ve Taşınmaz', desc: 'Ne değerleniyor, hangi parsel?' },
-  { title: 'Konut Tipi', desc: 'Parselde geliştirilecek konut ürünü.' },
-  { title: 'İmar Bilgileri', desc: 'Yapılaşma hakları, çekme mesafeleri, bodrum ve çatı arası.' },
-  { title: 'Villa Özellikleri', desc: 'Villa tipi, büyüklüğü ve yerleşim düzeni.' },
-  { title: 'Yapım Maliyeti', desc: '2026 Bakanlık birim maliyetleri üzerinden.' },
-  { title: 'Çevre Düzenlemesi', desc: 'Peyzaj, altyapı ve bahçe değeri.' },
-  { title: 'Satış Bilgileri', desc: 'Satış birim değeri ve hasılat.' },
-  { title: 'Kâr ve Finansman', desc: 'Müteahhit kârı ve finansman varsayımları.' },
-  { title: 'Kat Karşılığı', desc: 'Paylaşım oranı ve karşılaştırma.' },
+  { title: 'Taşınmaz', desc: 'Ne değerleniyor ve hangi parsel?' },
+  { title: 'İmar ve Proje', desc: 'Yapılaşma hakları, emsal dışı alanlar ve villa kurgusu.' },
+  { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti, peyzaj ve satış değeri.' },
+  { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];
 const TOTAL = STEPS.length;
 
@@ -91,18 +91,24 @@ export default function App() {
       if (!input.parcel.area) return 'Parsel alanı giriniz.';
       if (!input.parcel.netArea) return 'Net parsel alanı giriniz.';
     }
-    if (step === 3) {
+    if (step === 2) {
       const z = input.zoning;
-      if (z.mode === 'taks-kaks' && z.taks == null && z.kaks == null && !input.parcel.width) {
-        return 'TAKS, KAKS veya parsel en/boy bilgilerinden en az biri gereklidir.';
+      if (z.mode === 'taks-kaks' && z.taks == null && z.kaks == null) {
+        return 'TAKS veya KAKS değerlerinden en az birini giriniz.';
       }
-      if (z.mode === 'dogrudan' && !z.directFootprint && !z.directTotalArea && !input.parcel.width) {
+      if (z.mode === 'dogrudan' && !z.directFootprint && !z.directTotalArea) {
         return 'Taban oturumu veya toplam inşaat alanı giriniz.';
       }
+      if (z.useSetbacks && (!input.parcel.width || !input.parcel.depth)) {
+        return 'Çekme mesafesi hesabı için parsel en ve boy ölçülerini giriniz.';
+      }
+      if (input.villa.mode === 'alan' && !input.villa.grossPerVilla) return 'Villa brüt alanı giriniz.';
+      if (input.villa.mode === 'adet' && !input.villa.unitCountManual) return 'Villa adedi giriniz.';
     }
-    if (step === 4 && !input.villa.grossPerVilla) return 'Villa brüt alanı giriniz.';
-    if (step === 5 && !input.cost.unitCost) return 'Birim maliyet giriniz.';
-    if (step === 7 && !input.sales.unitPrice) return 'Satış birim değeri giriniz.';
+    if (step === 3) {
+      if (!input.cost.unitCost) return 'Birim maliyet giriniz.';
+      if (!input.sales.unitPrice) return 'Satış birim değeri giriniz.';
+    }
     return null;
   };
   const stop = blocker();
@@ -119,8 +125,13 @@ export default function App() {
   return (
     <div className="app">
       <div className="topbar">
-        <h1>Arsa Değer Analizi</h1>
-        <p>Proje Geliştirme · Artık Değer (Residual) Yöntemi</p>
+        <div className="topbar-inner">
+          <div>
+            <h1>{BRAND.appName}</h1>
+            <p>{BRAND.tagline}</p>
+          </div>
+          <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+        </div>
         <div className="progress-row">
           <div className="progress-track">
             <div className="progress-fill" style={{ width: `${Math.min(step, TOTAL + 1) / (TOTAL + 1) * 100}%` }} />
@@ -142,35 +153,34 @@ export default function App() {
         {step === 2 && <Step2 {...P} />}
         {step === 3 && <Step3 {...P} />}
         {step === 4 && <Step4 {...P} />}
-        {step === 5 && <Step5 {...P} />}
-        {step === 6 && <Step6 {...P} />}
-        {step === 7 && <Step7 {...P} />}
-        {step === 8 && <Step8 {...P} />}
-        {step === 9 && <Step9 {...P} />}
         {isResult && <Result input={input} result={result} version={VERSION} />}
 
         {stop && !isResult && (
-          <div className="card" style={{ background: 'var(--red-dim)', borderColor: '#f3c6c2' }}>
-            <div style={{ fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{stop}</div>
+          <div className="card blocker">{stop}</div>
+        )}
+        {!isResult && (
+          <div className="stamp">
+            {BRAND.preparedBy}<br />{BRAND.authorLine} · {BRAND.appName} {VERSION}
           </div>
         )}
-        {!isResult && <div className="stamp">{VERSION}</div>}
       </div>
 
       <div className="navbar no-print">
-        {isResult ? (
-          <>
-            <button className="btn btn-ghost" onClick={() => setStep(TOTAL)}>Geri</button>
-            <button className="btn btn-primary" onClick={reset}>Yeni Analiz</button>
-          </>
-        ) : (
-          <>
-            <button className="btn btn-ghost" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>Geri</button>
-            <button className="btn btn-primary" disabled={!!stop} onClick={() => setStep((s) => s + 1)}>
-              {step === TOTAL ? 'Sonucu Gör' : 'Devam'}
-            </button>
-          </>
-        )}
+        <div className="navbar-inner">
+          {isResult ? (
+            <>
+              <button className="btn btn-ghost" onClick={() => setStep(TOTAL)}>Geri</button>
+              <button className="btn btn-primary" onClick={reset}>Yeni Analiz</button>
+            </>
+          ) : (
+            <>
+              <button className="btn btn-ghost" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>Geri</button>
+              <button className="btn btn-primary" disabled={!!stop} onClick={() => setStep((s) => s + 1)}>
+                {step === TOTAL ? 'Sonucu Gör' : 'Devam'}
+              </button>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

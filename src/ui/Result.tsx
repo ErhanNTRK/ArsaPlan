@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
+import { BRAND } from '../brand/brand';
 
 const BINDING_TEXT: Record<string, string> = {
   'TAKS': 'Taban alanı katsayısı (TAKS)',
@@ -100,14 +101,25 @@ export function Result({ input, result, version }: {
         <Row label="Villa Başına Taban" value={fmtM2(c.footprintPerUnit)} />
         {c.kaksLimit != null && <Row label="KAKS'a Göre Emsal Hakkı" value={fmtM2(c.kaksLimit)} />}
         <Row label="Emsale Konu Alan" value={fmtM2(c.emsalArea)} />
+        <Row label="Villa Başına Zemin Üstü Brüt" value={fmtM2(c.grossPerVilla)} />
         {c.basementArea > 0 && (
-          <Row label={`Bodrum Alanı (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`} value={fmtM2(c.basementArea)} />
+          <Row label={`Bodrum — ${c.unitCount} × ${fmtM2(c.basementArea / Math.max(1, c.unitCount))} (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`}
+               value={fmtM2(c.basementArea)} />
         )}
         {c.atticArea > 0 && (
-          <Row label={`Çatı Arası (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`} value={fmtM2(c.atticArea)} />
+          <Row label={`Çatı Arası — ${c.unitCount} × ${fmtM2(c.atticArea / Math.max(1, c.unitCount))} (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`}
+               value={fmtM2(c.atticArea)} />
+        )}
+        {c.extraSaleableArea > 0 && (
+          <Row label={`Diğer Emsal Dışı Satılabilir — ${c.unitCount} × ${fmtM2(c.extraSaleableArea / Math.max(1, c.unitCount))}`}
+               value={fmtM2(c.extraSaleableArea)} />
         )}
         <Row label="Toplam İnşaat Alanı (brüt)" value={fmtM2(c.grossArea)} />
-        <Row label="Satılabilir Alan" value={fmtM2(c.saleableArea)} />
+        <Row label="Satılabilir Alan — emsale konu" value={fmtM2(c.saleableWithinEmsal)} />
+        {c.saleableOutsideEmsal > 0 && (
+          <Row label="Satılabilir Alan — emsal dışı" value={fmtM2(c.saleableOutsideEmsal)} />
+        )}
+        <Row label="TOPLAM SATILABİLİR ALAN" value={fmtM2(c.saleableArea)} tone="total" />
         <Row label="Bahçe / Açık Alan" value={fmtM2(c.gardenArea)} />
         <Row label="Ortalama Villa Alanı (brüt)" value={fmtM2(input.villa.grossPerVilla)} />
         <Row label="Satılabilir m² Başına Maliyet" value={fmtTLm2(f.costPerSaleableM2)} />
@@ -121,8 +133,7 @@ export function Result({ input, result, version }: {
         <Row label="Zemin Üstü İnşaat" value={fmtTL(f.aboveGroundCost)} />
         {f.basementCost > 0 && <Row label="Bodrum İnşaatı" value={fmtTL(f.basementCost)} />}
         {f.atticCost > 0 && <Row label="Çatı Arası" value={fmtTL(f.atticCost)} />}
-        {f.landscapeCost > 0 && <Row label="Peyzaj ve Çevre Düzenlemesi" value={fmtTL(f.landscapeCost)} />}
-        {f.infrastructureCost > 0 && <Row label="Altyapı ve Çevre İşleri" value={fmtTL(f.infrastructureCost)} />}
+        {f.landscapeCost > 0 && <Row label="Peyzaj ve Bahçe Düzenlemesi" value={fmtTL(f.landscapeCost)} />}
         {f.extrasCost > 0 && <Row label="Proje, Ruhsat, Harç, Müşavirlik" value={fmtTL(f.extrasCost)} />}
         {f.financeCost > 0 && <Row label="Finansman Gideri" value={fmtTL(f.financeCost)} />}
         <Row label="Toplam Yapım Maliyeti" value={fmtTL(f.totalCost)} tone="neg" />
@@ -137,6 +148,7 @@ export function Result({ input, result, version }: {
         <Row label="Fiyat Düşüşüne Dayanım" value={fmtPct(f.safetyMargin)} />
       </div>
 
+      {input.share.enabled && (
       <div className="card">
         <div className="card-title">Kat Karşılığı Karşılaştırması</div>
         <Row label={`Arsa Sahibi Payı (%${(s.ownerShare * 100).toFixed(0)})`} value={`${fmtNum(s.ownerUnits, 1)} villa · ${fmtM2(s.ownerArea)}`} />
@@ -152,7 +164,11 @@ export function Result({ input, result, version }: {
               : s.verdict === 'arsa-sahibi-lehine' ? 'Arsa sahibi lehine' : 'Müteahhit lehine'}
           </span>
         </div>
+        <div className="hint" style={{ marginTop: 8 }}>
+          Kat karşılığı yöntemi ile artık değer yöntemi farklı sonuç verebilir; bu bölüm karşılaştırma amaçlıdır.
+        </div>
       </div>
+      )}
 
       <div className="card">
         <div className="card-title">Uzman Değerlendirmesi</div>
@@ -181,7 +197,13 @@ export function Result({ input, result, version }: {
         </div>
       </div>
 
-      <div className="stamp">{version}</div>
+      <div className="brand-footer">
+        <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+        <div>
+          <b>{BRAND.preparedBy}</b><br />
+          {BRAND.authorLine} · {BRAND.appName} {version}
+        </div>
+      </div>
     </>
   );
 }

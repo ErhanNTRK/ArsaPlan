@@ -15,7 +15,7 @@ export function analyze(input: ProjectInput): AnalysisResult {
   const share = computeShare(capacity, financial, input.share);
   const advice = buildAdvice(
     input.parcel, input.zoning, input.villa, input.emsal, input.cost, input.site, input.residual,
-    capacity, financial, share,
+    capacity, financial, share, input.share.enabled,
   );
   return { capacity, financial, share, advice };
 }

@@ -10,18 +10,20 @@ const base: ProjectInput = {
   housingType: 'villa',
   parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Merkez', ada: '101', parsel: '5',
             area: 2500, netArea: 2350, width: 50, depth: 50 },
-  zoning: { mode: 'taks-kaks', lejant: 'Konut', taks: 0.30, kaks: 0.60, hmax: 9.5, floors: 2,
+  zoning: { mode: 'taks-kaks', lejant: 'Konut Alanı', useSetbacks: true,
+            taks: 0.30, kaks: 0.60, hmax: 9.5, floors: 2,
             directTotalArea: 0, directFootprint: 0,
             setbackFront: 5, setbackRear: 3, setbackSideLeft: 3, setbackSideRight: 3, planNotes: '' },
-  emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0,
-           hasAttic: true, atticInEmsal: false, atticPerUnit: 0 },
-  villa: { villaType: 'mustakil', grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
-  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0,
-          basementCostFactor: 0.6, atticCostFactor: 0.5, extrasRate: 0 },
-  site: { landscapeArea: 0, landscapeUnitCost: 0, infrastructureCost: 0, gardenPricePerM2: 0 },
+  emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
+           hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
+           extraSaleablePerUnit: 0 },
+  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil',
+           grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
+  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0, extrasRate: 0 },
+  site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
   sales: { unitPrice: 90000 },
-  residual: { profitRate: 0.25, useFinance: false, financeRate: 0.35, months: 24, utilization: 0.4 },
-  share: { ownerShare: 0.45 },
+  residual: { profitRate: 0.25, financeRateOfCost: 0 },
+  share: { enabled: true, ownerShare: 0.45 },
 };
 
 describe('yapılaşma zarfı', () => {
@@ -82,14 +84,7 @@ describe('kapasite — TAKS/KAKS yöntemi', () => {
     expect(c3.unitCount).toBe(4);
     expect(c3.binding).toBe('KAKS');
   });
-  it('çekme mesafeleri daraldığında bağlayıcı kısıt değişir', () => {
-    const dar = computeVillaCapacity(base.parcel,
-      { ...base.zoning, setbackFront: 15, setbackRear: 15, setbackSideLeft: 10, setbackSideRight: 10 },
-      base.villa, base.emsal);
-    expect(dar.envelope.envelopeArea).toBe(600);
-    expect(dar.unitCount).toBe(3);
-    expect(dar.binding).toBe('ÇEKME MESAFESİ');
-  });
+
 });
 
 describe('kapasite — doğrudan alan girişi', () => {
@@ -113,30 +108,114 @@ describe('kapasite — doğrudan alan girişi', () => {
   });
 });
 
+describe('villa adedinden büyüklüğe (adet modu)', () => {
+  const adet = computeVillaCapacity(base.parcel, base.zoning,
+    { ...base.villa, mode: 'adet', unitCountManual: 3 }, base.emsal);
+
+  it('girilen adedi korur ve villa büyüklüğünü kapasiteden türetir', () => {
+    expect(adet.unitCount).toBe(3);
+    expect(adet.grossPerVilla).toBe(470);      // min(705/3×2 kat, 1410/3)
+    expect(adet.footprintPerUnit).toBe(235);
+  });
+  it('bodrum ve çatı arasını türetilen tabana göre hesaplar', () => {
+    expect(adet.basementArea).toBe(3 * 235);
+    expect(adet.atticArea).toBeCloseTo(3 * 94, 6);
+    expect(adet.saleableArea).toBeCloseTo(3 * (470 + 94), 6);
+  });
+  it('kapasitenin üstünde adet girilirse villa küçülür', () => {
+    const cok = computeVillaCapacity(base.parcel, base.zoning,
+      { ...base.villa, mode: 'adet', unitCountManual: 10 }, base.emsal);
+    expect(cok.unitCount).toBe(10);
+    expect(cok.grossPerVilla).toBeLessThan(470);
+  });
+});
+
+describe('çekme mesafeleri opsiyonel', () => {
+  it('kapalıyken zarf hesaba katılmaz', () => {
+    const kapali = computeVillaCapacity(base.parcel,
+      { ...base.zoning, useSetbacks: false, setbackFront: 20, setbackRear: 20, setbackSideLeft: 20, setbackSideRight: 20 },
+      base.villa, base.emsal);
+    expect(kapali.envelope.hasGeometry).toBe(false);
+    expect(kapali.unitCount).toBe(5);          // yalnızca TAKS/KAKS belirler
+    expect(kapali.binding).toBe('TAKS');
+  });
+  it('açıkken dar zarf kapasiteyi düşürür', () => {
+    const acik = computeVillaCapacity(base.parcel,
+      { ...base.zoning, useSetbacks: true, setbackFront: 15, setbackRear: 15, setbackSideLeft: 10, setbackSideRight: 10 },
+      base.villa, base.emsal);
+    expect(acik.unitCount).toBe(3);
+    expect(acik.binding).toBe('ÇEKME MESAFESİ');
+  });
+});
+
+describe('emsal dışı satılabilir alan', () => {
+  it('çatı arası emsal dışı ama satılabilirse toplam satılabilir alanı büyütür', () => {
+    const c = computeVillaCapacity(base.parcel, base.zoning, base.villa, base.emsal);
+    expect(c.saleableWithinEmsal).toBe(5 * 240);   // 1.200 — emsale konu
+    expect(c.saleableOutsideEmsal).toBe(5 * 48);   //   240 — emsal dışı (çatı arası)
+    expect(c.saleableArea).toBe(1440);
+  });
+
+  it('bodrum satılabilir işaretlenirse satılabilir alana eklenir', () => {
+    const c = computeVillaCapacity(base.parcel, base.zoning, base.villa,
+      { ...base.emsal, basementSaleable: true });
+    expect(c.saleableOutsideEmsal).toBe(5 * (120 + 48));
+    expect(c.saleableArea).toBe(5 * (240 + 120 + 48));
+    expect(c.emsalArea).toBe(1200);                // emsal değişmez
+  });
+
+  it('diğer emsal dışı satılabilir alan hem brüte hem satılabilire girer', () => {
+    const c = computeVillaCapacity(base.parcel, base.zoning, base.villa,
+      { ...base.emsal, extraSaleablePerUnit: 10 });
+    expect(c.extraSaleableArea).toBe(50);
+    expect(c.saleableArea).toBe(1440 + 50);
+    expect(c.grossArea).toBe(2040 + 50);
+    expect(c.emsalArea).toBe(1200);
+  });
+
+  it('senaryo: 500 m² emsal + 50 m² emsal dışı = 550 m² satılabilir', () => {
+    const c = computeVillaCapacity(
+      { ...base.parcel, area: 1000, netArea: 1000, width: 0, depth: 0 },
+      { ...base.zoning, useSetbacks: false, taks: 0.50, kaks: 0.50 },
+      { ...base.villa, mode: 'adet', unitCountManual: 1, floorsPerVilla: 1 },
+      { hasBasement: false, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
+        hasAttic: false, atticInEmsal: false, atticPerUnit: 0, atticSaleable: false,
+        extraSaleablePerUnit: 50 },
+    );
+    expect(c.emsalArea).toBe(500);
+    expect(c.saleableWithinEmsal).toBe(500);
+    expect(c.saleableOutsideEmsal).toBe(50);
+    expect(c.saleableArea).toBe(550);
+  });
+});
+
 describe('finansal sonuç', () => {
   const r = analyze(base);
-  it('bodrum ve çatı arasını indirimli birim maliyetle hesaplar', () => {
-    expect(r.financial.aboveGroundCost).toBe(1200 * 23400);      // 28.080.000
-    expect(r.financial.basementCost).toBe(600 * 23400 * 0.6);    //  8.424.000
-    expect(r.financial.atticCost).toBe(240 * 23400 * 0.5);       //  2.808.000
-    expect(r.financial.constructionCost).toBe(39312000);
+  it('tüm inşaat alanını aynı birim maliyetle hesaplar', () => {
+    expect(r.financial.aboveGroundCost).toBe(1200 * 23400);
+    expect(r.financial.basementCost).toBe(600 * 23400);
+    expect(r.financial.atticCost).toBe(240 * 23400);
+    expect(r.financial.constructionCost).toBe(2040 * 23400);     // 47.736.000
   });
   it('artık arsa değerini ve m² değerini üretir', () => {
     expect(r.financial.revenue).toBe(1440 * 90000);              // 129.600.000
     expect(r.financial.developerProfit).toBe(32400000);
-    expect(r.financial.residualLandValue).toBe(57888000);
-    expect(r.financial.landUnitValue).toBeCloseTo(57888000 / 2500, 6);
+    expect(r.financial.residualLandValue).toBe(129600000 - 47736000 - 32400000); // 49.464.000
+    expect(r.financial.landUnitValue).toBeCloseTo(49464000 / 2500, 6);
   });
   it('başabaş çarpanında artık değer tam sıfırlanır', () => {
     const s = r.financial.breakEvenFactor;
     const rlv = r.financial.revenue * s - r.financial.totalCost - r.financial.revenue * s * 0.25;
     expect(Math.abs(rlv)).toBeLessThan(0.01);
   });
-  it('peyzaj ve altyapı maliyeti toplama girer', () => {
-    const r2 = analyze({ ...base, site: { landscapeArea: 0, landscapeUnitCost: 1200, infrastructureCost: 2000000, gardenPricePerM2: 0 } });
-    expect(r2.financial.landscapeCost).toBe(1750 * 1200);        // bahçe alanı otomatik
-    expect(r2.financial.totalCost).toBe(39312000 + 2100000 + 2000000);
-    expect(r2.financial.residualLandValue).toBeLessThan(r.financial.residualLandValue);
+  it('peyzaj alanı otomatik hesaplanır ve maliyete girer', () => {
+    const r2 = analyze({ ...base, site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 0 } });
+    expect(r2.financial.landscapeCost).toBe(1750 * 1200);        // net parsel − taban oturumu
+    expect(r2.financial.totalCost).toBe(47736000 + 2100000);
+  });
+  it('peyzaj alanı elle girilirse o kullanılır', () => {
+    const r2 = analyze({ ...base, site: { landscapeArea: 1000, landscapeUnitCost: 1200, gardenPricePerM2: 0 } });
+    expect(r2.financial.landscapeCost).toBe(1000 * 1200);
   });
   it('bahçe ayrı fiyatlanınca hasılat artar', () => {
     const r3 = analyze({ ...base, site: { ...base.site, gardenPricePerM2: 5000 } });
@@ -148,9 +227,10 @@ describe('finansal sonuç', () => {
     expect(r4.financial.effectiveUnitCost).toBeCloseTo(28080, 6);
     expect(r4.financial.residualLandValue).toBeLessThan(r.financial.residualLandValue);
   });
-  it('finansman açıldığında döngü oluşmadan maliyet artar', () => {
-    const r5 = analyze({ ...base, residual: { ...base.residual, useFinance: true } });
-    expect(r5.financial.financeCost).toBeCloseTo(39312000 * 0.35 * 2 * 0.4, 4);
+  it('finansman oranı toplam maliyete eklenir', () => {
+    const r5 = analyze({ ...base, residual: { profitRate: 0.25, financeRateOfCost: 0.20 } });
+    expect(r5.financial.financeCost).toBeCloseTo(47736000 * 0.20, 4);
+    expect(r5.financial.totalCost).toBeCloseTo(47736000 * 1.20, 4);
     expect(r5.financial.residualLandValue).toBeLessThan(r.financial.residualLandValue);
   });
 });
@@ -158,20 +238,21 @@ describe('finansal sonuç', () => {
 describe('kat karşılığı', () => {
   const r = analyze(base);
   it('dengeli payı artık değerden türetir', () => {
-    expect(r.share.balancedShare).toBeCloseTo(57888000 / 129600000, 6);
+    expect(r.share.balancedShare).toBeCloseTo(49464000 / 129600000, 6);
   });
   it('paylaşım toplamları hasılatı korur', () => {
     expect(r.share.ownerValue + r.share.contractorValue).toBeCloseTo(r.financial.revenue, 4);
   });
-  it('girilen pay denge bandındaysa dengeli der', () => {
-    // dengeli pay %44,7 · girilen %45 → ±2 puan bandında
-    expect(r.share.verdict).toBe('dengeli');
+  it('pay dengenin üstündeyse arsa sahibi lehine der', () => {
+    // dengeli pay %38,2 · girilen %45
+    expect(r.share.verdict).toBe('arsa-sahibi-lehine');
   });
-  it('pay dengenin belirgin üstündeyse arsa sahibi lehine der', () => {
-    expect(analyze({ ...base, share: { ownerShare: 0.60 } }).share.verdict).toBe('arsa-sahibi-lehine');
+  it('kat karşılığı kapalıyken yorum üretilmez', () => {
+    const kapali = analyze({ ...base, share: { enabled: false, ownerShare: 0.45 } });
+    expect(kapali.advice.some((a) => a.title.includes('Kat karşılığı'))).toBe(false);
   });
   it('pay dengenin belirgin altındaysa müteahhit lehine der', () => {
-    expect(analyze({ ...base, share: { ownerShare: 0.30 } }).share.verdict).toBe('muteahhit-lehine');
+    expect(analyze({ ...base, share: { enabled: true, ownerShare: 0.30 } }).share.verdict).toBe('muteahhit-lehine');
   });
 });
 

@@ -20,8 +20,11 @@ const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v
 /** Çekme mesafeleri sonrası yapılaşabilir zarf */
 export function computeEnvelope(parcel: Parcel, zoning: Zoning): EnvelopeResult {
   const warnings: string[] = [];
-  const hasGeometry = parcel.width > 0 && parcel.depth > 0;
+  const hasGeometry = zoning.useSetbacks && parcel.width > 0 && parcel.depth > 0;
 
+  if (!zoning.useSetbacks) {
+    return { buildableWidth: 0, buildableDepth: 0, envelopeArea: 0, envelopeRatio: 0, hasGeometry: false, geometryDeviation: 0, warnings };
+  }
   if (!hasGeometry) {
     warnings.push('Parsel en/boy girilmedi. Çekme mesafeleri hesaba katılamıyor; kapasite yalnızca imar hakları üzerinden bulunacak.');
     return { buildableWidth: 0, buildableDepth: 0, envelopeArea: 0, envelopeRatio: 0, hasGeometry: false, geometryDeviation: 0, warnings };
@@ -78,34 +81,80 @@ export function computeVillaCapacity(
   const effectiveFootprint = footprintWinner.value;
 
   const floorsPerUnit = Math.max(1, villa.floorsPerVilla);
-  const footprintPerUnit = safeDiv(villa.grossPerVilla, floorsPerUnit);
-  const countByFootprint = footprintPerUnit > 0 ? Math.floor(effectiveFootprint / footprintPerUnit) : 0;
 
-  /* ── Emsal istisnaları: bodrum ve çatı arası ── */
-  const basementPerUnit = emsal.hasBasement
-    ? (emsal.basementPerUnit > 0 ? emsal.basementPerUnit : footprintPerUnit) : 0;
-  const atticPerUnit = emsal.hasAttic
-    ? (emsal.atticPerUnit > 0 ? emsal.atticPerUnit : footprintPerUnit * 0.4) : 0;
+  /* ══ Villa kurgusu ══
+     'alan' modunda villa büyüklüğü verilir, adet hesaplanır.
+     'adet' modunda villa sayısı verilir, villa büyüklüğü kapasiteden türetilir. */
+  let grossPerVilla = villa.grossPerVilla;
+  let unitCount = 0;
+  let binding: BindingConstraint = 'YOK';
+  let countByFootprint = 0;
+  let countByEmsal: number | null = null;
+  let basementPerUnit = 0;
+  let atticPerUnit = 0;
+  let emsalPerUnit = 0;
 
-  const emsalPerUnit = villa.grossPerVilla
-    + (emsal.hasBasement && emsal.basementInEmsal ? basementPerUnit : 0)
-    + (emsal.hasAttic && emsal.atticInEmsal ? atticPerUnit : 0);
-  const grossPerUnit = villa.grossPerVilla + basementPerUnit + atticPerUnit;
+  const extraSale = Math.max(0, emsal.extraSaleablePerUnit);
+  const extras = (fp: number) => {
+    const b = emsal.hasBasement ? (emsal.basementPerUnit > 0 ? emsal.basementPerUnit : fp) : 0;
+    const a = emsal.hasAttic ? (emsal.atticPerUnit > 0 ? emsal.atticPerUnit : fp * 0.4) : 0;
+    return {
+      b, a,
+      inEmsal: (emsal.hasBasement && emsal.basementInEmsal ? b : 0) + (emsal.hasAttic && emsal.atticInEmsal ? a : 0),
+      /** emsal dışı olup satılabilir sayılan alanlar */
+      outsideSaleable:
+        (emsal.hasBasement && emsal.basementSaleable && !emsal.basementInEmsal ? b : 0) +
+        (emsal.hasAttic && emsal.atticSaleable && !emsal.atticInEmsal ? a : 0) +
+        extraSale,
+    };
+  };
 
-  const countByEmsal = kaksLimit != null && emsalPerUnit > 0 ? Math.floor(kaksLimit / emsalPerUnit) : null;
-
-  let unitCount = footprintCandidates.length ? countByFootprint : (countByEmsal ?? 0);
-  let binding: BindingConstraint = footprintCandidates.length ? footprintWinner.source
-    : (countByEmsal != null ? (direct ? 'DOĞRUDAN İNŞAAT ALANI' : 'KAKS') : 'YOK');
-  if (countByEmsal != null && countByEmsal < unitCount) {
-    unitCount = countByEmsal;
-    binding = direct ? 'DOĞRUDAN İNŞAAT ALANI' : 'KAKS';
+  if (villa.mode === 'adet') {
+    const n = Math.max(0, Math.floor(villa.unitCountManual));
+    unitCount = n;
+    if (n > 0) {
+      const fpMax = effectiveFootprint > 0 ? effectiveFootprint / n : Infinity;
+      const e0 = extras(isFinite(fpMax) ? fpMax : 0);
+      const grossFromFootprint = isFinite(fpMax) ? fpMax * floorsPerUnit : Infinity;
+      const grossFromEmsal = kaksLimit != null ? Math.max(0, kaksLimit / n - e0.inEmsal) : Infinity;
+      grossPerVilla = Math.min(grossFromFootprint, grossFromEmsal);
+      if (!isFinite(grossPerVilla)) grossPerVilla = 0;
+      binding = grossFromEmsal <= grossFromFootprint
+        ? (direct ? 'DOĞRUDAN İNŞAAT ALANI' : 'KAKS')
+        : footprintWinner.source;
+      if (grossPerVilla <= 0) {
+        warnings.push('Girilen villa adedi için kapasite yetersiz; adedi azaltınız veya imar haklarını kontrol ediniz.');
+      }
+    }
+    const fp = safeDiv(grossPerVilla, floorsPerUnit);
+    const e = extras(fp);
+    basementPerUnit = e.b; atticPerUnit = e.a;
+    emsalPerUnit = grossPerVilla + e.inEmsal;
+    countByFootprint = fp > 0 ? Math.floor(effectiveFootprint / fp) : 0;
+    countByEmsal = kaksLimit != null && emsalPerUnit > 0 ? Math.floor(kaksLimit / emsalPerUnit) : null;
+  } else {
+    const fp = safeDiv(grossPerVilla, floorsPerUnit);
+    const e = extras(fp);
+    basementPerUnit = e.b; atticPerUnit = e.a;
+    emsalPerUnit = grossPerVilla + e.inEmsal;
+    countByFootprint = fp > 0 ? Math.floor(effectiveFootprint / fp) : 0;
+    countByEmsal = kaksLimit != null && emsalPerUnit > 0 ? Math.floor(kaksLimit / emsalPerUnit) : null;
+    unitCount = footprintCandidates.length ? countByFootprint : (countByEmsal ?? 0);
+    binding = footprintCandidates.length ? footprintWinner.source
+      : (countByEmsal != null ? (direct ? 'DOĞRUDAN İNŞAAT ALANI' : 'KAKS') : 'YOK');
+    if (countByEmsal != null && countByEmsal < unitCount) {
+      unitCount = countByEmsal;
+      binding = direct ? 'DOĞRUDAN İNŞAAT ALANI' : 'KAKS';
+    }
+    unitCount = Math.max(0, unitCount);
   }
-  unitCount = Math.max(0, unitCount);
+
+  const footprintPerUnit = safeDiv(grossPerVilla, floorsPerUnit);
+  const grossPerUnit = grossPerVilla + basementPerUnit + atticPerUnit + extraSale;
 
   /* ── Adet aralığı: yerleşim verimliliği ±8 puan ── */
   let rangeLow = unitCount, rangeHigh = unitCount;
-  if (envelope.hasGeometry && footprintPerUnit > 0) {
+  if (villa.mode === 'alan' && envelope.hasGeometry && footprintPerUnit > 0) {
     const capByOther = (footprintArea: number) => {
       let c = Math.floor(footprintArea / footprintPerUnit);
       if (taksLimit != null) c = Math.min(c, Math.floor(taksLimit / footprintPerUnit));
@@ -117,17 +166,28 @@ export function computeVillaCapacity(
   }
 
   /* ── Alan üretimi ── */
-  const saleablePerUnit = (villa.netPerVilla && villa.netPerVilla > 0 ? villa.netPerVilla : villa.grossPerVilla)
-    + atticPerUnit;   // çatı arası piyesi kullanılabilir/satılabilir alandır
+  /* Satılabilir alan = emsale konu satılabilir kısım + emsal dışı satılabilir kısım */
+  const withinEmsalPerUnit = (villa.netPerVilla && villa.netPerVilla > 0 ? villa.netPerVilla : grossPerVilla)
+    + (emsal.hasAttic && emsal.atticSaleable && emsal.atticInEmsal ? atticPerUnit : 0)
+    + (emsal.hasBasement && emsal.basementSaleable && emsal.basementInEmsal ? basementPerUnit : 0);
+  const outsidePerUnit =
+    (emsal.hasBasement && emsal.basementSaleable && !emsal.basementInEmsal ? basementPerUnit : 0) +
+    (emsal.hasAttic && emsal.atticSaleable && !emsal.atticInEmsal ? atticPerUnit : 0) +
+    extraSale;
+  const saleablePerUnit = withinEmsalPerUnit + outsidePerUnit;
+
   const emsalArea = unitCount * emsalPerUnit;
   const basementArea = unitCount * basementPerUnit;
   const atticArea = unitCount * atticPerUnit;
+  const extraSaleableArea = unitCount * extraSale;
   const grossArea = unitCount * grossPerUnit;
   const saleableArea = unitCount * saleablePerUnit;
+  const saleableWithinEmsal = unitCount * withinEmsalPerUnit;
+  const saleableOutsideEmsal = unitCount * outsidePerUnit;
   const footprintTotal = unitCount * footprintPerUnit;
   const gardenArea = Math.max(0, parcel.netArea - footprintTotal);
 
-  if (unitCount === 0) {
+  if (unitCount === 0 && villa.mode === 'alan') {
     warnings.push('Girilen koşullarda hiçbir villa yerleşmiyor. Villa büyüklüğünü, çekme mesafelerini veya imar haklarını kontrol ediniz.');
   }
   if (kaksLimit != null && emsalArea > kaksLimit + 0.5) {
@@ -144,8 +204,9 @@ export function computeVillaCapacity(
     envelope, taksLimit, kaksLimit, layoutFootprint, effectiveFootprint, footprintPerUnit,
     countByFootprint, countByEmsal, unitCount,
     unitCountRange: [Math.min(rangeLow, unitCount), Math.max(rangeHigh, unitCount)],
-    binding, emsalPerUnit, grossPerUnit, saleablePerUnit,
-    emsalArea, grossArea, saleableArea, basementArea, atticArea, footprintTotal, gardenArea,
+    binding, emsalPerUnit, grossPerUnit, saleablePerUnit, grossPerVilla,
+    emsalArea, grossArea, saleableArea, basementArea, atticArea,
+    extraSaleableArea, saleableOutsideEmsal, saleableWithinEmsal, footprintTotal, gardenArea,
     parcelEfficiency: safeDiv(grossArea, parcel.area),
     emsalUsage: kaksLimit != null ? safeDiv(emsalArea, kaksLimit) : null,
     warnings,

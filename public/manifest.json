@@ -1,6 +1,6 @@
 {
-  "name": "Arsa Değer Analizi — Proje Geliştirme",
-  "short_name": "Arsa Analiz",
+  "name": "ArsaPlan — Arsa Değer Analizi",
+  "short_name": "ArsaPlan",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -19,20 +19,20 @@ export function computeFinancial(
 ): FinancialResult {
   const effectiveUnitCost = cost.unitCost * (1 + cost.inflationRate);
 
+  /* Tüm inşaat alanı aynı birim maliyetle hesaplanır; bodrum/çatı arası için
+     ayrı katsayı yoktur — gerekiyorsa birim maliyet elle ayarlanır. */
   const aboveGroundArea = capacity.grossArea - capacity.basementArea - capacity.atticArea;
   const aboveGroundCost = aboveGroundArea * effectiveUnitCost;
-  const basementCost = capacity.basementArea * effectiveUnitCost * cost.basementCostFactor;
-  const atticCost = capacity.atticArea * effectiveUnitCost * cost.atticCostFactor;
+  const basementCost = capacity.basementArea * effectiveUnitCost;
+  const atticCost = capacity.atticArea * effectiveUnitCost;
   const constructionCost = aboveGroundCost + basementCost + atticCost;
 
   const landscapeArea = site.landscapeArea > 0 ? site.landscapeArea : capacity.gardenArea;
   const landscapeCost = landscapeArea * site.landscapeUnitCost;
-  const infrastructureCost = site.infrastructureCost;
   const extrasCost = constructionCost * cost.extrasRate;
 
-  const baseCost = constructionCost + landscapeCost + infrastructureCost + extrasCost;
-  const financeCost = residual.useFinance
-    ? baseCost * residual.financeRate * (residual.months / 12) * residual.utilization : 0;
+  const baseCost = constructionCost + landscapeCost + extrasCost;
+  const financeCost = baseCost * Math.max(0, residual.financeRateOfCost);
   const totalCost = baseCost + financeCost;
 
   const buildingRevenue = capacity.saleableArea * sales.unitPrice;
@@ -48,7 +48,7 @@ export function computeFinancial(
 
   return {
     effectiveUnitCost, aboveGroundCost, basementCost, atticCost, constructionCost,
-    landscapeCost, infrastructureCost, extrasCost, financeCost, totalCost,
+    landscapeCost, extrasCost, financeCost, totalCost,
     buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue,
     landUnitValue: safeDiv(residualLandValue, parcel.area),
     landToRevenue: safeDiv(residualLandValue, revenue),

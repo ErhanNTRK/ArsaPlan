@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import type { ProjectInput } from '../engine';
 import { analyze } from '../engine';
-import { Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8, Step9 } from './Steps';
+import { Step1, Step2, Step3, Step4 } from './Steps';
 import { Result } from './Result';
 
 const input: ProjectInput = {
@@ -11,25 +11,25 @@ const input: ProjectInput = {
   housingType: 'villa',
   parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Merkez', ada: '101', parsel: '5',
             area: 2500, netArea: 2350, width: 50, depth: 50 },
-  zoning: { mode: 'taks-kaks', lejant: 'Konut', taks: 0.30, kaks: 0.60, hmax: 9.5, floors: 2,
+  zoning: { mode: 'taks-kaks', lejant: 'Konut Alanı', useSetbacks: true, taks: 0.30, kaks: 0.60, hmax: 9.5, floors: 2,
             directTotalArea: 0, directFootprint: 0,
             setbackFront: 5, setbackRear: 3, setbackSideLeft: 3, setbackSideRight: 3,
             planNotes: 'Bodrum katlar tamamen toprak altında kaldığı sürece emsale dahil değildir.' },
-  emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0,
-           hasAttic: true, atticInEmsal: false, atticPerUnit: 0 },
-  villa: { villaType: 'mustakil', grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
-  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.15,
-          basementCostFactor: 0.6, atticCostFactor: 0.5, extrasRate: 0.12 },
-  site: { landscapeArea: 0, landscapeUnitCost: 1200, infrastructureCost: 1500000, gardenPricePerM2: 4000 },
+  emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
+           hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
+           extraSaleablePerUnit: 0 },
+  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
+  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.15, extrasRate: 0.12 },
+  site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 4000 },
   sales: { unitPrice: 90000 },
-  residual: { profitRate: 0.25, useFinance: true, financeRate: 0.35, months: 24, utilization: 0.4 },
-  share: { ownerShare: 0.45 },
+  residual: { profitRate: 0.25, financeRateOfCost: 0.15 },
+  share: { enabled: true, ownerShare: 0.45 },
 };
 const noop = () => {};
 const P = { input, upd: noop, setTop: noop };
 
 describe('adım ekranları', () => {
-  const steps = [Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8, Step9];
+  const steps = [Step1, Step2, Step3, Step4];
   steps.forEach((S, i) => {
     it(`Adım ${i + 1} render olur`, () => {
       expect(renderToString(<S {...P} />).length).toBeGreaterThan(50);
@@ -38,7 +38,24 @@ describe('adım ekranları', () => {
 
   it('doğrudan alan girişi modunda da render olur', () => {
     const d = { ...input, zoning: { ...input.zoning, mode: 'dogrudan' as const, directFootprint: 700, directTotalArea: 1400 } };
-    expect(() => renderToString(<Step3 input={d} upd={noop} setTop={noop} />)).not.toThrow();
+    expect(() => renderToString(<Step2 input={d} upd={noop} setTop={noop} />)).not.toThrow();
+  });
+
+  it('villa adet modunda önizleme render olur', () => {
+    const a = { ...input, villa: { ...input.villa, mode: 'adet' as const, unitCountManual: 3 } };
+    const html = renderToString(<Step2 input={a} upd={noop} setTop={noop} />);
+    expect(html).toContain('Villa adedi');
+  });
+  it('emsal dışı satılabilir alan önizlemede görünür', () => {
+    const x = { ...input, emsal: { ...input.emsal, extraSaleablePerUnit: 15 } };
+    const html = renderToString(<Step2 input={x} upd={noop} setTop={noop} />);
+    expect(html).toContain('emsal dışı');
+  });
+
+  it('çekme mesafeleri kapalıyken alanlar gizlenir', () => {
+    const k = { ...input, zoning: { ...input.zoning, useSetbacks: false } };
+    const html = renderToString(<Step2 input={k} upd={noop} setTop={noop} />);
+    expect(html).not.toContain('Ön Bahçe');
   });
 
   it('boş girdiyle çökmez', () => {
@@ -48,10 +65,10 @@ describe('adım ekranları', () => {
       zoning: { ...input.zoning, taks: null, kaks: null, hmax: null, floors: null },
       emsal: { ...input.emsal, hasBasement: false, hasAttic: false },
       villa: { ...input.villa, grossPerVilla: 0, netPerVilla: null },
-      site: { landscapeArea: 0, landscapeUnitCost: 0, infrastructureCost: 0, gardenPricePerM2: 0 },
+      site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
       sales: { unitPrice: 0 },
     };
-    [Step1, Step2, Step3, Step4, Step5, Step6, Step7, Step8, Step9].forEach((S) => {
+    [Step1, Step2, Step3, Step4].forEach((S) => {
       expect(() => renderToString(<S input={bos} upd={noop} setTop={noop} />)).not.toThrow();
     });
   });
@@ -68,6 +85,13 @@ describe('sonuç ekranı', () => {
     expect(html).toContain('Bahçe');
     expect(html).toContain('PDF İndir');
     expect(html).toContain('Excel İndir');
+    expect(html).toContain('Dora Gayrimenkul Değerleme');
+    expect(html).toContain('Hasan Erhan Öntürk');
+  });
+  it('kat karşılığı kapalıyken o bölüm basılmaz', () => {
+    const k = { ...input, share: { enabled: false, ownerShare: 0.45 } };
+    const html = renderToString(<Result input={k} result={analyze(k)} version="t" />);
+    expect(html).not.toContain('Kat Karşılığı Karşılaştırması');
   });
   it('negatif artık değerde çökmez', () => {
     const kotu = { ...input, sales: { unitPrice: 15000 } };
