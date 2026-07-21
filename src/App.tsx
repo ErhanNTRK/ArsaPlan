@@ -7,27 +7,22 @@ import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 
 const VERSION = BRAND.version;
-const DRAFT_KEY = 'arsaplan-taslak-v2';
+const DRAFT_KEY = 'arsaplan-taslak-v4';
 
 const DEFAULT_INPUT: ProjectInput = {
   assetType: 'konut',
   housingType: 'villa',
-  parcel: { il: 'İstanbul', ilce: '', mahalle: '', ada: '', parsel: '', area: 0, netArea: 0, width: 0, depth: 0 },
+  parcel: { il: 'İstanbul', ilce: '', mahalle: '', ada: '', parsel: '', area: 0, netArea: 0 },
   zoning: {
-    mode: 'taks-kaks', lejant: '', useSetbacks: false,
-    taks: null, kaks: null, hmax: null, floors: null,
-    directTotalArea: 0, directFootprint: 0,
-    setbackFront: 5, setbackRear: 3, setbackSideLeft: 3, setbackSideRight: 3, planNotes: '',
+    mode: 'taks-kaks', lejant: '', taks: null, kaks: null, hmax: null,
+    directFootprint: 0, directEmsalArea: 0, planNotes: '',
   },
   emsal: {
-    hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
-    hasAttic: false, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
-    extraSaleablePerUnit: 0,
+    hasExtra: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
+    hasAttic: false, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
+    hasBasement: false, basementInEmsal: false,
   },
-  villa: {
-    mode: 'alan', unitCountManual: 0, villaType: 'mustakil',
-    grossPerVilla: 0, floorsPerVilla: 3, layoutEfficiency: 0.65,
-  },
+  villa: { villaType: 'mustakil', unitCount: 0, floorsAboveGround: 2 },
   cost: {
     buildingClass: VILLA_DEFAULT_CLASS,
     unitCost: YAPI_SINIFLARI.find((s) => s.code === VILLA_DEFAULT_CLASS)!.unitCost,
@@ -41,7 +36,7 @@ const DEFAULT_INPUT: ProjectInput = {
 
 const STEPS = [
   { title: 'Taşınmaz', desc: 'Ne değerleniyor ve hangi parsel?' },
-  { title: 'İmar ve Villa Projesi', desc: 'Yapılaşma hakları, emsal dışı alanlar ve villa kurgusu.' },
+  { title: 'İmar ve Alan Üretimi', desc: 'Yapılaşma hakları, emsal dışı alanlar, çatı ve bodrum.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti, peyzaj ve satış değeri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];
@@ -93,17 +88,8 @@ export default function App() {
     }
     if (step === 2) {
       const z = input.zoning;
-      if (z.mode === 'taks-kaks' && z.taks == null && z.kaks == null) {
-        return 'TAKS veya KAKS değerlerinden en az birini giriniz.';
-      }
-      if (z.mode === 'dogrudan' && !z.directFootprint && !z.directTotalArea) {
-        return 'Taban oturumu veya toplam inşaat alanı giriniz.';
-      }
-      if (z.useSetbacks && (!input.parcel.width || !input.parcel.depth)) {
-        return 'Çekme mesafesi hesabı için parsel en ve boy ölçülerini giriniz.';
-      }
-      if (input.villa.mode === 'alan' && !input.villa.grossPerVilla) return 'Villa brüt alanı giriniz.';
-      if (input.villa.mode === 'adet' && !input.villa.unitCountManual) return 'Villa adedi giriniz.';
+      if (z.mode === 'taks-kaks' && z.kaks == null) return 'KAKS (emsal) değerini giriniz.';
+      if (z.mode === 'dogrudan' && !z.directEmsalArea) return 'Emsale dahil alanı giriniz.';
     }
     if (step === 3) {
       if (!input.cost.unitCost) return 'Birim maliyet giriniz.';

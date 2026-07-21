@@ -36,14 +36,6 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   const { capacity: c, financial: f, share: s } = r;
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
-  const bindingText: Record<string, string> = {
-    'TAKS': 'Taban alanı katsayısı (TAKS)',
-    'KAKS': 'Emsal (KAKS)',
-    'ÇEKME MESAFESİ': 'Çekme mesafeleri / yerleşim zarfı',
-    'DOĞRUDAN TABAN': 'Doğrudan girilen taban oturumu',
-    'DOĞRUDAN İNŞAAT ALANI': 'Doğrudan girilen inşaat alanı',
-    'YOK': 'Belirlenemedi',
-  };
 
   function pageBreak(need = 14) {
     if (y + need > 282) { doc.addPage(); y = 16; }
@@ -109,67 +101,46 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   doc.text(tl(f.residualLandValue), M + 4, y + 9);
   doc.text(tlm2(f.landUnitValue), M + W / 2 + 4, y + 9);
   doc.setFont('NTRK', 'normal'); doc.setFontSize(7.5); doc.setTextColor(185, 201, 220);
-  doc.text(`${c.unitCount} villa · ${m2(c.saleableArea)} satılabilir alan · arsa payı hasılatın ${pct(f.landToRevenue)} kadarı`, M + 4, y + 15);
+  doc.text(`${c.unitCount > 0 ? c.unitCount + ' villa · ' : ''}${m2(c.totalArea)} toplam inşaat · arsa payı hasılatın ${pct(f.landToRevenue)} kadarı`, M + 4, y + 15);
   y += 28;
 
   section('PARSEL VE İMAR');
   row('Parsel Alanı (tapu)', m2(p.area));
   row('Net Parsel Alanı', m2(p.netArea));
-  row('Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS / Hmax' : 'Doğrudan alan girişi');
+  row('Plan Lejantı', input.zoning.lejant.trim() || '—');
+  row('Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan alan girişi');
   if (input.zoning.mode === 'taks-kaks') {
     row('TAKS / KAKS', `${input.zoning.taks != null ? num2(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? num2(input.zoning.kaks) : '—'}`);
     if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax} m`);
-  } else {
-    row('Taban Oturumu (girilen)', m2(input.zoning.directFootprint));
-    row('Toplam İnşaat Alanı (girilen)', m2(input.zoning.directTotalArea));
-  }
-  row('Çekme Mesafeleri (ön/arka/sol/sağ)',
-    `${input.zoning.setbackFront} / ${input.zoning.setbackRear} / ${input.zoning.setbackSideLeft} / ${input.zoning.setbackSideRight} m`);
-  if (c.envelope.hasGeometry) {
-    row('Yapılaşma Zarfı',
-      `${c.envelope.buildableWidth.toFixed(1)} × ${c.envelope.buildableDepth.toFixed(1)} m = ${m2(c.envelope.envelopeArea)}`);
   }
   y += 3;
 
-  section('KAPASİTE');
-  row('Kullanılabilir Taban Alanı', m2(c.effectiveFootprint));
-  row('Villa Başına Taban Alanı', m2(c.footprintPerUnit));
-  row('Toplam Zemin Oturumu', m2(c.groundCoverage));
-  row('Villa Kat Adedi', `${input.villa.floorsPerVilla} (zemin üstü ${c.aboveGroundFloors})`);
-  row('VİLLA ADEDİ',
-    `${c.unitCount}${c.unitCountRange[0] !== c.unitCountRange[1] ? `  (${c.unitCountRange[0]}–${c.unitCountRange[1]})` : ''}`,
-    true, NAVY);
-  if (c.emsalLeftover > 1) row('Kullanılmayan İnşaat Hakkı', m2(c.emsalLeftover), false, RED);
-  row('Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding);
-  row('Emsale Konu Alan', m2(c.emsalArea));
-  row('Villa Başına Zemin Üstü Brüt', m2(c.grossPerVilla));
-  if (c.basementArea > 0) {
-    row(`Bodrum — ${c.unitCount} × ${m2(c.basementArea / Math.max(1, c.unitCount))} (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.basementArea));
-  }
-  if (c.atticArea > 0) {
-    row(`Çatı Arası — ${c.unitCount} × ${m2(c.atticArea / Math.max(1, c.unitCount))} (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.atticArea));
-  }
-  if (c.extraSaleableArea > 0) {
-    row(`Diğer Emsal Dışı Satılabilir — ${c.unitCount} × ${m2(c.extraSaleableArea / Math.max(1, c.unitCount))}`, m2(c.extraSaleableArea));
-  }
-  row('Toplam İnşaat Alanı (brüt)', m2(c.grossArea));
-  row('Satılabilir Kapalı Alan — emsale konu', m2(c.saleableWithinEmsal));
-  if (c.saleableOutsideEmsal > 0) row('Satılabilir Kapalı Alan — emsal dışı', m2(c.saleableOutsideEmsal));
-  row('TOPLAM SATILABİLİR KAPALI ALAN', m2(c.saleableArea), true, NAVY);
+  section('ALAN ÜRETİMİ');
+  row('Taban Oturumu', m2(c.footprintArea));
+  row('Emsale Dahil Alan', m2(c.emsalArea));
+  if (c.extraArea > 0) row('Emsal Dışı Satılabilir Alan', m2(c.extraArea));
+  if (c.atticArea > 0) row(`Çatı Katı (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.atticArea));
+  if (c.basementArea > 0) row(`Bodrum Kat (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.basementArea));
+  if (c.emsalConsumedByExtras > 0) row('Emsalden Kullanılan (çatı/bodrum)', m2(c.emsalConsumedByExtras), false, RED);
+  row('Zemin Üstü Katlara Kalan', m2(c.aboveGroundArea));
+  row('TOPLAM İNŞAAT ALANI', m2(c.totalArea), true, NAVY);
   row('Bahçe / Açık Alan', m2(c.gardenArea));
+  if (c.unitCount > 0) {
+    row('Villa Adedi', `${c.unitCount} adet`);
+    row('Villa Başına Toplam Alan', m2(c.areaPerUnit));
+  }
+  row('Zemin Üstü Kat Adedi', `${c.floorsAboveGround} · kat başına ${m2(c.areaPerFloor)}`);
   y += 3;
 
   section('FİZİBİLİTE');
   row('Yapı Sınıfı', `${input.cost.buildingClass}${sinif ? ' — ' + sinif.label : ''}`);
   row('Güncel Birim Maliyet', tlm2(f.effectiveUnitCost));
-  row('Zemin Üstü İnşaat', tl(f.aboveGroundCost));
-  if (f.basementCost > 0) row('Bodrum İnşaatı', tl(f.basementCost));
-  if (f.atticCost > 0) row('Çatı Arası', tl(f.atticCost));
+  row('İnşaat Maliyeti', tl(f.constructionCost));
   if (f.landscapeCost > 0) row('Peyzaj ve Bahçe Düzenlemesi', tl(f.landscapeCost));
   if (f.extrasCost > 0) row('Proje, Ruhsat, Harç, Müşavirlik', tl(f.extrasCost));
   if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost));
   row('TOPLAM MALİYET', tl(f.totalCost), true, RED);
-  row('Villa Satış Hasılatı', tl(f.buildingRevenue));
+  row('Yapı Satış Hasılatı', tl(f.buildingRevenue));
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), true, GREEN);
   row(`Müteahhit Kârı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), true, RED);

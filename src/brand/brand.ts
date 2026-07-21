@@ -5,6 +5,7 @@ export const BRAND = {
   company: 'Dora Gayrimenkul Değerleme A.Ş.',
   preparedBy: 'Dora Gayrimenkul Değerleme A.Ş. tarafından hazırlanmıştır',
   author: 'Hasan Erhan Öntürk',
-  authorLine: 'Düzenleyen: Hasan Erhan Öntürk',
-  version: 'v3.2.0 · 2026.07.21',
+  email: 'erhan.onturk@doradegerleme.com.tr',
+  authorLine: 'Düzenleyen: Hasan Erhan Öntürk · erhan.onturk@doradegerleme.com.tr',
+  version: 'v4.0.0 · 2026.07.21',
 } as const;

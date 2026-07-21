@@ -1,10 +1,7 @@
 /**
- * FİNANSAL MOTOR — Artık Değer (Residual Land Value) yöntemi
- *
+ * FİNANSAL MOTOR — Artık Değer (Residual Land Value)
  *   Hasılat − Toplam Maliyet − Müteahhit Kârı = Arsa Değeri
- *
- * Finansman gideri, döngüsel referans oluşmaması için finansman hariç
- * maliyet üzerinden hesaplanır.
+ * Satış ve maliyet, TOPLAM İNŞAAT ALANI üzerinden yürütülür; kat ayrımı yapılmaz.
  */
 import type {
   CapacityResult, CostInput, SiteWorks, SalesInput, ResidualInput, ShareInput,
@@ -18,14 +15,7 @@ export function computeFinancial(
   site: SiteWorks, sales: SalesInput, residual: ResidualInput,
 ): FinancialResult {
   const effectiveUnitCost = cost.unitCost * (1 + cost.inflationRate);
-
-  /* Tüm inşaat alanı aynı birim maliyetle hesaplanır; bodrum/çatı arası için
-     ayrı katsayı yoktur — gerekiyorsa birim maliyet elle ayarlanır. */
-  const aboveGroundArea = capacity.grossArea - capacity.basementArea - capacity.atticArea;
-  const aboveGroundCost = aboveGroundArea * effectiveUnitCost;
-  const basementCost = capacity.basementArea * effectiveUnitCost;
-  const atticCost = capacity.atticArea * effectiveUnitCost;
-  const constructionCost = aboveGroundCost + basementCost + atticCost;
+  const constructionCost = capacity.totalArea * effectiveUnitCost;
 
   const landscapeArea = site.landscapeArea > 0 ? site.landscapeArea : capacity.gardenArea;
   const landscapeCost = landscapeArea * site.landscapeUnitCost;
@@ -42,13 +32,11 @@ export function computeFinancial(
   const developerProfit = revenue * residual.profitRate;
   const residualLandValue = revenue - totalCost - developerProfit;
 
-  /** Artık değeri sıfırlayan satış fiyatı çarpanı: s = maliyet / (hasılat × (1 − kâr)) */
   const denom = revenue * (1 - residual.profitRate);
   const breakEvenFactor = denom > 0 ? totalCost / denom : 0;
 
   return {
-    effectiveUnitCost, aboveGroundCost, basementCost, atticCost, constructionCost,
-    landscapeCost, extrasCost, financeCost, totalCost,
+    effectiveUnitCost, constructionCost, landscapeCost, extrasCost, financeCost, totalCost,
     buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue,
     landUnitValue: safeDiv(residualLandValue, parcel.area),
     landToRevenue: safeDiv(residualLandValue, revenue),

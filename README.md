@@ -1,6 +1,7 @@
 # ArsaPlan — Arsa Değer Analizi ve Proje Geliştirme
 
-**Dora Gayrimenkul Değerleme A.Ş. tarafından hazırlanmıştır** · Düzenleyen: Hasan Erhan Öntürk
+**Dora Gayrimenkul Değerleme A.Ş. tarafından hazırlanmıştır**
+Düzenleyen: Hasan Erhan Öntürk · erhan.onturk@doradegerleme.com.tr
 
 Bir arsanın imar haklarını, proje kapasitesini ve **Artık Değer (Residual Land Value)**
 yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
@@ -49,50 +50,14 @@ Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
 ## 3. Akış (4 adım)
 
     1  Taşınmaz — ne değerleniyor (konut/ticari/karma) + parsel kimliği ve alanları
-    2  İmar ve Proje — lejant (liste), TAKS/KAKS/Hmax **veya** doğrudan alan girişi,
-       çekme mesafeleri (opsiyonel), emsal dışı alanlar, konut tipi, villa kurgusu
-       ve canlı kapasite önizlemesi — hepsi tek ekranda
+    2  İmar ve Alan Üretimi — lejant, TAKS/KAKS **veya** doğrudan alan girişi,
+       emsal dışı satılabilir alan, çatı katı, bodrum kat, villa dağılımı (opsiyonel)
+       ve canlı toplam inşaat alanı dökümü
     3  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
        peyzaj/bahçe (alan otomatik gelir, elle değiştirilebilir), satış birim değeri
     4  Değerleme — müteahhit kârı, finansman oranı, kat karşılığı (açılır/kapanır)
     →  Sonuç ekranı: KPI kartları, kapasite dökümü, fizibilite,
        uzman değerlendirmesi · **PDF ve Excel indirme** (Dora logolu)
-
-### Villa kat mantığı
-
-Girilen **kat adedi bodrumu içerir**, çatı arasını içermez:
-
-    bodrum yok  · 2 kat → zemin + 1. normal kat        → zemin üstü 2 kat
-    bodrum var  · 2 kat → bodrum + zemin               → zemin üstü 1 kat
-    bodrum var  · 4 kat → bodrum + zemin + 2 normal    → zemin üstü 3 kat
-
-Villa taban alanı = villa alanı ÷ zemin üstü kat adedi. Çatı arası kat sayısına
-girmez ama alan ve maliyet hesabına girer.
-
-### Kapasitenin tam kullanılması
-
-Bodrum ve çatı arası otomatik boyutlanırken villa tabanına, taban da villa alanına
-bağlıdır. Bu döngüsel ilişki tahminle değil **doğrudan çözülür**; böylece emsal hakkı
-eksiksiz kullanılır. Artan hak kalırsa ekranda ve raporda açıkça yazar ve somut öneri
-verilir (ör. "villa alanını 200 m² yaparsanız hak tam kullanılır").
-
-Doğrudan alan modunda **taban oturumu opsiyoneldir**; boş bırakılırsa taban kısıtı
-uygulanmaz ve toplam inşaat alanının tamamı kullanılır.
-
-### Bahçe ve satılabilir alan
-
-- **Bahçe alanı** = net parsel − **toplam zemin oturumu**. TAKS tanımlıysa yasal taban
-  alanı hakkı esas alınır (fiili oturum daha küçük olsa bile).
-- **Satılabilir alan yalnızca KAPALI alandır.** Bahçe satılabilir alana girmez;
-  ayrıca fiyatlandırılırsa hasılata ayrı kalem olarak eklenir.
-
-### Emsal dışı satılabilir alan
-
-Bir alanın **emsale dahil olması** ile **satılabilir olması** ayrı sorulardır.
-Bodrum ve çatı arası için ikisi ayrı ayrı sorulur; ayrıca villa başına
-"diğer emsal dışı satılabilir alan" girilebilir (kapalı balkon, teras, eklenti…).
-
-    Örnek: emsale konu 500 m² + emsal dışı satılabilir 50 m² = 550 m² satılabilir alan
 
 Sonuç ekranı ve çıktılar bu ayrımı üç satır hâlinde gösterir.
 
@@ -128,7 +93,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (63 test)
+    npm test          motor + arayüz + dışa aktarma testleri (41 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)

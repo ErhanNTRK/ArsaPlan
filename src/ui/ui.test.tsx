@@ -7,23 +7,20 @@ import { Step1, Step2, Step3, Step4 } from './Steps';
 import { Result } from './Result';
 
 const input: ProjectInput = {
-  assetType: 'konut',
-  housingType: 'villa',
-  parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Merkez', ada: '101', parsel: '5',
-            area: 2500, netArea: 2350, width: 50, depth: 50 },
-  zoning: { mode: 'taks-kaks', lejant: 'Konut Alanı', useSetbacks: true, taks: 0.30, kaks: 0.60, hmax: 9.5, floors: 2,
-            directTotalArea: 0, directFootprint: 0,
-            setbackFront: 5, setbackRear: 3, setbackSideLeft: 3, setbackSideRight: 3,
-            planNotes: 'Bodrum katlar tamamen toprak altında kaldığı sürece emsale dahil değildir.' },
-  emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
-           hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
-           extraSaleablePerUnit: 0 },
-  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, floorsPerVilla: 3, layoutEfficiency: 0.70 },
-  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.15, extrasRate: 0.12 },
-  site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 4000 },
-  sales: { unitPrice: 90000 },
-  residual: { profitRate: 0.25, financeRateOfCost: 0.15 },
-  share: { enabled: true, ownerShare: 0.45 },
+  assetType: 'konut', housingType: 'villa',
+  parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Çavuşbaşı', ada: '1245', parsel: '17', area: 1000, netArea: 1000 },
+  zoning: { mode: 'taks-kaks', lejant: 'Az Yoğunluklu Konut Alanı', taks: 0.40, kaks: 0.80, hmax: 9.5,
+            directFootprint: 0, directEmsalArea: 0,
+            planNotes: 'Çatı katı piyesleri son kat ile irtibatlı olmak kaydıyla emsale dahil değildir.' },
+  emsal: { hasExtra: true, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
+           hasAttic: true, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
+           hasBasement: true, basementInEmsal: false },
+  villa: { villaType: 'mustakil', unitCount: 6, floorsAboveGround: 2 },
+  cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.20, extrasRate: 0.12 },
+  site: { landscapeArea: 0, landscapeUnitCost: 1500, gardenPricePerM2: 3000 },
+  sales: { unitPrice: 105000 },
+  residual: { profitRate: 0.25, financeRateOfCost: 0.10 },
+  share: { enabled: true, ownerShare: 0.40 },
 };
 const noop = () => {};
 const P = { input, upd: noop, setTop: noop };
@@ -37,34 +34,29 @@ describe('adım ekranları', () => {
   });
 
   it('doğrudan alan girişi modunda da render olur', () => {
-    const d = { ...input, zoning: { ...input.zoning, mode: 'dogrudan' as const, directFootprint: 700, directTotalArea: 1400 } };
+    const d = { ...input, zoning: { ...input.zoning, mode: 'dogrudan' as const, directFootprint: 300, directEmsalArea: 900 } };
     expect(() => renderToString(<Step2 input={d} upd={noop} setTop={noop} />)).not.toThrow();
   });
 
-  it('villa adet modunda önizleme render olur', () => {
-    const a = { ...input, villa: { ...input.villa, mode: 'adet' as const, unitCountManual: 3 } };
-    const html = renderToString(<Step2 input={a} upd={noop} setTop={noop} />);
-    expect(html).toContain('Villa adedi');
+  it('toplam inşaat alanı dökümü ekranda görünür', () => {
+    const html = renderToString(<Step2 input={input} upd={noop} setTop={noop} />);
+    expect(html).toContain('Toplam İnşaat Alanı');
+    expect(html).toContain('Emsal Dışı Satılabilir Alan');
+    expect(html).toContain('Bodrum Kat');
+    expect(html).toContain('Çatı Katı');
   });
-  it('emsal dışı satılabilir alan önizlemede görünür', () => {
-    const x = { ...input, emsal: { ...input.emsal, extraSaleablePerUnit: 15 } };
-    const html = renderToString(<Step2 input={x} upd={noop} setTop={noop} />);
-    expect(html).toContain('emsal dışı');
-  });
-
-  it('çekme mesafeleri kapalıyken alanlar gizlenir', () => {
-    const k = { ...input, zoning: { ...input.zoning, useSetbacks: false } };
-    const html = renderToString(<Step2 input={k} upd={noop} setTop={noop} />);
-    expect(html).not.toContain('Ön Bahçe');
+  it('villa adedi girilmediğinde de çökmez', () => {
+    const x = { ...input, villa: { ...input.villa, unitCount: 0 } };
+    expect(() => renderToString(<Step2 input={x} upd={noop} setTop={noop} />)).not.toThrow();
   });
 
   it('boş girdiyle çökmez', () => {
     const bos: ProjectInput = {
       ...input,
-      parcel: { ...input.parcel, area: 0, netArea: 0, width: 0, depth: 0 },
-      zoning: { ...input.zoning, taks: null, kaks: null, hmax: null, floors: null },
-      emsal: { ...input.emsal, hasBasement: false, hasAttic: false },
-      villa: { ...input.villa, grossPerVilla: 0 },
+      parcel: { ...input.parcel, area: 0, netArea: 0 },
+      zoning: { ...input.zoning, taks: null, kaks: null, hmax: null },
+      emsal: { ...input.emsal, hasBasement: false, hasAttic: false, hasExtra: false },
+      villa: { ...input.villa, unitCount: 0 },
       site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
       sales: { unitPrice: 0 },
     };
@@ -80,13 +72,14 @@ describe('sonuç ekranı', () => {
     expect(html).toContain('Artık Arsa Değeri');
     expect(html).toContain('Kat Karşılığı');
     expect(html).toContain('Uzman Değerlendirmesi');
-    expect(html).toContain('Bağlayıcı Kısıt');
-    expect(html).toContain('Çatı Arası');
+    expect(html).toContain('TOPLAM İNŞAAT ALANI');
+    expect(html).toContain('Çatı Katı');
     expect(html).toContain('Bahçe');
     expect(html).toContain('PDF İndir');
     expect(html).toContain('Excel İndir');
     expect(html).toContain('Dora Gayrimenkul Değerleme');
     expect(html).toContain('Hasan Erhan Öntürk');
+    expect(html).toContain('erhan.onturk@doradegerleme.com.tr');
   });
   it('kat karşılığı kapalıyken o bölüm basılmaz', () => {
     const k = { ...input, share: { enabled: false, ownerShare: 0.45 } };
@@ -98,7 +91,7 @@ describe('sonuç ekranı', () => {
     expect(() => renderToString(<Result input={kotu} result={analyze(kotu)} version="t" />)).not.toThrow();
   });
   it('sıfır kapasitede çökmez', () => {
-    const sifir = { ...input, villa: { ...input.villa, grossPerVilla: 9000 } };
+    const sifir = { ...input, zoning: { ...input.zoning, taks: null, kaks: null } };
     expect(() => renderToString(<Result input={sifir} result={analyze(sifir)} version="t" />)).not.toThrow();
   });
 });

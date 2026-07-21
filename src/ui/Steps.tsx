@@ -1,7 +1,7 @@
 import type { ProjectInput, AssetType } from '../engine';
-import { computeEnvelope, computeVillaCapacity } from '../engine';
+import { computeCapacity } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
-import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2, fmtNum } from './fields';
+import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
@@ -60,21 +60,19 @@ export function Step1({ input, upd, setTop }: P) {
   );
 }
 
-/* ═══════════ ADIM 2 — İMAR VE PROJE ═══════════ */
+/* ═══════════ ADIM 2 — İMAR VE ALAN ÜRETİMİ ═══════════ */
 export function Step2({ input, upd }: P) {
   const z = input.zoning;
   const e = input.emsal;
-  const p = input.parcel;
   const v = input.villa;
-  const env = computeEnvelope(p, z);
-  const c = computeVillaCapacity(p, z, v, e);
+  const c = computeCapacity(input.parcel, z, e, v);
   const taksKaks = z.mode === 'taks-kaks';
   const lejantOther = z.lejant === ' ' || (z.lejant !== '' && !LEJANTLAR.includes(z.lejant));
 
   return (
     <div className="cols">
       <div className="card">
-        <div className="card-title">İmar Durumu</div>
+        <div className="card-title">1 · İmar Durumu</div>
         <Field label="Plan Lejantı">
           <Sel value={lejantOther ? 'Diğer (elle yazınız)' : z.lejant}
                onChange={(val) => upd('zoning', { lejant: val === 'Diğer (elle yazınız)' ? ' ' : val })}
@@ -82,7 +80,7 @@ export function Step2({ input, upd }: P) {
         </Field>
         {lejantOther && (
           <Field label="Lejant (elle)">
-            <Txt value={z.lejant.trim()} onChange={(val) => upd('zoning', { lejant: val || ' ' })} placeholder="Plandaki fonksiyon adı" />
+            <Txt value={z.lejant.trim()} onChange={(val) => upd('zoning', { lejant: val || ' ' })} />
           </Field>
         )}
         <Field label="Hesap Yöntemi">
@@ -97,127 +95,113 @@ export function Step2({ input, upd }: P) {
           </div>
         ) : (
           <div className="grid-2">
-            <Field label="Toplam Taban Oturumu" hint="Opsiyonel — boş bırakırsanız taban kısıtı uygulanmaz">
-              <Num value={z.directFootprint} onChange={(val) => upd('zoning', { directFootprint: val })} suffix="m²" />
-            </Field>
-            <Field label="Toplam İnşaat Alanı" hint="Emsale konu toplam alan">
-              <Num value={z.directTotalArea} onChange={(val) => upd('zoning', { directTotalArea: val })} suffix="m²" />
-            </Field>
+            <Field label="Taban Oturumu"><Num value={z.directFootprint} onChange={(val) => upd('zoning', { directFootprint: val })} suffix="m²" /></Field>
+            <Field label="Emsale Dahil Alan"><Num value={z.directEmsalArea} onChange={(val) => upd('zoning', { directEmsalArea: val })} suffix="m²" /></Field>
           </div>
         )}
-        <Field label="Çekme mesafeleri hesaba katılsın mı?" hint="Kapalıyken kapasite yalnızca imar haklarından bulunur.">
-          <Seg value={z.useSetbacks} onChange={(b) => upd('zoning', { useSetbacks: b })}
-               options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
+        <div className="mini-kpi">
+          <div><span>Taban oturumu</span><b>{fmtM2(c.footprintArea)}</b></div>
+          <div><span>Emsale dahil alan</span><b>{fmtM2(c.emsalArea)}</b></div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">2 · Emsal Dışı Satılabilir Alan</div>
+        <Field label="Emsal dışı satılabilir alan var mı?">
+          <Seg value={e.hasExtra} onChange={(b) => upd('emsal', { hasExtra: b })}
+               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
         </Field>
-        {z.useSetbacks && (
+        {e.hasExtra && (
           <>
-            <div className="grid-2">
-              <Field label="Parsel Eni"><Num value={p.width} onChange={(val) => upd('parcel', { width: val })} suffix="m" /></Field>
-              <Field label="Parsel Boyu"><Num value={p.depth} onChange={(val) => upd('parcel', { depth: val })} suffix="m" /></Field>
-            </div>
-            <div className="grid-2">
-              <Field label="Ön / Arka Bahçe">
-                <div className="grid-2">
-                  <Num value={z.setbackFront} onChange={(val) => upd('zoning', { setbackFront: val })} suffix="m" />
-                  <Num value={z.setbackRear} onChange={(val) => upd('zoning', { setbackRear: val })} suffix="m" />
-                </div>
-              </Field>
-              <Field label="Yan Bahçe (sol / sağ)">
-                <div className="grid-2">
-                  <Num value={z.setbackSideLeft} onChange={(val) => upd('zoning', { setbackSideLeft: val })} suffix="m" />
-                  <Num value={z.setbackSideRight} onChange={(val) => upd('zoning', { setbackSideRight: val })} suffix="m" />
-                </div>
-              </Field>
-            </div>
-            {env.hasGeometry && (
-              <div className="note-box">
-                Yapılaşma zarfı: <b>{fmtNum(env.buildableWidth, 1)} × {fmtNum(env.buildableDepth, 1)} m = {fmtM2(env.envelopeArea)}</b>
-              </div>
-            )}
-            <Field label="Yerleşim Verimliliği" hint="Zarfın bina tabanına dönüşen kısmı">
-              <Pct value={v.layoutEfficiency} onChange={(n) => upd('villa', { layoutEfficiency: n })} />
+            <Field label="Nasıl hesaplansın?">
+              <Seg value={e.extraMode} onChange={(m) => upd('emsal', { extraMode: m })}
+                   options={[{ value: 'oran', label: 'Emsalin yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
             </Field>
+            {e.extraMode === 'oran' ? (
+              <Field label="Oran" hint={`Emsale dahil alanın yüzdesi · ${fmtM2(c.emsalArea)} üzerinden`}>
+                <Pct value={e.extraRate} onChange={(n) => upd('emsal', { extraRate: n })} />
+              </Field>
+            ) : (
+              <Field label="Alan"><Num value={e.extraArea} onChange={(n) => upd('emsal', { extraArea: n })} suffix="m²" /></Field>
+            )}
+            <div className="note-box">Emsal dışı satılabilir alan: <b>{fmtM2(c.extraArea)}</b></div>
           </>
         )}
       </div>
 
       <div className="card">
-        <div className="card-title">Emsal Dışı Alanlar</div>
-        <p className="hint" style={{ marginTop: -6, marginBottom: 10 }}>
-          Bir alan emsale dahil olmayabilir ama yine de satılabilir olabilir. İki soruyu ayrı ayrı yanıtlayın.
-        </p>
-
-        <Field label="Bodrum kat">
-          <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
-               options={[{ value: true, label: 'Var' }, { value: false, label: 'Yok' }]} />
-        </Field>
-        {e.hasBasement && (
-          <>
-            <div className="grid-2">
-              <Field label="Emsale dahil mi?">
-                <Seg value={e.basementInEmsal} onChange={(b) => upd('emsal', { basementInEmsal: b })}
-                     options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
-              </Field>
-              <Field label="Satılabilir mi?">
-                <Seg value={e.basementSaleable} onChange={(b) => upd('emsal', { basementSaleable: b })}
-                     options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
-              </Field>
-            </div>
-            <Field label="Villa Başına Bodrum" hint="Boşsa taban alanı kadar">
-              <Num value={e.basementPerUnit} onChange={(val) => upd('emsal', { basementPerUnit: val })} suffix="m²" />
-            </Field>
-          </>
-        )}
-
-        <Field label="Çatı arası piyesi">
+        <div className="card-title">3 · Çatı Katı</div>
+        <Field label="Çatı katı var mı?">
           <Seg value={e.hasAttic} onChange={(b) => upd('emsal', { hasAttic: b })}
-               options={[{ value: true, label: 'Var' }, { value: false, label: 'Yok' }]} />
+               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
         </Field>
         {e.hasAttic && (
           <>
-            <div className="grid-2">
-              <Field label="Emsale dahil mi?">
-                <Seg value={e.atticInEmsal} onChange={(b) => upd('emsal', { atticInEmsal: b })}
-                     options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
-              </Field>
-              <Field label="Satılabilir mi?">
-                <Seg value={e.atticSaleable} onChange={(b) => upd('emsal', { atticSaleable: b })}
-                     options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
-              </Field>
-            </div>
-            <Field label="Villa Başına Çatı Arası" hint="Boşsa tabanın %40'ı">
-              <Num value={e.atticPerUnit} onChange={(val) => upd('emsal', { atticPerUnit: val })} suffix="m²" />
+            <Field label="Nasıl hesaplansın?">
+              <Seg value={e.atticMode} onChange={(m) => upd('emsal', { atticMode: m })}
+                   options={[{ value: 'oran', label: 'Tabanın yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
             </Field>
+            {e.atticMode === 'oran' ? (
+              <Field label="Oran" hint={`Taban oturumunun yüzdesi · ${fmtM2(c.footprintArea)} üzerinden`}>
+                <Pct value={e.atticRate} onChange={(n) => upd('emsal', { atticRate: n })} />
+              </Field>
+            ) : (
+              <Field label="Alan"><Num value={e.atticArea} onChange={(n) => upd('emsal', { atticArea: n })} suffix="m²" /></Field>
+            )}
+            <Field label="Emsale dahil mi?" hint="Dahilse emsalin içinden yer alır, toplam inşaat alanını artırmaz.">
+              <Seg value={e.atticInEmsal} onChange={(b) => upd('emsal', { atticInEmsal: b })}
+                   options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
+            </Field>
+            <div className="note-box">Çatı katı alanı: <b>{fmtM2(c.atticArea)}</b></div>
           </>
         )}
-
-        <Field label="Diğer Emsal Dışı Satılabilir KAPALI Alan"
-               hint="Villa başına m². Kapalı balkon, eklenti gibi emsale girmeyen ama satılan KAPALI alanlar. Bahçe buraya yazılmaz.">
-          <Num value={e.extraSaleablePerUnit} onChange={(val) => upd('emsal', { extraSaleablePerUnit: val })} suffix="m²" />
-        </Field>
       </div>
 
       <div className="card">
-        <div className="card-title">Villa Kurgusu</div>
-        <Field label="Hesaplama yönü">
-          <Seg value={v.mode} onChange={(m) => upd('villa', { mode: m })}
-               options={[
-                 { value: 'alan', label: 'Büyüklükten adede' },
-                 { value: 'adet', label: 'Adetten büyüklüğe' },
-               ]} />
+        <div className="card-title">4 · Bodrum Kat</div>
+        <Field label="Bodrum kat var mı?" hint="Bodrum alanı taban oturumu kadar kabul edilir.">
+          <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
+               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
         </Field>
-        <div className="grid-2">
-          {v.mode === 'alan' ? (
-            <Field label="Villa Alanı" hint="Zemin üstü katların toplam kapalı alanı">
-              <Num value={v.grossPerVilla} onChange={(n) => upd('villa', { grossPerVilla: n })} suffix="m²" />
+        {e.hasBasement && (
+          <>
+            <Field label="Emsale dahil mi?" hint="Dahilse emsalin içinden yer alır, toplam inşaat alanını artırmaz.">
+              <Seg value={e.basementInEmsal} onChange={(b) => upd('emsal', { basementInEmsal: b })}
+                   options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
             </Field>
-          ) : (
-            <Field label="Villa Adedi" hint="Kapasite bu adede bölünür">
-              <Num value={v.unitCountManual} onChange={(n) => upd('villa', { unitCountManual: n })} suffix="adet" />
-            </Field>
+            <div className="note-box">Bodrum kat alanı: <b>{fmtM2(c.basementArea)}</b></div>
+          </>
+        )}
+      </div>
+
+      <div className="card result-preview">
+        <div className="card-title">Toplam İnşaat Alanı</div>
+        <div className="breakdown">
+          <div>Emsale dahil alan: <b>{fmtM2(c.emsalArea)}</b></div>
+          {c.extraArea > 0 && <div>+ Emsal dışı satılabilir alan: <b>{fmtM2(c.extraArea)}</b></div>}
+          {e.hasAttic && !e.atticInEmsal && <div>+ Çatı katı (emsal dışı): <b>{fmtM2(c.atticArea)}</b></div>}
+          {e.hasBasement && !e.basementInEmsal && <div>+ Bodrum kat (emsal dışı): <b>{fmtM2(c.basementArea)}</b></div>}
+          {c.emsalConsumedByExtras > 0 && (
+            <div className="leftover">
+              Emsale dahil edilen {fmtM2(c.emsalConsumedByExtras)} (çatı/bodrum) toplamı artırmaz;
+              emsalin içinden yer alır. Zemin üstü katlara kalan: <b>{fmtM2(c.aboveGroundArea)}</b>
+            </div>
           )}
-          <Field label="Villa Kat Adedi" hint={input.emsal.hasBasement ? 'Bodrum DAHİL · çatı arası hariç' : 'Zemin dahil · çatı arası hariç'}>
-            <Num value={v.floorsPerVilla} onChange={(n) => upd('villa', { floorsPerVilla: n })} />
+        </div>
+        <div className="mini-kpi" style={{ marginTop: 12 }}>
+          <div><span>Toplam inşaat alanı</span><b>{fmtM2(c.totalArea)}</b></div>
+          <div><span>Bahçe / açık alan</span><b>{fmtM2(c.gardenArea)}</b></div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">5 · Villa Dağılımı (opsiyonel)</div>
+        <div className="grid-2">
+          <Field label="Villa Adedi" hint="Boş bırakılabilir">
+            <Num value={v.unitCount} onChange={(n) => upd('villa', { unitCount: n })} suffix="adet" />
+          </Field>
+          <Field label="Zemin Üstü Kat Adedi" hint="Bodrum ve çatı katı hariç">
+            <Num value={v.floorsAboveGround} onChange={(n) => upd('villa', { floorsAboveGround: n })} />
           </Field>
         </div>
         <Field label="Villa Tipi">
@@ -228,49 +212,19 @@ export function Step2({ input, upd }: P) {
                  { value: 'sirali', label: 'Sıralı' },
                ]} />
         </Field>
-        <div className="note-box">
-          {input.emsal.hasBasement
-            ? <>Bodrum var: <b>{v.floorsPerVilla} kat</b> = 1 bodrum + {Math.max(1, v.floorsPerVilla - 1)} zemin üstü kat
-                {v.floorsPerVilla >= 3 && <> (zemin + {v.floorsPerVilla - 2} normal kat)</>}.</>
-            : <>Bodrum yok: <b>{v.floorsPerVilla} kat</b> = zemin{v.floorsPerVilla > 1 && <> + {v.floorsPerVilla - 1} normal kat</>}.</>}
-          {input.emsal.hasAttic && <> Çatı arası kat sayısına girmez, alan hesabına girer.</>}
+        {c.unitCount > 0 && (
+          <div className="mini-kpi three" style={{ marginTop: 4 }}>
+            <div><span>Villa adedi</span><b>{c.unitCount}</b></div>
+            <div><span>Villa başına alan</span><b>{fmtM2(c.areaPerUnit)}</b></div>
+            <div><span>Villa başına arsa</span><b>{fmtM2(input.parcel.area / c.unitCount)}</b></div>
+          </div>
+        )}
+        <div className={c.floorFits ? 'note-box' : 'leftover'} style={{ marginTop: 10 }}>
+          Zemin üstü {fmtM2(c.aboveGroundArea)} alan {c.floorsAboveGround} kata bölündüğünde
+          kat başına <b>{fmtM2(c.areaPerFloor)}</b> düşüyor; taban oturumu <b>{fmtM2(c.footprintArea)}</b>.
+          {!c.floorFits && <> Bu yerleşim için en az <b>{c.minFloorsNeeded} kat</b> gerekir.</>}
         </div>
       </div>
-
-      {c.unitCount > 0 && (
-        <div className="card result-preview">
-          <div className="card-title">Kapasite Önizleme</div>
-          <div className="mini-kpi three">
-            <div><span>Villa adedi</span><b>{c.unitCount}</b></div>
-            <div><span>Villa brüt</span><b>{fmtM2(c.grossPerVilla)}</b></div>
-            <div><span>Satılabilir kapalı</span><b>{fmtM2(c.saleableArea)}</b></div>
-          </div>
-          <div className="breakdown">
-            <div>Villa başına: <b>{fmtM2(c.grossPerVilla)}</b> zemin üstü
-              {c.basementArea > 0 && <> + <b>{fmtM2(c.basementArea / c.unitCount)}</b> bodrum</>}
-              {c.atticArea > 0 && <> + <b>{fmtM2(c.atticArea / c.unitCount)}</b> çatı arası</>}
-              {c.extraSaleableArea > 0 && <> + <b>{fmtM2(c.extraSaleableArea / c.unitCount)}</b> diğer</>}
-              {' '}= <b>{fmtM2(c.grossPerUnit)}</b> brüt
-            </div>
-            <div>Satılabilir kapalı alan: <b>{fmtM2(c.saleableWithinEmsal)}</b> emsale konu
-              {c.saleableOutsideEmsal > 0 && <> + <b>{fmtM2(c.saleableOutsideEmsal)}</b> emsal dışı</>}
-              {' '}= <b>{fmtM2(c.saleableArea)}</b>
-            </div>
-            <div>Emsale konu inşaat: <b>{fmtM2(c.emsalArea)}</b>
-              {c.emsalUsage != null && <> · hak kullanımı <b>%{(c.emsalUsage * 100).toFixed(0)}</b></>}
-              {' '}· bağlayıcı kısıt: <b>{c.binding}</b>
-            </div>
-            {c.emsalLeftover > 1 && (
-              <div className="leftover">
-                Kullanılmayan inşaat hakkı: <b>{fmtM2(c.emsalLeftover)}</b>
-                {c.suggestedGrossPerVilla != null
-                  ? <> — villa alanını <b>{fmtM2(c.suggestedGrossPerVilla)}</b> yaparsanız hak tam kullanılır.</>
-                  : <> — kat adedini artırmak ya da taban oturumunu büyütmek bu hakkı serbest bırakır.</>}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <div className="card">
         <div className="card-title">Plan Notları (opsiyonel)</div>
@@ -285,7 +239,7 @@ export function Step2({ input, upd }: P) {
 export function Step3({ input, upd }: P) {
   const c = input.cost;
   const s = input.site;
-  const cap = computeVillaCapacity(input.parcel, input.zoning, input.villa, input.emsal);
+  const cap = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
   const sinif = YAPI_SINIFLARI.find((x) => x.code === c.buildingClass);
   return (
     <div className="cols">
@@ -313,14 +267,14 @@ export function Step3({ input, upd }: P) {
         </Field>
         <div className="note-box">
           Güncel birim maliyet <b>{fmtTLm2(c.unitCost * (1 + c.inflationRate))}</b> ·
-          Toplam inşaat <b>{fmtM2(cap.grossArea)}</b><br />
+          Toplam inşaat <b>{fmtM2(cap.totalArea)}</b><br />
           Kaynak: {TEBLIG_KAYNAK}. KDV hariçtir.
         </div>
       </div>
 
       <div className="card">
         <div className="card-title">Peyzaj ve Bahçe</div>
-        <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − toplam zemin oturumu (TAKS taban alanı)">
+        <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − taban oturumu">
           <Num value={s.landscapeArea > 0 ? s.landscapeArea : Math.round(cap.gardenArea)}
                onChange={(n) => upd('site', { landscapeArea: n })} suffix="m²" />
         </Field>
@@ -333,7 +287,7 @@ export function Step3({ input, upd }: P) {
           <Field label="Peyzaj Birim Maliyeti" hint="Tipik 800-2.500 ₺/m²">
             <Num value={s.landscapeUnitCost} onChange={(n) => upd('site', { landscapeUnitCost: n })} suffix="₺/m²" />
           </Field>
-          <Field label="Bahçe Satış Değeri" hint="0 → villa fiyatına dahil">
+          <Field label="Bahçe Satış Değeri" hint="0 → fiyata dahil">
             <Num value={s.gardenPricePerM2} onChange={(n) => upd('site', { gardenPricePerM2: n })} suffix="₺/m²" />
           </Field>
         </div>
@@ -341,14 +295,13 @@ export function Step3({ input, upd }: P) {
 
       <div className="card">
         <div className="card-title">Satış</div>
-        <Field label="Villa Satış Birim Değeri" hint="Satılabilir m² başına, KDV hariç">
+        <Field label="Satış Birim Değeri" hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
           <Num value={input.sales.unitPrice} onChange={(n) => upd('sales', { unitPrice: n })} suffix="₺/m²" />
         </Field>
-        {cap.saleableArea > 0 && input.sales.unitPrice > 0 && (
+        {cap.totalArea > 0 && input.sales.unitPrice > 0 && (
           <div className="note-box">
-            Satılabilir <b>kapalı</b> alan <b>{fmtM2(cap.saleableArea)}</b> × birim fiyat =
-            {' '}<b>{(cap.saleableArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b><br />
-            Bahçe bu tutara dahil değildir; ayrıca fiyatlandıysa hasılata eklenir.
+            Toplam inşaat <b>{fmtM2(cap.totalArea)}</b> × birim fiyat =
+            {' '}<b>{(cap.totalArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b>
           </div>
         )}
       </div>

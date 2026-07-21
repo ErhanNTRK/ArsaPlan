@@ -4,15 +4,6 @@ import { fmtTL, fmtTLm2, fmtM2, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
 
-const BINDING_TEXT: Record<string, string> = {
-  'TAKS': 'Taban alanı katsayısı (TAKS)',
-  'KAKS': 'Emsal (KAKS)',
-  'ÇEKME MESAFESİ': 'Çekme mesafeleri / yerleşim zarfı',
-  'DOĞRUDAN TABAN': 'Doğrudan girilen taban oturumu',
-  'DOĞRUDAN İNŞAAT ALANI': 'Doğrudan girilen inşaat alanı',
-  'YOK': 'Belirlenemedi',
-};
-
 export function Result({ input, result, version }: {
   input: ProjectInput; result: AnalysisResult; version: string;
 }) {
@@ -75,16 +66,10 @@ export function Result({ input, result, version }: {
           <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
         </div>
         <div className="kpi"><div className="kpi-label">Villa Adedi</div>
-          <div className="kpi-value">{c.unitCount}
-            {c.unitCountRange[0] !== c.unitCountRange[1] && (
-              <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 600 }}> ({c.unitCountRange[0]}–{c.unitCountRange[1]})</span>
-            )}
-          </div>
-        </div>
-        <div className="kpi"><div className="kpi-label">Toplam İnşaat Alanı</div><div className="kpi-value">{fmtM2(c.grossArea)}</div></div>
-        <div className="kpi"><div className="kpi-label">Satılabilir Kapalı Alan</div><div className="kpi-value">{fmtM2(c.saleableArea)}</div></div>
-        <div className="kpi"><div className="kpi-label">Emsal Kullanımı</div>
-          <div className="kpi-value">{c.emsalUsage != null ? fmtPct(c.emsalUsage, 0) : '–'}</div></div>
+          <div className="kpi-value">{c.unitCount > 0 ? c.unitCount : '—'}</div></div>
+        <div className="kpi"><div className="kpi-label">Toplam İnşaat Alanı</div><div className="kpi-value">{fmtM2(c.totalArea)}</div></div>
+        <div className="kpi"><div className="kpi-label">Emsale Dahil Alan</div><div className="kpi-value">{fmtM2(c.emsalArea)}</div></div>
+        <div className="kpi"><div className="kpi-label">Bahçe Alanı</div><div className="kpi-value">{fmtM2(c.gardenArea)}</div></div>
       </div>
 
       <div className="card">
@@ -92,56 +77,37 @@ export function Result({ input, result, version }: {
         <Row label="Parsel Alanı (tapu)" value={fmtM2(p.area)} />
         <Row label="Net Parsel Alanı" value={fmtM2(p.netArea)} />
         <Row label="TAKS / KAKS" value={`${input.zoning.taks != null ? fmtNum(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? fmtNum(input.zoning.kaks) : '—'}`} />
-        {c.envelope.hasGeometry && (
-          <Row label="Yapılaşma Zarfı" value={`${fmtNum(c.envelope.buildableWidth, 1)} × ${fmtNum(c.envelope.buildableDepth, 1)} m = ${fmtM2(c.envelope.envelopeArea)}`} />
-        )}
-        {c.taksLimit != null && <Row label="TAKS'a Göre Taban Alanı" value={fmtM2(c.taksLimit)} />}
-        {c.envelope.hasGeometry && <Row label="Yerleşim Sonrası Kullanılabilir Taban" value={fmtM2(c.layoutFootprint)} />}
-        <Row label="Fiili Taban Alanı" value={fmtM2(c.effectiveFootprint)} />
-        <Row label="Toplam Zemin Oturumu" value={fmtM2(c.groundCoverage)} />
-        <Row label="Villa Kat Adedi" value={`${input.villa.floorsPerVilla} (zemin üstü ${c.aboveGroundFloors})`} />
-        <Row label="Villa Başına Taban" value={fmtM2(c.footprintPerUnit)} />
-        {c.kaksLimit != null && <Row label="KAKS'a Göre Emsal Hakkı" value={fmtM2(c.kaksLimit)} />}
-        <Row label="Emsale Konu Alan" value={fmtM2(c.emsalArea)} />
-        <Row label="Villa Başına Zemin Üstü Brüt" value={fmtM2(c.grossPerVilla)} />
-        {c.basementArea > 0 && (
-          <Row label={`Bodrum — ${c.unitCount} × ${fmtM2(c.basementArea / Math.max(1, c.unitCount))} (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`}
-               value={fmtM2(c.basementArea)} />
-        )}
+        <Row label="Taban Oturumu" value={fmtM2(c.footprintArea)} />
+        <Row label="Emsale Dahil Alan" value={fmtM2(c.emsalArea)} />
+        {c.extraArea > 0 && <Row label="Emsal Dışı Satılabilir Alan" value={fmtM2(c.extraArea)} />}
         {c.atticArea > 0 && (
-          <Row label={`Çatı Arası — ${c.unitCount} × ${fmtM2(c.atticArea / Math.max(1, c.unitCount))} (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`}
-               value={fmtM2(c.atticArea)} />
+          <Row label={`Çatı Katı (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`} value={fmtM2(c.atticArea)} />
         )}
-        {c.extraSaleableArea > 0 && (
-          <Row label={`Diğer Emsal Dışı Satılabilir — ${c.unitCount} × ${fmtM2(c.extraSaleableArea / Math.max(1, c.unitCount))}`}
-               value={fmtM2(c.extraSaleableArea)} />
+        {c.basementArea > 0 && (
+          <Row label={`Bodrum Kat (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`} value={fmtM2(c.basementArea)} />
         )}
-        <Row label="Toplam İnşaat Alanı (brüt)" value={fmtM2(c.grossArea)} />
-        <Row label="Satılabilir Kapalı Alan — emsale konu" value={fmtM2(c.saleableWithinEmsal)} />
-        {c.saleableOutsideEmsal > 0 && (
-          <Row label="Satılabilir Kapalı Alan — emsal dışı" value={fmtM2(c.saleableOutsideEmsal)} />
+        {c.emsalConsumedByExtras > 0 && (
+          <Row label="Emsalden Kullanılan (çatı/bodrum)" value={fmtM2(c.emsalConsumedByExtras)} tone="neg" />
         )}
-        <Row label="TOPLAM SATILABİLİR KAPALI ALAN" value={fmtM2(c.saleableArea)} tone="total" />
+        <Row label="Zemin Üstü Katlara Kalan" value={fmtM2(c.aboveGroundArea)} />
+        <Row label="TOPLAM İNŞAAT ALANI" value={fmtM2(c.totalArea)} tone="total" />
         <Row label="Bahçe / Açık Alan" value={fmtM2(c.gardenArea)} />
-        <Row label="Ortalama Villa Alanı (brüt)" value={fmtM2(input.villa.grossPerVilla)} />
-        <Row label="Satılabilir m² Başına Maliyet" value={fmtTLm2(f.costPerSaleableM2)} />
-        {c.emsalLeftover > 1 && <Row label="Kullanılmayan İnşaat Hakkı" value={fmtM2(c.emsalLeftover)} tone="neg" />}
-        <Row label="Bağlayıcı Kısıt" value={BINDING_TEXT[c.binding] ?? c.binding} tone="total" />
+        {c.unitCount > 0 && <Row label="Villa Adedi" value={`${c.unitCount} adet`} />}
+        {c.unitCount > 0 && <Row label="Villa Başına Toplam Alan" value={fmtM2(c.areaPerUnit)} />}
+        <Row label="Zemin Üstü Kat Adedi" value={`${c.floorsAboveGround} (kat başına ${fmtM2(c.areaPerFloor)})`} />
       </div>
 
       <div className="card">
         <div className="card-title">Fizibilite</div>
         <Row label="Yapı Sınıfı" value={input.cost.buildingClass} />
         <Row label="Birim Maliyet (güncel)" value={fmtTLm2(f.effectiveUnitCost)} />
-        <Row label="Zemin Üstü İnşaat" value={fmtTL(f.aboveGroundCost)} />
-        {f.basementCost > 0 && <Row label="Bodrum İnşaatı" value={fmtTL(f.basementCost)} />}
-        {f.atticCost > 0 && <Row label="Çatı Arası" value={fmtTL(f.atticCost)} />}
+        <Row label="İnşaat Maliyeti" value={fmtTL(f.constructionCost)} />
         {f.landscapeCost > 0 && <Row label="Peyzaj ve Bahçe Düzenlemesi" value={fmtTL(f.landscapeCost)} />}
         {f.extrasCost > 0 && <Row label="Proje, Ruhsat, Harç, Müşavirlik" value={fmtTL(f.extrasCost)} />}
         {f.financeCost > 0 && <Row label="Finansman Gideri" value={fmtTL(f.financeCost)} />}
         <Row label="Toplam Yapım Maliyeti" value={fmtTL(f.totalCost)} tone="neg" />
         <Row label="Satış Birim Değeri" value={fmtTLm2(input.sales.unitPrice)} />
-        <Row label="Villa Satış Hasılatı" value={fmtTL(f.buildingRevenue)} />
+        <Row label="Yapı Satış Hasılatı" value={fmtTL(f.buildingRevenue)} />
         {f.gardenRevenue > 0 && <Row label="Bahçe Satış Hasılatı" value={fmtTL(f.gardenRevenue)} />}
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
         <Row label={`Müteahhit Kârı (${fmtPct(input.residual.profitRate, 0)})`} value={fmtTL(f.developerProfit)} tone="neg" />

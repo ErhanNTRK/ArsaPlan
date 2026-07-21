@@ -31,14 +31,6 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   const { capacity: c, financial: f, share: s } = r;
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
-  const bindingText: Record<string, string> = {
-    'TAKS': 'Taban alanı katsayısı (TAKS)',
-    'KAKS': 'Emsal (KAKS)',
-    'ÇEKME MESAFESİ': 'Çekme mesafeleri / yerleşim zarfı',
-    'DOĞRUDAN TABAN': 'Doğrudan girilen taban oturumu',
-    'DOĞRUDAN İNŞAAT ALANI': 'Doğrudan girilen inşaat alanı',
-    'YOK': 'Belirlenemedi',
-  };
 
   function sheet(name: string, title: string) {
     const ws = wb.addWorksheet(name, {
@@ -119,48 +111,42 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Net Parsel Alanı', p.netArea, 'm²'],
     ['Değerleme Konusu', input.assetType === 'konut' ? 'Konut' : input.assetType === 'ticari' ? 'Ticari' : 'Karma'],
     ['Proje Tipi', 'Villa'],
-    ['Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS / Hmax' : 'Doğrudan alan girişi'],
+    ['Plan Lejantı', input.zoning.lejant.trim() || '—'],
+    ['Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan alan girişi'],
     ['TAKS', input.zoning.taks ?? '—'],
     ['KAKS / Emsal', input.zoning.kaks ?? '—'],
     ['Hmax', input.zoning.hmax ?? '—'],
-    ['Çekme Mesafeleri (ön/arka/sol/sağ)',
-      `${input.zoning.setbackFront} / ${input.zoning.setbackRear} / ${input.zoning.setbackSideLeft} / ${input.zoning.setbackSideRight} m`],
   ]);
   ws1.getCell(`C${row - 9}`).numFmt = M2;
   ws1.getCell(`C${row - 8}`).numFmt = M2;
-  ws1.getCell(`C${row - 4}`).numFmt = NUM2;
   ws1.getCell(`C${row - 3}`).numFmt = NUM2;
+  ws1.getCell(`C${row - 2}`).numFmt = NUM2;
   row++;
 
-  row = section(ws1, row, 'KAPASİTE');
-  const capRows: Row[] = [];
-  if (c.envelope.hasGeometry) {
-    capRows.push(['Yapılaşma Zarfı',
-      `${c.envelope.buildableWidth.toFixed(1)} × ${c.envelope.buildableDepth.toFixed(1)} m = ${Math.round(c.envelope.envelopeArea)} m²`]);
-  }
-  capRows.push(
-    ['Kullanılabilir Taban Alanı', Math.round(c.effectiveFootprint), 'm²'],
-    ['Villa Başına Taban Alanı', Math.round(c.footprintPerUnit), 'm²'],
-    ['Toplam Zemin Oturumu', Math.round(c.groundCoverage), 'm²'],
-    ['VİLLA ADEDİ', c.unitCount, `tahmini aralık: ${c.unitCountRange[0]}–${c.unitCountRange[1]}`],
-    ['Kullanılmayan İnşaat Hakkı', Math.round(c.emsalLeftover), 'm²'],
-    ['Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding],
-    ['Emsale Konu Alan', Math.round(c.emsalArea), 'm²'],
-    ['Bodrum Alanı', Math.round(c.basementArea), input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'],
-    ['Çatı Arası Alanı', Math.round(c.atticArea), input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'],
-    ['Diğer Emsal Dışı Satılabilir', Math.round(c.extraSaleableArea), 'm²'],
-    ['Toplam İnşaat Alanı (brüt)', Math.round(c.grossArea), 'm²'],
-    ['Satılabilir Kapalı Alan — emsale konu', Math.round(c.saleableWithinEmsal), 'm²'],
-    ['Satılabilir Kapalı Alan — emsal dışı', Math.round(c.saleableOutsideEmsal), 'm²'],
-    ['TOPLAM SATILABİLİR KAPALI ALAN', Math.round(c.saleableArea), 'm²'],
-    ['Bahçe / Açık Alan', Math.round(c.gardenArea), 'm²'],
-  );
+  row = section(ws1, row, 'ALAN ÜRETİMİ');
   const capStart = row;
-  row = rows(ws1, row, capRows);
+  row = rows(ws1, row, [
+    ['Taban Oturumu', Math.round(c.footprintArea), 'm²'],
+    ['Emsale Dahil Alan', Math.round(c.emsalArea), 'm²'],
+    ['Emsal Dışı Satılabilir Alan', Math.round(c.extraArea), 'm²'],
+    ['Çatı Katı', Math.round(c.atticArea), input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'],
+    ['Bodrum Kat', Math.round(c.basementArea), input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'],
+    ['Emsalden Kullanılan (çatı/bodrum)', Math.round(c.emsalConsumedByExtras), 'm²'],
+    ['Zemin Üstü Katlara Kalan', Math.round(c.aboveGroundArea), 'm²'],
+    ['TOPLAM İNŞAAT ALANI', Math.round(c.totalArea), 'm²'],
+    ['Bahçe / Açık Alan', Math.round(c.gardenArea), 'm²'],
+    ['Villa Adedi', c.unitCount > 0 ? c.unitCount : '—'],
+    ['Villa Başına Toplam Alan', Math.round(c.areaPerUnit), 'm²'],
+    ['Zemin Üstü Kat Adedi', c.floorsAboveGround],
+    ['Kat Başına Alan', Math.round(c.areaPerFloor), 'm²'],
+  ]);
   for (let i = capStart; i < row; i++) {
-    const v = ws1.getCell(`C${i}`);
-    if (typeof v.value === 'number') v.numFmt = ws1.getCell(`B${i}`).value === 'VİLLA ADEDİ' ? '#,##0' : M2;
+    const cell = ws1.getCell(`C${i}`);
+    const lbl = String(ws1.getCell(`B${i}`).value);
+    if (typeof cell.value === 'number' && lbl !== 'Villa Adedi' && lbl !== 'Zemin Üstü Kat Adedi') cell.numFmt = M2;
   }
+  ws1.getCell(`B${capStart + 7}`).font = { name: 'Arial', size: 10, bold: true };
+  ws1.getCell(`C${capStart + 7}`).font = { name: 'Arial', size: 10, bold: true };
   row++;
 
   row = section(ws1, row, 'FİZİBİLİTE');
@@ -170,9 +156,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Tebliğ Birim Maliyeti', Math.round(input.cost.unitCost)],
     ['Güncelleme Oranı', input.cost.inflationRate],
     ['Güncel Birim Maliyet', Math.round(f.effectiveUnitCost)],
-    ['Zemin Üstü İnşaat Maliyeti', Math.round(f.aboveGroundCost)],
-    ['Bodrum Maliyeti', Math.round(f.basementCost)],
-    ['Çatı Arası Maliyeti', Math.round(f.atticCost)],
+    ['İnşaat Maliyeti', Math.round(f.constructionCost)],
     ['Peyzaj ve Bahçe Düzenlemesi', Math.round(f.landscapeCost)],
     ['Proje, Ruhsat, Harç, Müşavirlik', Math.round(f.extrasCost)],
     ['Finansman Gideri', Math.round(f.financeCost)],
@@ -190,11 +174,11 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   ws1.getCell(`C${finStart + 1}`).numFmt = TLM2;
   ws1.getCell(`C${finStart + 2}`).numFmt = PCT;
   ws1.getCell(`C${finStart + 3}`).numFmt = TLM2;
+  ws1.getCell(`C${finStart + 14}`).numFmt = TLM2;
+  ws1.getCell(`C${finStart + 15}`).numFmt = PCT;
   ws1.getCell(`C${finStart + 16}`).numFmt = TLM2;
   ws1.getCell(`C${finStart + 17}`).numFmt = PCT;
-  ws1.getCell(`C${finStart + 18}`).numFmt = TLM2;
-  ws1.getCell(`C${finStart + 19}`).numFmt = PCT;
-  [finStart + 10, finStart + 13, finStart + 15].forEach((i) => {
+  [finStart + 8, finStart + 11, finStart + 13].forEach((i) => {
     ws1.getCell(`B${i}`).font = { name: 'Arial', size: 10, bold: true };
     ws1.getCell(`C${i}`).font = { name: 'Arial', size: 10, bold: true };
   });
@@ -235,29 +219,24 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   r2 = section(ws2, r2, 'GİRDİ ÖZETİ');
   r2 = rows(ws2, r2, [
     ['Villa Tipi', input.villa.villaType === 'mustakil' ? 'Müstakil' : input.villa.villaType === 'ikiz' ? 'İkiz' : 'Sıralı'],
-    ['Villa Kurgusu', input.villa.mode === 'adet' ? 'Adetten büyüklüğe' : 'Büyüklükten adede'],
-    ['Villa Brüt Alanı (adet başına)', Math.round(r.capacity.grossPerVilla), 'm²'],
-    ['Villa Kat Adedi (bodrum dahil)', input.villa.floorsPerVilla],
-    ['Zemin Üstü Kat Adedi', r.capacity.aboveGroundFloors],
-    ['Yerleşim Verimliliği', input.villa.layoutEfficiency],
-    ['Bodrum', input.emsal.hasBasement
-      ? `Var — ${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'}, ${input.emsal.basementSaleable ? 'satılabilir' : 'satılamaz'}` : 'Yok'],
-    ['Çatı Arası Piyesi', input.emsal.hasAttic
-      ? `Var — ${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'}, ${input.emsal.atticSaleable ? 'satılabilir' : 'satılamaz'}` : 'Yok'],
-    ['Diğer Emsal Dışı Satılabilir (villa başına)', input.emsal.extraSaleablePerUnit, 'm²'],
+    ['Villa Adedi', input.villa.unitCount > 0 ? input.villa.unitCount : 'Girilmedi'],
+    ['Zemin Üstü Kat Adedi', input.villa.floorsAboveGround],
+    ['Emsal Dışı Satılabilir Alan', input.emsal.hasExtra
+      ? (input.emsal.extraMode === 'oran' ? `Emsalin %${(input.emsal.extraRate * 100).toFixed(1)}'i` : `${input.emsal.extraArea} m² (elle)`) : 'Yok'],
+    ['Çatı Katı', input.emsal.hasAttic
+      ? `${input.emsal.atticMode === 'oran' ? 'Tabanın %' + (input.emsal.atticRate * 100).toFixed(0) + "'i" : input.emsal.atticArea + ' m² (elle)'} · ${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'}` : 'Yok'],
+    ['Bodrum Kat', input.emsal.hasBasement
+      ? `Taban oturumu kadar · ${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'}` : 'Yok'],
     ['Peyzaj Birim Maliyeti', input.site.landscapeUnitCost],
     ['Bahçe Satış Değeri', input.site.gardenPricePerM2],
-    ['Villa Satış Birim Değeri', input.sales.unitPrice],
+    ['Satış Birim Değeri (toplam inşaat m²)', input.sales.unitPrice],
     ['Müteahhit Kâr Oranı', input.residual.profitRate],
     ['Finansman Gideri (toplam maliyetin yüzdesi)', input.residual.financeRateOfCost],
     ['Kat Karşılığı Bölümü', input.share.enabled ? 'Raporda gösteriliyor' : 'Kapalı'],
     ['Arsa Sahibi Payı', input.share.ownerShare],
   ]);
-  [5, 13, 14, 16].forEach((i) => { ws2.getCell(`C${3 + i}`).numFmt = PCT; });
-  ws2.getCell('C5').numFmt = M2;
-  ws2.getCell('C12').numFmt = TLM2;
-  ws2.getCell('C13').numFmt = TLM2;
-  ws2.getCell('C14').numFmt = TLM2;
+  ['C10', 'C11', 'C12'].forEach((a) => { ws2.getCell(a).numFmt = TLM2; });
+  ['C13', 'C14', 'C16'].forEach((a) => { ws2.getCell(a).numFmt = PCT; });
   if (input.zoning.planNotes.trim()) {
     r2 += 1;
     r2 = section(ws2, r2, 'PLAN NOTLARI');
