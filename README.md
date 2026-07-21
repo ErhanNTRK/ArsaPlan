@@ -58,6 +58,24 @@ Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
     →  Sonuç ekranı: KPI kartları, kapasite dökümü, fizibilite,
        uzman değerlendirmesi · **PDF ve Excel indirme** (Dora logolu)
 
+### Villa kat mantığı
+
+Girilen **kat adedi bodrumu içerir**, çatı arasını içermez:
+
+    bodrum yok  · 2 kat → zemin + 1. normal kat        → zemin üstü 2 kat
+    bodrum var  · 2 kat → bodrum + zemin               → zemin üstü 1 kat
+    bodrum var  · 4 kat → bodrum + zemin + 2 normal    → zemin üstü 3 kat
+
+Villa taban alanı = villa alanı ÷ zemin üstü kat adedi. Çatı arası kat sayısına
+girmez ama alan ve maliyet hesabına girer.
+
+### Bahçe ve satılabilir alan
+
+- **Bahçe alanı** = net parsel − **toplam zemin oturumu**. TAKS tanımlıysa yasal taban
+  alanı hakkı esas alınır (fiili oturum daha küçük olsa bile).
+- **Satılabilir alan yalnızca KAPALI alandır.** Bahçe satılabilir alana girmez;
+  ayrıca fiyatlandırılırsa hasılata ayrı kalem olarak eklenir.
+
 ### Emsal dışı satılabilir alan
 
 Bir alanın **emsale dahil olması** ile **satılabilir olması** ayrı sorulardır.
@@ -100,7 +118,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (54 test)
+    npm test          motor + arayüz + dışa aktarma testleri (58 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)

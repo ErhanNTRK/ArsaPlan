@@ -194,8 +194,8 @@ export function Step2({ input, upd, setTop }: P) {
           </>
         )}
 
-        <Field label="Diğer Emsal Dışı Satılabilir Alan"
-               hint="Villa başına m². Kapalı balkon, teras, eklenti gibi emsale girmeyen ama satılan alanlar.">
+        <Field label="Diğer Emsal Dışı Satılabilir KAPALI Alan"
+               hint="Villa başına m². Kapalı balkon, eklenti gibi emsale girmeyen ama satılan KAPALI alanlar. Bahçe buraya yazılmaz.">
           <Num value={e.extraSaleablePerUnit} onChange={(val) => upd('emsal', { extraSaleablePerUnit: val })} suffix="m²" />
         </Field>
       </div>
@@ -219,7 +219,7 @@ export function Step2({ input, upd, setTop }: P) {
         </Field>
         <div className="grid-2">
           {v.mode === 'alan' ? (
-            <Field label="Villa Brüt Alanı" hint="Zemin üstü">
+            <Field label="Villa Alanı" hint="Zemin üstü katların toplam kapalı alanı">
               <Num value={v.grossPerVilla} onChange={(n) => upd('villa', { grossPerVilla: n })} suffix="m²" />
             </Field>
           ) : (
@@ -227,22 +227,24 @@ export function Step2({ input, upd, setTop }: P) {
               <Num value={v.unitCountManual} onChange={(n) => upd('villa', { unitCountManual: n })} suffix="adet" />
             </Field>
           )}
-          <Field label="Villa Kat Adedi" hint="Bodrum/çatı arası hariç">
+          <Field label="Villa Kat Adedi" hint={input.emsal.hasBasement ? 'Bodrum DAHİL · çatı arası hariç' : 'Zemin dahil · çatı arası hariç'}>
             <Num value={v.floorsPerVilla} onChange={(n) => upd('villa', { floorsPerVilla: n })} />
           </Field>
         </div>
-        <div className="grid-2">
-          <Field label="Villa Tipi">
-            <Sel value={v.villaType} onChange={(t) => upd('villa', { villaType: t })}
-                 options={[
-                   { value: 'mustakil', label: 'Müstakil' },
-                   { value: 'ikiz', label: 'İkiz' },
-                   { value: 'sirali', label: 'Sıralı' },
-                 ]} />
-          </Field>
-          <Field label="Villa Net Alanı" hint="Boşsa brüt kullanılır">
-            <Num value={v.netPerVilla ?? 0} onChange={(n) => upd('villa', { netPerVilla: n || null })} suffix="m²" />
-          </Field>
+        <Field label="Villa Tipi">
+          <Sel value={v.villaType} onChange={(t) => upd('villa', { villaType: t })}
+               options={[
+                 { value: 'mustakil', label: 'Müstakil' },
+                 { value: 'ikiz', label: 'İkiz' },
+                 { value: 'sirali', label: 'Sıralı' },
+               ]} />
+        </Field>
+        <div className="note-box">
+          {input.emsal.hasBasement
+            ? <>Bodrum var: <b>{v.floorsPerVilla} kat</b> = 1 bodrum + {Math.max(1, v.floorsPerVilla - 1)} zemin üstü kat
+                {v.floorsPerVilla >= 3 && <> (zemin + {v.floorsPerVilla - 2} normal kat)</>}.</>
+            : <>Bodrum yok: <b>{v.floorsPerVilla} kat</b> = zemin{v.floorsPerVilla > 1 && <> + {v.floorsPerVilla - 1} normal kat</>}.</>}
+          {input.emsal.hasAttic && <> Çatı arası kat sayısına girmez, alan hesabına girer.</>}
         </div>
       </div>
 
@@ -252,7 +254,7 @@ export function Step2({ input, upd, setTop }: P) {
           <div className="mini-kpi three">
             <div><span>Villa adedi</span><b>{c.unitCount}</b></div>
             <div><span>Villa brüt</span><b>{fmtM2(c.grossPerVilla)}</b></div>
-            <div><span>Satılabilir toplam</span><b>{fmtM2(c.saleableArea)}</b></div>
+            <div><span>Satılabilir kapalı</span><b>{fmtM2(c.saleableArea)}</b></div>
           </div>
           <div className="breakdown">
             <div>Villa başına: <b>{fmtM2(c.grossPerVilla)}</b> zemin üstü
@@ -261,7 +263,7 @@ export function Step2({ input, upd, setTop }: P) {
               {c.extraSaleableArea > 0 && <> + <b>{fmtM2(c.extraSaleableArea / c.unitCount)}</b> diğer</>}
               {' '}= <b>{fmtM2(c.grossPerUnit)}</b> brüt
             </div>
-            <div>Satılabilir alan: <b>{fmtM2(c.saleableWithinEmsal)}</b> emsale konu
+            <div>Satılabilir kapalı alan: <b>{fmtM2(c.saleableWithinEmsal)}</b> emsale konu
               {c.saleableOutsideEmsal > 0 && <> + <b>{fmtM2(c.saleableOutsideEmsal)}</b> emsal dışı</>}
               {' '}= <b>{fmtM2(c.saleableArea)}</b>
             </div>
@@ -321,7 +323,7 @@ export function Step3({ input, upd }: P) {
 
       <div className="card">
         <div className="card-title">Peyzaj ve Bahçe</div>
-        <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − bina oturumu">
+        <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − toplam zemin oturumu (TAKS taban alanı)">
           <Num value={s.landscapeArea > 0 ? s.landscapeArea : Math.round(cap.gardenArea)}
                onChange={(n) => upd('site', { landscapeArea: n })} suffix="m²" />
         </Field>
@@ -347,8 +349,9 @@ export function Step3({ input, upd }: P) {
         </Field>
         {cap.saleableArea > 0 && input.sales.unitPrice > 0 && (
           <div className="note-box">
-            Satılabilir <b>{fmtM2(cap.saleableArea)}</b> × birim fiyat =
-            {' '}<b>{(cap.saleableArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b>
+            Satılabilir <b>kapalı</b> alan <b>{fmtM2(cap.saleableArea)}</b> × birim fiyat =
+            {' '}<b>{(cap.saleableArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b><br />
+            Bahçe bu tutara dahil değildir; ayrıca fiyatlandıysa hasılata eklenir.
           </div>
         )}
       </div>

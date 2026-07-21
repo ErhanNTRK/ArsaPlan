@@ -86,11 +86,14 @@ export interface VillaConfig {
   /** 'adet' modunda girilen villa sayısı */
   unitCountManual: number;
   villaType: 'mustakil' | 'ikiz' | 'sirali';
-  /** Villa başına zemin üstü brüt alan (m²) */
+  /** Villa başına zemin üstü kapalı alan (m²) — bodrum ve çatı arası hariç */
   grossPerVilla: number;
-  /** Villa başına net (satılabilir) alan — 0 ise brüt kullanılır */
-  netPerVilla: number | null;
-  /** Villa kat adedi (zemin dahil; bodrum ve çatı arası hariç) */
+  /**
+   * Villa kat adedi — BODRUM DAHİL, çatı arası hariç.
+   *  bodrum yok + 2 kat → zemin + 1. normal kat
+   *  bodrum var + 4 kat → bodrum + zemin + 2 normal kat
+   * Çatı arası kat sayısına girmez ama alan hesabına girer.
+   */
   floorsPerVilla: number;
   /** Yapılaşma zarfının bina tabanına dönüşen oranı */
   layoutEfficiency: number;
@@ -163,6 +166,10 @@ export interface CapacityResult {
   layoutFootprint: number;
   effectiveFootprint: number;
   footprintPerUnit: number;
+  /** Zemin üstü kat adedi (girilen kat adedinden bodrum düşülmüş) */
+  aboveGroundFloors: number;
+  /** Toplam zemin oturumu — bahçe hesabında düşülen alan */
+  groundCoverage: number;
   countByFootprint: number;
   countByEmsal: number | null;
   unitCount: number;

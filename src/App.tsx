@@ -26,7 +26,7 @@ const DEFAULT_INPUT: ProjectInput = {
   },
   villa: {
     mode: 'alan', unitCountManual: 0, villaType: 'mustakil',
-    grossPerVilla: 0, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.65,
+    grossPerVilla: 0, floorsPerVilla: 3, layoutEfficiency: 0.65,
   },
   cost: {
     buildingClass: VILLA_DEFAULT_CLASS,

@@ -80,7 +80,14 @@ export function computeVillaCapacity(
     : { value: 0, source: 'YOK' as BindingConstraint };
   const effectiveFootprint = footprintWinner.value;
 
-  const floorsPerUnit = Math.max(1, villa.floorsPerVilla);
+  /* KAT MANTIĞI: girilen kat adedi bodrumu İÇERİR, çatı arasını içermez.
+     Zemin üstü kat = girilen kat − (bodrum varsa 1). */
+  const enteredFloors = Math.max(1, Math.round(villa.floorsPerVilla));
+  const aboveGroundFloors = Math.max(1, enteredFloors - (emsal.hasBasement ? 1 : 0));
+  const floorsPerUnit = aboveGroundFloors;
+  if (emsal.hasBasement && enteredFloors < 2) {
+    warnings.push('Bodrum var denildiği hâlde kat adedi 1 girilmiş. Bodrum + zemin için en az 2 kat gereklidir; zemin üstü 1 kat kabul edildi.');
+  }
 
   /* ══ Villa kurgusu ══
      'alan' modunda villa büyüklüğü verilir, adet hesaplanır.
@@ -167,7 +174,7 @@ export function computeVillaCapacity(
 
   /* ── Alan üretimi ── */
   /* Satılabilir alan = emsale konu satılabilir kısım + emsal dışı satılabilir kısım */
-  const withinEmsalPerUnit = (villa.netPerVilla && villa.netPerVilla > 0 ? villa.netPerVilla : grossPerVilla)
+  const withinEmsalPerUnit = grossPerVilla
     + (emsal.hasAttic && emsal.atticSaleable && emsal.atticInEmsal ? atticPerUnit : 0)
     + (emsal.hasBasement && emsal.basementSaleable && emsal.basementInEmsal ? basementPerUnit : 0);
   const outsidePerUnit =
@@ -185,7 +192,13 @@ export function computeVillaCapacity(
   const saleableWithinEmsal = unitCount * withinEmsalPerUnit;
   const saleableOutsideEmsal = unitCount * outsidePerUnit;
   const footprintTotal = unitCount * footprintPerUnit;
-  const gardenArea = Math.max(0, parcel.netArea - footprintTotal);
+  /* Bahçe/peyzaj alanı, toplam ZEMİN OTURUMU düşülerek bulunur.
+     TAKS tanımlıysa yasal taban alanı hakkı esas alınır (fiili oturum bunun altında
+     kalsa bile arada kalan alan yapılaşmaya ayrılmış sayılır); yoksa fiili oturum. */
+  const groundCoverage = taksLimit != null && taksLimit > 0
+    ? Math.max(taksLimit, footprintTotal)
+    : footprintTotal;
+  const gardenArea = Math.max(0, parcel.netArea - groundCoverage);
 
   if (unitCount === 0 && villa.mode === 'alan') {
     warnings.push('Girilen koşullarda hiçbir villa yerleşmiyor. Villa büyüklüğünü, çekme mesafelerini veya imar haklarını kontrol ediniz.');
@@ -193,15 +206,16 @@ export function computeVillaCapacity(
   if (kaksLimit != null && emsalArea > kaksLimit + 0.5) {
     warnings.push('Hesaplanan emsal alanı üst sınırı aşıyor — girdileri kontrol ediniz.');
   }
-  if (zoning.floors != null && zoning.floors > 0 && villa.floorsPerVilla > zoning.floors) {
-    warnings.push(`Villa kat adedi (${villa.floorsPerVilla}), plandaki kat adedini (${zoning.floors}) aşıyor.`);
+  if (zoning.floors != null && zoning.floors > 0 && aboveGroundFloors > zoning.floors) {
+    warnings.push(`Villanın zemin üstü kat adedi (${aboveGroundFloors}), plandaki kat adedini (${zoning.floors}) aşıyor.`);
   }
-  if (!direct && zoning.hmax != null && zoning.hmax > 0 && villa.floorsPerVilla * 3.2 > zoning.hmax + 0.5) {
-    warnings.push(`${villa.floorsPerVilla} kat için yaklaşık ${(villa.floorsPerVilla * 3.2).toFixed(1)} m yükseklik gerekir; Hmax ${zoning.hmax} m olarak girilmiş.`);
+  if (!direct && zoning.hmax != null && zoning.hmax > 0 && aboveGroundFloors * 3.2 > zoning.hmax + 0.5) {
+    warnings.push(`Zemin üstü ${aboveGroundFloors} kat için yaklaşık ${(aboveGroundFloors * 3.2).toFixed(1)} m yükseklik gerekir; Hmax ${zoning.hmax} m girilmiş.`);
   }
 
   return {
     envelope, taksLimit, kaksLimit, layoutFootprint, effectiveFootprint, footprintPerUnit,
+    aboveGroundFloors, groundCoverage,
     countByFootprint, countByEmsal, unitCount,
     unitCountRange: [Math.min(rangeLow, unitCount), Math.max(rangeHigh, unitCount)],
     binding, emsalPerUnit, grossPerUnit, saleablePerUnit, grossPerVilla,

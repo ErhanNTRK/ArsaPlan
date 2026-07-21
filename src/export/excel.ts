@@ -141,6 +141,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   capRows.push(
     ['Kullanılabilir Taban Alanı', Math.round(c.effectiveFootprint), 'm²'],
     ['Villa Başına Taban Alanı', Math.round(c.footprintPerUnit), 'm²'],
+    ['Toplam Zemin Oturumu', Math.round(c.groundCoverage), 'm²'],
     ['VİLLA ADEDİ', c.unitCount, `tahmini aralık: ${c.unitCountRange[0]}–${c.unitCountRange[1]}`],
     ['Bağlayıcı Kısıt', bindingText[c.binding] ?? c.binding],
     ['Emsale Konu Alan', Math.round(c.emsalArea), 'm²'],
@@ -148,9 +149,9 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Çatı Arası Alanı', Math.round(c.atticArea), input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'],
     ['Diğer Emsal Dışı Satılabilir', Math.round(c.extraSaleableArea), 'm²'],
     ['Toplam İnşaat Alanı (brüt)', Math.round(c.grossArea), 'm²'],
-    ['Satılabilir Alan — emsale konu', Math.round(c.saleableWithinEmsal), 'm²'],
-    ['Satılabilir Alan — emsal dışı', Math.round(c.saleableOutsideEmsal), 'm²'],
-    ['TOPLAM SATILABİLİR ALAN', Math.round(c.saleableArea), 'm²'],
+    ['Satılabilir Kapalı Alan — emsale konu', Math.round(c.saleableWithinEmsal), 'm²'],
+    ['Satılabilir Kapalı Alan — emsal dışı', Math.round(c.saleableOutsideEmsal), 'm²'],
+    ['TOPLAM SATILABİLİR KAPALI ALAN', Math.round(c.saleableArea), 'm²'],
     ['Bahçe / Açık Alan', Math.round(c.gardenArea), 'm²'],
   );
   const capStart = row;
@@ -235,8 +236,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Villa Tipi', input.villa.villaType === 'mustakil' ? 'Müstakil' : input.villa.villaType === 'ikiz' ? 'İkiz' : 'Sıralı'],
     ['Villa Kurgusu', input.villa.mode === 'adet' ? 'Adetten büyüklüğe' : 'Büyüklükten adede'],
     ['Villa Brüt Alanı (adet başına)', Math.round(r.capacity.grossPerVilla), 'm²'],
-    ['Villa Net Alanı (adet başına)', input.villa.netPerVilla ?? 'brüt kullanıldı'],
-    ['Villa Kat Adedi', input.villa.floorsPerVilla],
+    ['Villa Kat Adedi (bodrum dahil)', input.villa.floorsPerVilla],
+    ['Zemin Üstü Kat Adedi', r.capacity.aboveGroundFloors],
     ['Yerleşim Verimliliği', input.villa.layoutEfficiency],
     ['Bodrum', input.emsal.hasBasement
       ? `Var — ${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'}, ${input.emsal.basementSaleable ? 'satılabilir' : 'satılamaz'}` : 'Yok'],

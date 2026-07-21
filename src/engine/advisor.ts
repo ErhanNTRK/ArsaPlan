@@ -114,6 +114,17 @@ export function buildAdvice(
     }
   }
 
+  /* ── Kat kurgusu ── */
+  if (capacity.unitCount > 0) {
+    const kat = emsal.hasBasement
+      ? `1 bodrum + ${capacity.aboveGroundFloors} zemin üstü kat`
+      : `${capacity.aboveGroundFloors} zemin üstü kat`;
+    add('bilgi', 'Kat kurgusu',
+      `Villa ${kat} olarak kuruldu; taban alanı ${m2(capacity.footprintPerUnit)}. ` +
+      (emsal.hasAttic ? 'Çatı arası kat sayısına dahil edilmedi, yalnızca alan ve maliyet hesabına girdi. ' : '') +
+      'Kat adedini artırmak tabanı küçültür ve aynı emsalle daha fazla villa yerleşmesini sağlar.');
+  }
+
   /* ── Emsal dışı satılabilir alan ── */
   if (capacity.saleableOutsideEmsal > 0 && capacity.unitCount > 0) {
     add('olumlu', 'Emsal dışı satılabilir alan kazancı',
@@ -134,7 +145,8 @@ export function buildAdvice(
     const gardenPerUnit = capacity.gardenArea / capacity.unitCount;
     add(financial.gardenRevenue > 0 ? 'olumlu' : 'bilgi',
       'Bahçe ve peyzaj',
-      `Villa başına yaklaşık ${m2(gardenPerUnit)} bahçe düşüyor; peyzaj maliyeti ${tl(financial.landscapeCost)} olarak hesaplandı. ` +
+      `Bahçe alanı, net parselden toplam zemin oturumu (${m2(capacity.groundCoverage)}) düşülerek bulundu; ` +
+      `villa başına yaklaşık ${m2(gardenPerUnit)} düşüyor ve peyzaj maliyeti ${tl(financial.landscapeCost)} olarak hesaplandı. ` +
       (financial.gardenRevenue > 0
         ? `Bahçe ayrıca fiyatlandığı için hasılata ${tl(financial.gardenRevenue)} katkı veriyor.`
         : 'Bahçe ayrıca fiyatlanmadı; değeri villa m² fiyatının içinde kabul edildi. Geniş bahçeli villalarda bahçeyi ayrı fiyatlamak hasılatı daha gerçekçi gösterir.'));

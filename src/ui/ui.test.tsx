@@ -18,7 +18,7 @@ const input: ProjectInput = {
   emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
            hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
            extraSaleablePerUnit: 0 },
-  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
+  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, floorsPerVilla: 3, layoutEfficiency: 0.70 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.15, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 4000 },
   sales: { unitPrice: 90000 },
@@ -64,7 +64,7 @@ describe('adım ekranları', () => {
       parcel: { ...input.parcel, area: 0, netArea: 0, width: 0, depth: 0 },
       zoning: { ...input.zoning, taks: null, kaks: null, hmax: null, floors: null },
       emsal: { ...input.emsal, hasBasement: false, hasAttic: false },
-      villa: { ...input.villa, grossPerVilla: 0, netPerVilla: null },
+      villa: { ...input.villa, grossPerVilla: 0 },
       site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
       sales: { unitPrice: 0 },
     };

@@ -134,6 +134,8 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   section('KAPASİTE');
   row('Kullanılabilir Taban Alanı', m2(c.effectiveFootprint));
   row('Villa Başına Taban Alanı', m2(c.footprintPerUnit));
+  row('Toplam Zemin Oturumu', m2(c.groundCoverage));
+  row('Villa Kat Adedi', `${input.villa.floorsPerVilla} (zemin üstü ${c.aboveGroundFloors})`);
   row('VİLLA ADEDİ',
     `${c.unitCount}${c.unitCountRange[0] !== c.unitCountRange[1] ? `  (${c.unitCountRange[0]}–${c.unitCountRange[1]})` : ''}`,
     true, NAVY);
@@ -150,9 +152,9 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     row(`Diğer Emsal Dışı Satılabilir — ${c.unitCount} × ${m2(c.extraSaleableArea / Math.max(1, c.unitCount))}`, m2(c.extraSaleableArea));
   }
   row('Toplam İnşaat Alanı (brüt)', m2(c.grossArea));
-  row('Satılabilir Alan — emsale konu', m2(c.saleableWithinEmsal));
-  if (c.saleableOutsideEmsal > 0) row('Satılabilir Alan — emsal dışı', m2(c.saleableOutsideEmsal));
-  row('TOPLAM SATILABİLİR ALAN', m2(c.saleableArea), true, NAVY);
+  row('Satılabilir Kapalı Alan — emsale konu', m2(c.saleableWithinEmsal));
+  if (c.saleableOutsideEmsal > 0) row('Satılabilir Kapalı Alan — emsal dışı', m2(c.saleableOutsideEmsal));
+  row('TOPLAM SATILABİLİR KAPALI ALAN', m2(c.saleableArea), true, NAVY);
   row('Bahçe / Açık Alan', m2(c.gardenArea));
   y += 3;
 

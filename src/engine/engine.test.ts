@@ -18,7 +18,7 @@ const base: ProjectInput = {
            hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
            extraSaleablePerUnit: 0 },
   villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil',
-           grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
+           grossPerVilla: 240, floorsPerVilla: 3, layoutEfficiency: 0.70 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0, extrasRate: 0 },
   site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
   sales: { unitPrice: 90000 },
@@ -63,12 +63,37 @@ describe('kapasite — TAKS/KAKS yöntemi', () => {
     expect(c.basementArea).toBe(600);          // 5 × 120
     expect(c.atticArea).toBe(240);             // 5 × 48 (tabanın %40'ı)
     expect(c.grossArea).toBe(2040);            // 5 × 408
-    expect(c.saleableArea).toBe(1440);         // 5 × (240 + 48)
+    expect(c.saleableArea).toBe(1440);         // 5 × (240 kapalı + 48 çatı arası)
     expect(c.emsalArea).toBe(1200);
   });
-  it('bahçe alanını net parselden türetir', () => {
+  it('kat adedi bodrumu içerir; zemin üstü kat ondan türetilir', () => {
+    expect(c.aboveGroundFloors).toBe(2);      // 3 kat − 1 bodrum
+    expect(c.footprintPerUnit).toBe(120);     // 240 / 2 zemin üstü kat
+  });
+  it('bahçe alanını toplam zemin oturumundan (TAKS) türetir', () => {
     expect(c.footprintTotal).toBe(600);
-    expect(c.gardenArea).toBe(1750);
+    expect(c.groundCoverage).toBe(705);       // TAKS taban alanı hakkı
+    expect(c.gardenArea).toBe(2350 - 705);    // 1.645
+  });
+  it('bodrum yokken kat adedi doğrudan zemin üstü kattır', () => {
+    const c2 = computeVillaCapacity(base.parcel, base.zoning,
+      { ...base.villa, floorsPerVilla: 2 },
+      { ...base.emsal, hasBasement: false });
+    expect(c2.aboveGroundFloors).toBe(2);     // zemin + 1 normal kat
+    expect(c2.footprintPerUnit).toBe(120);
+    expect(c2.basementArea).toBe(0);
+  });
+  it('bodrum varken 4 kat = bodrum + zemin + 2 normal kat', () => {
+    const c3 = computeVillaCapacity(base.parcel, base.zoning,
+      { ...base.villa, floorsPerVilla: 4 }, base.emsal);
+    expect(c3.aboveGroundFloors).toBe(3);
+    expect(c3.footprintPerUnit).toBe(80);     // 240 / 3
+  });
+  it('çatı arası kat sayısına girmez, alana girer', () => {
+    const c4 = computeVillaCapacity(base.parcel, base.zoning, base.villa,
+      { ...base.emsal, hasAttic: true, atticPerUnit: 60 });
+    expect(c4.aboveGroundFloors).toBe(2);     // değişmedi
+    expect(c4.atticArea).toBe(c4.unitCount * 60);
   });
   it('bodrum emsale dahil olunca kapasite düşer', () => {
     const c2 = computeVillaCapacity(base.parcel, base.zoning, base.villa,
@@ -210,8 +235,8 @@ describe('finansal sonuç', () => {
   });
   it('peyzaj alanı otomatik hesaplanır ve maliyete girer', () => {
     const r2 = analyze({ ...base, site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 0 } });
-    expect(r2.financial.landscapeCost).toBe(1750 * 1200);        // net parsel − taban oturumu
-    expect(r2.financial.totalCost).toBe(47736000 + 2100000);
+    expect(r2.financial.landscapeCost).toBe(1645 * 1200);        // net parsel − zemin oturumu
+    expect(r2.financial.totalCost).toBe(47736000 + 1645 * 1200);
   });
   it('peyzaj alanı elle girilirse o kullanılır', () => {
     const r2 = analyze({ ...base, site: { landscapeArea: 1000, landscapeUnitCost: 1200, gardenPricePerM2: 0 } });
@@ -219,8 +244,8 @@ describe('finansal sonuç', () => {
   });
   it('bahçe ayrı fiyatlanınca hasılat artar', () => {
     const r3 = analyze({ ...base, site: { ...base.site, gardenPricePerM2: 5000 } });
-    expect(r3.financial.gardenRevenue).toBe(1750 * 5000);
-    expect(r3.financial.revenue).toBe(129600000 + 8750000);
+    expect(r3.financial.gardenRevenue).toBe(1645 * 5000);
+    expect(r3.financial.revenue).toBe(129600000 + 1645 * 5000);
   });
   it('enflasyon birim maliyeti günceller', () => {
     const r4 = analyze({ ...base, cost: { ...base.cost, inflationRate: 0.20 } });

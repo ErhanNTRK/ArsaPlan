@@ -29,7 +29,7 @@ const input: ProjectInput = {
   emsal: { hasBasement: true, basementInEmsal: false, basementPerUnit: 0, basementSaleable: false,
            hasAttic: true, atticInEmsal: false, atticPerUnit: 0, atticSaleable: true,
            extraSaleablePerUnit: 0 },
-  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, netPerVilla: null, floorsPerVilla: 2, layoutEfficiency: 0.70 },
+  villa: { mode: 'alan', unitCountManual: 0, villaType: 'mustakil', grossPerVilla: 240, floorsPerVilla: 3, layoutEfficiency: 0.70 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.15, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 4000 },
   sales: { unitPrice: 90000 },
