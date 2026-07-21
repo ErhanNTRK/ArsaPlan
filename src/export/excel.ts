@@ -13,6 +13,12 @@ const NAVY = 'FF0F2A47';
 const BAND = 'FFEAEFF5';
 const GREEN = 'FFE4EFE2';
 
+const VERDICT_TEXT: Record<string, string> = {
+  'yakin': 'İki yöntem birbirine yakın',
+  'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
+  'gelir-yontemi-yuksek': 'Gelir yöntemi değeri daha yüksek',
+};
+
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
 const TLM2 = '#,##0 "₺/m²";[Red]-#,##0 "₺/m²";"–"';
 const M2 = '#,##0 "m²";[Red]-#,##0 "m²";"–"';
@@ -185,22 +191,26 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row++;
 
   if (input.share.enabled) {
-  row = section(ws1, row, 'KAT KARŞILIĞI');
+  row = section(ws1, row, 'ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
   const shStart = row;
   row = rows(ws1, row, [
     ['Arsa Sahibi Payı', s.ownerShare],
     ['Müteahhit Payı', s.contractorShare],
-    ['Arsa Sahibine Kalan Değer', Math.round(s.ownerValue)],
-    ['Müteahhide Kalan Değer', Math.round(s.contractorValue)],
-    ['Müteahhit Net Sonucu (maliyet sonrası)', Math.round(s.contractorNet)],
-    ['Artık Değere Denk Gelen Pay', s.balancedShare],
-    ['Fark (Kat Karşılığı − Artık Değer)', Math.round(s.difference)],
-    ['Değerlendirme', s.verdict === 'dengeli' ? 'Dengeli paylaşım'
-      : s.verdict === 'arsa-sahibi-lehine' ? 'Arsa sahibi lehine' : 'Müteahhit lehine'],
+    ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValue)],
+    ['Gelir Yöntemine Göre Arsa Değeri', Math.round(f.residualLandValue)],
+    ['İki Yöntem Arasındaki Fark', Math.round(Math.abs(s.difference))],
+    ['Farkın Oranı', Math.abs(s.differenceRate)],
+    ['Gelir Yöntemine Denk Gelen Arsa Payı', s.balancedShare],
+    ['Değerlendirme', VERDICT_TEXT[s.verdict]],
   ], TL);
   ws1.getCell(`C${shStart}`).numFmt = PCT;
   ws1.getCell(`C${shStart + 1}`).numFmt = PCT;
   ws1.getCell(`C${shStart + 5}`).numFmt = PCT;
+  ws1.getCell(`C${shStart + 6}`).numFmt = PCT;
+  [shStart + 2, shStart + 3].forEach((i) => {
+    ws1.getCell(`B${i}`).font = { name: 'Arial', size: 10, bold: true };
+    ws1.getCell(`C${i}`).font = { name: 'Arial', size: 10, bold: true };
+  });
   }
   row += 2;
 
@@ -226,7 +236,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Çatı Katı', input.emsal.hasAttic
       ? `${input.emsal.atticMode === 'oran' ? 'Tabanın %' + (input.emsal.atticRate * 100).toFixed(0) + "'i" : input.emsal.atticArea + ' m² (elle)'} · ${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'}` : 'Yok'],
     ['Bodrum Kat', input.emsal.hasBasement
-      ? `Taban oturumu kadar · ${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'}` : 'Yok'],
+      ? `${input.emsal.basementMode === 'oran' ? 'Tabanın %' + (input.emsal.basementRate * 100).toFixed(0) + "'i" : input.emsal.basementArea + ' m² (elle)'} · ${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'}` : 'Yok'],
     ['Peyzaj Birim Maliyeti', input.site.landscapeUnitCost],
     ['Bahçe Satış Değeri', input.site.gardenPricePerM2],
     ['Satış Birim Değeri (toplam inşaat m²)', input.sales.unitPrice],
@@ -260,9 +270,10 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     cell.alignment = { horizontal: 'center', vertical: 'middle' };
   });
   r3++;
-  const levelText: Record<string, string> = { olumlu: 'OLUMLU', bilgi: 'BİLGİ', dikkat: 'DİKKAT', uyari: 'UYARI' };
-  const levelColor: Record<string, string> = { olumlu: 'FF1E6B41', bilgi: 'FF0F2A47', dikkat: 'FF92610A', uyari: 'FFB42318' };
+  const levelText: Record<string, string> = { olumlu: 'OLUMLU', bilgi: 'BİLGİ', dikkat: 'DİKKAT', uyari: 'UYARI', 'uyari-uygulama': 'UYARI' };
+  const levelColor: Record<string, string> = { olumlu: 'FF1E6B41', bilgi: 'FF0F2A47', dikkat: 'FF92610A', uyari: 'FFB42318', 'uyari-uygulama': 'FF92610A' };
   for (const a of r.advice) {
+    if (a.level === 'uyari-uygulama') continue;   // yalnızca uygulama ekranında gösterilir
     ws3.getCell(`B${r3}`).value = levelText[a.level];
     ws3.getCell(`B${r3}`).font = { name: 'Arial', size: 9, bold: true, color: { argb: levelColor[a.level] } };
     ws3.getCell(`B${r3}`).alignment = { horizontal: 'center', vertical: 'top' };

@@ -26,7 +26,7 @@ const input: ProjectInput = {
             planNotes: 'Çatı katı piyesleri son kat ile irtibatlı olmak kaydıyla emsale dahil değildir.' },
   emsal: { hasExtra: true, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
            hasAttic: true, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
-           hasBasement: true, basementInEmsal: false },
+           hasBasement: true, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false },
   villa: { villaType: 'mustakil', unitCount: 6, floorsAboveGround: 2 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.20, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1500, gardenPricePerM2: 3000 },

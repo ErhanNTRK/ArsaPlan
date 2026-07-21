@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import type { ProjectInput } from './engine';
 import { analyze } from './engine';
 import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
-import { Step1, Step2, Step3, Step4, type Upd, type SetTop } from './ui/Steps';
+import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/Steps';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 
 const VERSION = BRAND.version;
-const DRAFT_KEY = 'arsaplan-taslak-v4';
+const DRAFT_KEY = 'arsaplan-taslak-v5';
 
 const DEFAULT_INPUT: ProjectInput = {
   assetType: 'konut',
@@ -20,7 +20,7 @@ const DEFAULT_INPUT: ProjectInput = {
   emsal: {
     hasExtra: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
     hasAttic: false, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
-    hasBasement: false, basementInEmsal: false,
+    hasBasement: false, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false,
   },
   villa: { villaType: 'mustakil', unitCount: 0, floorsAboveGround: 2 },
   cost: {
@@ -35,7 +35,8 @@ const DEFAULT_INPUT: ProjectInput = {
 };
 
 const STEPS = [
-  { title: 'Taşınmaz', desc: 'Ne değerleniyor ve hangi parsel?' },
+  { title: 'Değerleme Konusu', desc: 'Ne değerleniyor?' },
+  { title: 'Proje Tipi ve Taşınmaz', desc: 'Konut ürünü ve parsel bilgileri.' },
   { title: 'İmar ve Alan Üretimi', desc: 'Yapılaşma hakları, emsal dışı alanlar, çatı ve bodrum.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti, peyzaj ve satış değeri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
@@ -82,16 +83,16 @@ export default function App() {
   const meta = STEPS[Math.min(step, TOTAL) - 1];
 
   const blocker = (): string | null => {
-    if (step === 1) {
+    if (step === 2) {
       if (!input.parcel.area) return 'Parsel alanı giriniz.';
       if (!input.parcel.netArea) return 'Net parsel alanı giriniz.';
     }
-    if (step === 2) {
+    if (step === 3) {
       const z = input.zoning;
       if (z.mode === 'taks-kaks' && z.kaks == null) return 'KAKS (emsal) değerini giriniz.';
       if (z.mode === 'dogrudan' && !z.directEmsalArea) return 'Emsale dahil alanı giriniz.';
     }
-    if (step === 3) {
+    if (step === 4) {
       if (!input.cost.unitCost) return 'Birim maliyet giriniz.';
       if (!input.sales.unitPrice) return 'Satış birim değeri giriniz.';
     }
@@ -139,6 +140,7 @@ export default function App() {
         {step === 2 && <Step2 {...P} />}
         {step === 3 && <Step3 {...P} />}
         {step === 4 && <Step4 {...P} />}
+        {step === 5 && <Step5 {...P} />}
         {isResult && <Result input={input} result={result} version={VERSION} />}
 
         {stop && !isResult && (

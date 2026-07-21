@@ -53,11 +53,15 @@ export function computeShare(
   const ownerShare = Math.min(1, Math.max(0, share.ownerShare));
   const contractorShare = 1 - ownerShare;
   const balancedShare = safeDiv(financial.residualLandValue, financial.revenue);
-  const ownerValue = financial.revenue * ownerShare;
+  /** Kat karşılığı yöntemine göre arsa değeri = arsa sahibi payının hasılat karşılığı */
+  const shareLandValue = financial.revenue * ownerShare;
+  const difference = shareLandValue - financial.residualLandValue;
+  const differenceRate = safeDiv(difference, financial.residualLandValue);
 
-  let verdict: ShareResult['verdict'] = 'dengeli';
-  if (ownerShare > balancedShare + 0.02) verdict = 'arsa-sahibi-lehine';
-  else if (ownerShare < balancedShare - 0.02) verdict = 'muteahhit-lehine';
+  /* İki yöntem %5 bandındaysa "yakın" kabul edilir — biri diğerinden üstün değildir. */
+  let verdict: ShareResult['verdict'] = 'yakin';
+  if (differenceRate > 0.05) verdict = 'kat-karsiligi-yuksek';
+  else if (differenceRate < -0.05) verdict = 'gelir-yontemi-yuksek';
 
   return {
     ownerShare, contractorShare,
@@ -65,11 +69,9 @@ export function computeShare(
     contractorUnits: capacity.unitCount * contractorShare,
     ownerArea: capacity.saleableArea * ownerShare,
     contractorArea: capacity.saleableArea * contractorShare,
-    ownerValue,
+    shareLandValue,
     contractorValue: financial.revenue * contractorShare,
     contractorNet: financial.revenue * contractorShare - financial.totalCost,
-    balancedShare,
-    difference: ownerValue - financial.residualLandValue,
-    verdict,
+    balancedShare, difference, differenceRate, verdict,
   };
 }

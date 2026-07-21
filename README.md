@@ -49,13 +49,14 @@ Telefonda eski görünüyorsa uygulamayı tamamen kapatıp iki kez aç.
 
 ## 3. Akış (4 adım)
 
-    1  Taşınmaz — ne değerleniyor (konut/ticari/karma) + parsel kimliği ve alanları
-    2  İmar ve Alan Üretimi — lejant, TAKS/KAKS **veya** doğrudan alan girişi,
+    1  Değerleme Konusu — konut / ticari (yakında) / karma (yakında)
+    2  Proje Tipi ve Taşınmaz — villa / 3-6 kat / 7-18 kat / site + parsel bilgileri
+    3  İmar ve Alan Üretimi — lejant, TAKS/KAKS **veya** doğrudan alan girişi,
        emsal dışı satılabilir alan, çatı katı, bodrum kat, villa dağılımı (opsiyonel)
        ve canlı toplam inşaat alanı dökümü
-    3  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
+    4  Maliyet ve Satış — 2026 tebliği + güncelleme oranı + elle giriş,
        peyzaj/bahçe (alan otomatik gelir, elle değiştirilebilir), satış birim değeri
-    4  Değerleme — müteahhit kârı, finansman oranı, kat karşılığı (açılır/kapanır)
+    5  Değerleme — müteahhit kârı, finansman oranı, yöntem karşılaştırması (açılır/kapanır)
     →  Sonuç ekranı: KPI kartları, kapasite dökümü, fizibilite,
        uzman değerlendirmesi · **PDF ve Excel indirme** (Dora logolu)
 
@@ -93,7 +94,7 @@ Tutarlar KDV hariçtir; %15 genel gider ve %10 yüklenici kârı dahildir.
 
     npm install       bağımlılıkları kur
     npm run dev       yerel geliştirme sunucusu
-    npm test          motor + arayüz + dışa aktarma testleri (41 test)
+    npm test          motor + arayüz + dışa aktarma testleri (49 test)
     npm run build     üretim derlemesi
 
 ## 7. Sınırlar (dürüst notlar)

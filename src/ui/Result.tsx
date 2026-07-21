@@ -4,6 +4,12 @@ import { fmtTL, fmtTLm2, fmtM2, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
 
+const VERDICT_TEXT: Record<string, string> = {
+  'yakin': 'İki yöntem birbirine yakın',
+  'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
+  'gelir-yontemi-yuksek': 'Gelir yöntemi değeri daha yüksek',
+};
+
 export function Result({ input, result, version }: {
   input: ProjectInput; result: AnalysisResult; version: string;
 }) {
@@ -119,22 +125,23 @@ export function Result({ input, result, version }: {
 
       {input.share.enabled && (
       <div className="card">
-        <div className="card-title">Kat Karşılığı Karşılaştırması</div>
-        <Row label={`Arsa Sahibi Payı (%${(s.ownerShare * 100).toFixed(0)})`} value={`${fmtNum(s.ownerUnits, 1)} villa · ${fmtM2(s.ownerArea)}`} />
-        <Row label="Arsa Sahibine Kalan Değer" value={fmtTL(s.ownerValue)} />
-        <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`} value={`${fmtNum(s.contractorUnits, 1)} villa · ${fmtM2(s.contractorArea)}`} />
-        <Row label="Müteahhide Kalan Değer" value={fmtTL(s.contractorValue)} />
-        <Row label="Müteahhit Net Sonucu (maliyet sonrası)" value={fmtTL(s.contractorNet)} tone={s.contractorNet < 0 ? 'neg' : undefined} />
-        <Row label="Artık Değer Yöntemine Göre Dengeli Pay" value={fmtPct(s.balancedShare)} />
-        <Row label="Kat Karşılığı − Artık Değer Farkı" value={fmtTL(s.difference)} tone={s.difference < 0 ? 'neg' : 'pos'} />
+        <div className="card-title">Arsa Değeri — Yöntem Karşılaştırması</div>
+        <Row label={`Arsa Sahibi Payı (%${(s.ownerShare * 100).toFixed(0)})`}
+             value={`${s.ownerUnits > 0 ? fmtNum(s.ownerUnits, 1) + ' villa · ' : ''}${fmtM2(s.ownerArea)}`} />
+        <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`}
+             value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
+        <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValue)} />
+        <Row label="Gelir Yöntemine Göre Arsa Değeri" value={fmtTL(f.residualLandValue)} />
+        <Row label="İki Yöntem Arasındaki Fark"
+             value={`${fmtTL(Math.abs(s.difference))} (${fmtPct(Math.abs(s.differenceRate))})`} tone="total" />
+        <Row label="Gelir Yöntemine Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
         <div style={{ marginTop: 10 }}>
-          <span className={`badge ${s.verdict === 'dengeli' ? 'badge-green' : 'badge-amber'}`}>
-            {s.verdict === 'dengeli' ? 'Dengeli paylaşım'
-              : s.verdict === 'arsa-sahibi-lehine' ? 'Arsa sahibi lehine' : 'Müteahhit lehine'}
+          <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>
+            {VERDICT_TEXT[s.verdict]}
           </span>
         </div>
         <div className="hint" style={{ marginTop: 8 }}>
-          Kat karşılığı yöntemi ile artık değer yöntemi farklı sonuç verebilir; bu bölüm karşılaştırma amaçlıdır.
+          İki yöntem farklı varsayımlardan hareket ettiği için sonuçları ayrışabilir; bu bölüm karşılaştırma amaçlıdır.
         </div>
       </div>
       )}

@@ -47,8 +47,11 @@ export function computeCapacity(
       ? footprintArea * Math.max(0, emsal.atticRate)
       : Math.max(0, emsal.atticArea);
 
-  /* ── 4) Bodrum kat — taban oturumu kadar ── */
-  const basementArea = emsal.hasBasement ? footprintArea : 0;
+  /* ── 4) Bodrum kat — tabanın yüzdesi (varsayılan %100) veya elle ── */
+  const basementArea = !emsal.hasBasement ? 0
+    : emsal.basementMode === 'oran'
+      ? footprintArea * Math.max(0, emsal.basementRate)
+      : Math.max(0, emsal.basementArea);
 
   /* ── 5) Toplam inşaat alanı ──
      Emsale dahil kalemler emsalin İÇİNDEN yer alır, toplamı artırmaz.
@@ -72,6 +75,7 @@ export function computeCapacity(
   const totalArea = emsalArea + outsideEmsal;
   const saleableArea = totalArea;          // satış toplam inşaat alanı üzerinden
   const gardenArea = Math.max(0, parcel.netArea - footprintArea);
+  const extraFloorsShare = totalArea > 0 ? (atticArea + basementArea) / totalArea : 0;
 
   /* ── 6) Villa dağılımı (opsiyonel) ── */
   const unitCount = Math.max(0, Math.floor(villa.unitCount));
@@ -96,7 +100,7 @@ export function computeCapacity(
   return {
     footprintArea, emsalArea, extraArea, atticArea, basementArea,
     emsalConsumedByExtras, aboveGroundArea: usableAboveGround,
-    totalArea, saleableArea, gardenArea,
+    totalArea, saleableArea, gardenArea, extraFloorsShare,
     unitCount, areaPerUnit, floorsAboveGround, areaPerFloor, floorFits, minFloorsNeeded,
     warnings,
   };

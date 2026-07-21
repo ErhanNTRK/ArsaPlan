@@ -14,7 +14,7 @@ const base: ProjectInput = {
             directFootprint: 0, directEmsalArea: 0, planNotes: '' },
   emsal: { hasExtra: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
            hasAttic: false, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
-           hasBasement: false, basementInEmsal: false },
+           hasBasement: false, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false },
   villa: { villaType: 'mustakil', unitCount: 0, floorsAboveGround: 2 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0, extrasRate: 0 },
   site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
@@ -130,14 +130,54 @@ describe('villa dağılımı (opsiyonel)', () => {
   });
 });
 
+describe('bodrum alanı düzenlenebilir', () => {
+  it('varsayılan tabanın %100üdür', () => {
+    const c = cap({ hasBasement: true });
+    expect(c.basementArea).toBe(400);
+  });
+  it('oran değiştirilebilir', () => {
+    const c = cap({ hasBasement: true, basementRate: 0.70 });
+    expect(c.basementArea).toBeCloseTo(280, 6);
+    expect(c.totalArea).toBeCloseTo(1080, 6);   // 800 + 280
+  });
+  it('elle girilebilir', () => {
+    const c = cap({ hasBasement: true, basementMode: 'manuel', basementArea: 450 });
+    expect(c.basementArea).toBe(450);
+  });
+  it('bodrum ve çatı payını hesaplar', () => {
+    const c = cap({ hasAttic: true, atticRate: 0.50, hasBasement: true });
+    // toplam 800 + 200 + 400 = 1400 · ekler 600
+    expect(c.extraFloorsShare).toBeCloseTo(600 / 1400, 6);
+  });
+});
+
+describe('iki yöntemin arsa değeri karşılaştırması', () => {
+  it('kat karşılığı ve gelir yöntemi değerlerini ayrı ayrı üretir', () => {
+    const r = analyze({ ...base, share: { enabled: true, ownerShare: 0.45 } });
+    expect(r.share.shareLandValue).toBeCloseTo(r.financial.revenue * 0.45, 4);
+    expect(r.share.difference).toBeCloseTo(r.share.shareLandValue - r.financial.residualLandValue, 4);
+  });
+  it('fark %5 bandındaysa yakın kabul eder', () => {
+    const r = analyze(base);
+    const denk = r.share.balancedShare;
+    const r2 = analyze({ ...base, share: { enabled: true, ownerShare: denk } });
+    expect(r2.share.verdict).toBe('yakin');
+  });
+  it('yorumlar yargılayıcı değil bilgilendirici', () => {
+    const r = analyze({ ...base, share: { enabled: true, ownerShare: 0.60 } });
+    const k = r.advice.find((a) => a.title.includes('Kat karşılığı'));
+    expect(k?.level).toBe('bilgi');
+  });
+});
+
 describe('doğrudan alan girişi', () => {
   const c = computeCapacity(base.parcel,
     { ...base.zoning, mode: 'dogrudan', taks: null, kaks: null, directFootprint: 300, directEmsalArea: 900 },
-    { ...base.emsal, hasBasement: true, basementInEmsal: false }, base.villa);
+    { ...base.emsal, hasBasement: true, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false }, base.villa);
   it('girilen alanları doğrudan kullanır', () => {
     expect(c.footprintArea).toBe(300);
     expect(c.emsalArea).toBe(900);
-    expect(c.basementArea).toBe(300);       // taban oturumu kadar
+    expect(c.basementArea).toBe(300);       // tabanın %100'ü
     expect(c.totalArea).toBe(1200);
     expect(c.gardenArea).toBe(700);
   });

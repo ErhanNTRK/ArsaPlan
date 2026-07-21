@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import type { ProjectInput } from '../engine';
 import { analyze } from '../engine';
-import { Step1, Step2, Step3, Step4 } from './Steps';
+import { Step1, Step2, Step3, Step4, Step5 } from './Steps';
 import { Result } from './Result';
 
 const input: ProjectInput = {
@@ -14,7 +14,7 @@ const input: ProjectInput = {
             planNotes: 'Çatı katı piyesleri son kat ile irtibatlı olmak kaydıyla emsale dahil değildir.' },
   emsal: { hasExtra: true, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
            hasAttic: true, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
-           hasBasement: true, basementInEmsal: false },
+           hasBasement: true, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false },
   villa: { villaType: 'mustakil', unitCount: 6, floorsAboveGround: 2 },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.20, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1500, gardenPricePerM2: 3000 },
@@ -26,7 +26,7 @@ const noop = () => {};
 const P = { input, upd: noop, setTop: noop };
 
 describe('adım ekranları', () => {
-  const steps = [Step1, Step2, Step3, Step4];
+  const steps = [Step1, Step2, Step3, Step4, Step5];
   steps.forEach((S, i) => {
     it(`Adım ${i + 1} render olur`, () => {
       expect(renderToString(<S {...P} />).length).toBeGreaterThan(50);
@@ -35,11 +35,11 @@ describe('adım ekranları', () => {
 
   it('doğrudan alan girişi modunda da render olur', () => {
     const d = { ...input, zoning: { ...input.zoning, mode: 'dogrudan' as const, directFootprint: 300, directEmsalArea: 900 } };
-    expect(() => renderToString(<Step2 input={d} upd={noop} setTop={noop} />)).not.toThrow();
+    expect(() => renderToString(<Step3 input={d} upd={noop} setTop={noop} />)).not.toThrow();
   });
 
   it('toplam inşaat alanı dökümü ekranda görünür', () => {
-    const html = renderToString(<Step2 input={input} upd={noop} setTop={noop} />);
+    const html = renderToString(<Step3 input={input} upd={noop} setTop={noop} />);
     expect(html).toContain('Toplam İnşaat Alanı');
     expect(html).toContain('Emsal Dışı Satılabilir Alan');
     expect(html).toContain('Bodrum Kat');
@@ -47,7 +47,7 @@ describe('adım ekranları', () => {
   });
   it('villa adedi girilmediğinde de çökmez', () => {
     const x = { ...input, villa: { ...input.villa, unitCount: 0 } };
-    expect(() => renderToString(<Step2 input={x} upd={noop} setTop={noop} />)).not.toThrow();
+    expect(() => renderToString(<Step3 input={x} upd={noop} setTop={noop} />)).not.toThrow();
   });
 
   it('boş girdiyle çökmez', () => {
@@ -60,7 +60,7 @@ describe('adım ekranları', () => {
       site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
       sales: { unitPrice: 0 },
     };
-    [Step1, Step2, Step3, Step4].forEach((S) => {
+    [Step1, Step2, Step3, Step4, Step5].forEach((S) => {
       expect(() => renderToString(<S input={bos} upd={noop} setTop={noop} />)).not.toThrow();
     });
   });
@@ -70,7 +70,7 @@ describe('sonuç ekranı', () => {
   it('tüm bölümleri ve uzman yorumlarını basar', () => {
     const html = renderToString(<Result input={input} result={analyze(input)} version="test" />);
     expect(html).toContain('Artık Arsa Değeri');
-    expect(html).toContain('Kat Karşılığı');
+    expect(html).toContain('Yöntem Karşılaştırması');
     expect(html).toContain('Uzman Değerlendirmesi');
     expect(html).toContain('TOPLAM İNŞAAT ALANI');
     expect(html).toContain('Çatı Katı');
@@ -84,7 +84,7 @@ describe('sonuç ekranı', () => {
   it('kat karşılığı kapalıyken o bölüm basılmaz', () => {
     const k = { ...input, share: { enabled: false, ownerShare: 0.45 } };
     const html = renderToString(<Result input={k} result={analyze(k)} version="t" />);
-    expect(html).not.toContain('Kat Karşılığı Karşılaştırması');
+    expect(html).not.toContain('Yöntem Karşılaştırması');
   });
   it('negatif artık değerde çökmez', () => {
     const kotu = { ...input, sales: { unitPrice: 15000 } };

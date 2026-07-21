@@ -7,5 +7,5 @@ export const BRAND = {
   author: 'Hasan Erhan Öntürk',
   email: 'erhan.onturk@doradegerleme.com.tr',
   authorLine: 'Düzenleyen: Hasan Erhan Öntürk · erhan.onturk@doradegerleme.com.tr',
-  version: 'v4.0.0 · 2026.07.21',
+  version: 'v4.1.0 · 2026.07.21',
 } as const;

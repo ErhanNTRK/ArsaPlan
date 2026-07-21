@@ -82,6 +82,14 @@ export function buildAdvice(
       'Analiz toplam alanlar üzerinden yapıldı. Villa adedi girerseniz villa başına alan ve arsa payı da hesaplanır.');
   }
 
+  /* ── Alan kompozisyonu (yalnızca uygulama içi — rapora yazılmaz) ── */
+  if (capacity.extraFloorsShare > 0.35) {
+    add('uyari-uygulama', 'Alan kompozisyonuna dikkat',
+      `Toplam inşaat alanının ${pct(capacity.extraFloorsShare)}'i bodrum ve çatı katıdır ` +
+      `(${m2(capacity.basementArea + capacity.atticArea)} / ${m2(capacity.totalArea)}). ` +
+      'Bu katlar zemin üstü normal katlarla aynı m² değerinde satılmaz; birim satış fiyatını belirlerken bu kompozisyonu dikkate alınız.');
+  }
+
   /* ── Bahçe ── */
   if (capacity.gardenArea > 0) {
     add(financial.gardenRevenue > 0 ? 'olumlu' : 'bilgi', 'Bahçe ve peyzaj',
@@ -140,18 +148,21 @@ export function buildAdvice(
       'Finansman oranı %0 girildi. Kredi kullanılacaksa bu kalem modellenmelidir; aksi halde arsa değeri olduğundan yüksek çıkar.');
   }
 
-  /* ── Kat karşılığı ── */
+  /* ── Kat karşılığı: iki yöntemin karşılaştırması (yargılayıcı değil, bilgilendirici) ── */
   if (shareEnabled && financial.revenue > 0) {
-    const t = `Artık değer yöntemine göre dengeli arsa payı ${pct(share.balancedShare, 1)}; girilen pay ${pct(share.ownerShare, 1)}.`;
-    if (share.verdict === 'arsa-sahibi-lehine') {
-      add('dikkat', 'Kat karşılığı oranı arsa sahibi lehine',
-        `${t} Bu oranda müteahhide maliyet sonrası ${tl(share.contractorNet)} kalıyor.`);
-    } else if (share.verdict === 'muteahhit-lehine') {
-      add('dikkat', 'Kat karşılığı oranı müteahhit lehine',
-        `${t} Arsa sahibi, artık değer yöntemiyle hesaplanan değerinin ${tl(Math.abs(share.difference))} altında pay alıyor.`);
+    const t = `Kat karşılığı yöntemine göre arsa değeri ${tl(share.shareLandValue)}, gelir yöntemine göre ${tl(financial.residualLandValue)}.`;
+    if (share.verdict === 'yakin') {
+      add('olumlu', 'İki yöntem birbirini doğruluyor',
+        `${t} Aradaki fark %5'in altında; girilen kat karşılığı oranı proje ekonomisiyle uyumlu.`);
+    } else if (share.verdict === 'kat-karsiligi-yuksek') {
+      add('bilgi', 'Kat karşılığı değeri daha yüksek',
+        `${t} Fark ${tl(Math.abs(share.difference))} (${pct(Math.abs(share.differenceRate))}). ` +
+        `Gelir yöntemiyle aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi. ` +
+        'Bu, arsa sahibi açısından daha avantajlı bir sözleşme demektir; müteahhidin kâr beklentisini karşılayıp karşılamadığı kontrol edilmelidir.');
     } else {
-      add('olumlu', 'Kat karşılığı oranı dengeli',
-        `${t} İki yöntem birbirini doğruluyor.`);
+      add('bilgi', 'Gelir yöntemine göre değer daha yüksek',
+        `${t} Fark ${tl(Math.abs(share.difference))} (${pct(Math.abs(share.differenceRate))}). ` +
+        `Gelir yöntemiyle aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi.`);
     }
   }
 

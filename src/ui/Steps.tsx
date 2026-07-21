@@ -1,4 +1,4 @@
-import type { ProjectInput, AssetType } from '../engine';
+import type { ProjectInput, AssetType, HousingType } from '../engine';
 import { computeCapacity } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
@@ -14,17 +14,44 @@ const ASSETS: Array<{ v: AssetType; label: string; desc: string; ready: boolean 
   { v: 'karma', label: 'Karma Kullanım', desc: 'Konut + ticari birlikte', ready: false },
 ];
 
-export function Step1({ input, upd, setTop }: P) {
+export function Step1({ input, setTop }: P) {
+  return (
+    <div className="card">
+      <div className="card-title">Ne Değerleniyor?</div>
+      <div className="choice-grid">
+        {ASSETS.map((a) => (
+          <Choice key={a.v} on={input.assetType === a.v}
+                  name={a.ready ? a.label : `${a.label} — yakında hizmette`} desc={a.desc}
+                  onClick={() => a.ready && setTop('assetType', a.v)} />
+        ))}
+      </div>
+      <div className="note-box" style={{ marginTop: 12 }}>
+        Bu sürümde <b>Konut</b> değerlemesi aktiftir. Ticari ve karma kullanım senaryoları
+        aynı motor altyapısı üzerine eklenecektir.
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════ ADIM 2 — PROJE TİPİ VE TAŞINMAZ ═══════════ */
+const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boolean }> = [
+  { v: 'villa', label: 'Villa', desc: 'Müstakil / ikiz / sıralı', ready: true },
+  { v: 'apartman-3-6', label: '3-6 Katlı Apartman', desc: 'Az katlı çok birimli', ready: false },
+  { v: 'blok-7-18', label: '7-18 Katlı Blok', desc: 'Yüksek yoğunluk', ready: false },
+  { v: 'site', label: 'Site', desc: 'Parsel içinde çok bloklu', ready: false },
+];
+
+export function Step2({ input, upd, setTop }: P) {
   const p = input.parcel;
   return (
     <div className="cols">
       <div className="card">
-        <div className="card-title">Ne Değerleniyor?</div>
-        <div className="choice-grid">
-          {ASSETS.map((a) => (
-            <Choice key={a.v} on={input.assetType === a.v}
-                    name={a.ready ? a.label : `${a.label} — yakında`} desc={a.desc}
-                    onClick={() => a.ready && setTop('assetType', a.v)} />
+        <div className="card-title">Konut Proje Tipi</div>
+        <div className="choice-grid two">
+          {HOUSING.map((h) => (
+            <Choice key={h.v} on={input.housingType === h.v}
+                    name={h.ready ? h.label : `${h.label} — yakında hizmette`} desc={h.desc}
+                    onClick={() => h.ready && setTop('housingType', h.v)} />
           ))}
         </div>
       </div>
@@ -60,8 +87,8 @@ export function Step1({ input, upd, setTop }: P) {
   );
 }
 
-/* ═══════════ ADIM 2 — İMAR VE ALAN ÜRETİMİ ═══════════ */
-export function Step2({ input, upd }: P) {
+/* ═══════════ ADIM 3 — İMAR VE ALAN ÜRETİMİ ═══════════ */
+export function Step3({ input, upd }: P) {
   const z = input.zoning;
   const e = input.emsal;
   const v = input.villa;
@@ -159,12 +186,23 @@ export function Step2({ input, upd }: P) {
 
       <div className="card">
         <div className="card-title">4 · Bodrum Kat</div>
-        <Field label="Bodrum kat var mı?" hint="Bodrum alanı taban oturumu kadar kabul edilir.">
+        <Field label="Bodrum kat var mı?">
           <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
                options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
         </Field>
         {e.hasBasement && (
           <>
+            <Field label="Nasıl hesaplansın?">
+              <Seg value={e.basementMode} onChange={(m) => upd('emsal', { basementMode: m })}
+                   options={[{ value: 'oran', label: 'Tabanın yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
+            </Field>
+            {e.basementMode === 'oran' ? (
+              <Field label="Oran" hint={`Taban oturumunun yüzdesi · ${fmtM2(c.footprintArea)} üzerinden (%100 = taban kadar)`}>
+                <Pct value={e.basementRate} onChange={(n) => upd('emsal', { basementRate: n })} />
+              </Field>
+            ) : (
+              <Field label="Alan"><Num value={e.basementArea} onChange={(n) => upd('emsal', { basementArea: n })} suffix="m²" /></Field>
+            )}
             <Field label="Emsale dahil mi?" hint="Dahilse emsalin içinden yer alır, toplam inşaat alanını artırmaz.">
               <Seg value={e.basementInEmsal} onChange={(b) => upd('emsal', { basementInEmsal: b })}
                    options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
@@ -192,6 +230,13 @@ export function Step2({ input, upd }: P) {
           <div><span>Toplam inşaat alanı</span><b>{fmtM2(c.totalArea)}</b></div>
           <div><span>Bahçe / açık alan</span><b>{fmtM2(c.gardenArea)}</b></div>
         </div>
+        {c.extraFloorsShare > 0.35 && (
+          <div className="leftover" style={{ marginTop: 10 }}>
+            Toplam alanın <b>%{(c.extraFloorsShare * 100).toFixed(0)}</b>'i bodrum ve çatı katıdır.
+            Bu katlar zemin üstü katlarla aynı m² değerinde satılmaz; birim satış fiyatını
+            belirlerken bu kompozisyonu dikkate alınız. <i>(Bu not rapora yazılmaz.)</i>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -235,8 +280,8 @@ export function Step2({ input, upd }: P) {
   );
 }
 
-/* ═══════════ ADIM 3 — MALİYET VE SATIŞ ═══════════ */
-export function Step3({ input, upd }: P) {
+/* ═══════════ ADIM 4 — MALİYET VE SATIŞ ═══════════ */
+export function Step4({ input, upd }: P) {
   const c = input.cost;
   const s = input.site;
   const cap = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
@@ -309,8 +354,8 @@ export function Step3({ input, upd }: P) {
   );
 }
 
-/* ═══════════ ADIM 4 — DEĞERLEME ═══════════ */
-export function Step4({ input, upd }: P) {
+/* ═══════════ ADIM 5 — DEĞERLEME ═══════════ */
+export function Step5({ input, upd }: P) {
   const r = input.residual;
   return (
     <div className="cols">

@@ -61,8 +61,13 @@ export interface EmsalOptions {
   /** Emsale dahil mi? (dahilse emsalin içinden yer alır, toplamı artırmaz) */
   atticInEmsal: boolean;
 
-  /* ── Bodrum kat — taban oturumu kadar ── */
+  /* ── Bodrum kat — taban oturumunun yüzdesi (varsayılan %100) veya elle ── */
   hasBasement: boolean;
+  basementMode: CalcMode;
+  /** Taban oturumunun oranı (1.00 = taban oturumu kadar) */
+  basementRate: number;
+  /** Elle girilen bodrum alanı (m²) */
+  basementArea: number;
   basementInEmsal: boolean;
 }
 
@@ -141,6 +146,8 @@ export interface CapacityResult {
   saleableArea: number;
   /** Bahçe / açık alan (m²) */
   gardenArea: number;
+  /** Bodrum + çatı katının toplam inşaat alanı içindeki payı (0-1) */
+  extraFloorsShare: number;
 
   /* Villa dağılımı — adet girilmişse */
   unitCount: number;
@@ -183,15 +190,22 @@ export interface ShareResult {
   contractorUnits: number;
   ownerArea: number;
   contractorArea: number;
-  ownerValue: number;
+  /** Kat karşılığı yöntemine göre arsa değeri (arsa sahibi payının karşılığı) */
+  shareLandValue: number;
+  /** Müteahhide kalan hasılat */
   contractorValue: number;
   contractorNet: number;
+  /** Gelir (artık değer) yöntemine göre arsa değerine denk gelen pay */
   balancedShare: number;
+  /** İki yöntem arasındaki fark (kat karşılığı − gelir yöntemi) */
   difference: number;
-  verdict: 'arsa-sahibi-lehine' | 'muteahhit-lehine' | 'dengeli';
+  /** Farkın gelir yöntemine oranı */
+  differenceRate: number;
+  verdict: 'kat-karsiligi-yuksek' | 'gelir-yontemi-yuksek' | 'yakin';
 }
 
-export type AdviceLevel = 'olumlu' | 'bilgi' | 'dikkat' | 'uyari';
+/** 'uyari-uygulama' → yalnızca uygulama ekranında gösterilir, PDF/Excel'e yazılmaz. */
+export type AdviceLevel = 'olumlu' | 'bilgi' | 'dikkat' | 'uyari' | 'uyari-uygulama';
 export interface Advice { level: AdviceLevel; title: string; body: string; }
 
 export interface AnalysisResult {

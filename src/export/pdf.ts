@@ -16,6 +16,11 @@ const RED: [number, number, number] = [180, 35, 24];
 const AMBER: [number, number, number] = [146, 97, 10];
 const GRAY: [number, number, number] = [85, 99, 111];
 
+const VERDICT_TEXT: Record<string, string> = {
+  'yakin': 'İki yöntem birbirine yakın',
+  'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
+  'gelir-yontemi-yuksek': 'Gelir yöntemi değeri daha yüksek',
+};
 const tl = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺';
 const tlm2 = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺/m²';
 const m2 = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' m²';
@@ -151,23 +156,23 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   y += 3;
 
   if (input.share.enabled) {
-  section('KAT KARŞILIĞI KARŞILAŞTIRMASI');
-  row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits.toFixed(1)} villa · ${tl(s.ownerValue)}`);
-  row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits.toFixed(1)} villa · ${tl(s.contractorValue)}`);
-  row('Müteahhit Net Sonucu', tl(s.contractorNet), false, s.contractorNet < 0 ? RED : [23, 32, 44]);
-  row('Artık Değere Denk Gelen Pay', pct(s.balancedShare));
-  row('Fark', tl(s.difference), true, s.difference < 0 ? RED : GREEN);
-  row('Değerlendirme',
-    s.verdict === 'dengeli' ? 'Dengeli paylaşım' : s.verdict === 'arsa-sahibi-lehine' ? 'Arsa sahibi lehine' : 'Müteahhit lehine',
-    true, s.verdict === 'dengeli' ? GREEN : AMBER);
+  section('ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
+  row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits > 0 ? s.ownerUnits.toFixed(1) + ' villa · ' : ''}${m2(s.ownerArea)}`);
+  row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits > 0 ? s.contractorUnits.toFixed(1) + ' villa · ' : ''}${m2(s.contractorArea)}`);
+  row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValue), true, NAVY);
+  row('Gelir Yöntemine Göre Arsa Değeri', tl(f.residualLandValue), true, NAVY);
+  row('İki Yöntem Arasındaki Fark', `${tl(Math.abs(s.difference))} (${pct(Math.abs(s.differenceRate))})`);
+  row('Gelir Yöntemine Denk Gelen Arsa Payı', pct(s.balancedShare));
+  row('Değerlendirme', VERDICT_TEXT[s.verdict], true, s.verdict === 'yakin' ? GREEN : NAVY);
   }
   y += 3;
 
   section('UZMAN DEĞERLENDİRMESİ');
   const levelColor: Record<string, [number, number, number]> = {
-    olumlu: GREEN, bilgi: NAVY, dikkat: AMBER, uyari: RED,
+    olumlu: GREEN, bilgi: NAVY, dikkat: AMBER, uyari: RED, 'uyari-uygulama': AMBER,
   };
   for (const a of r.advice) {
+    if (a.level === 'uyari-uygulama') continue;   // yalnızca uygulama ekranında gösterilir
     pageBreak(16);
     doc.setFont('NTRK', 'bold'); doc.setFontSize(9); doc.setTextColor(...levelColor[a.level]);
     doc.text(`• ${a.title}`, M + 1, y);
