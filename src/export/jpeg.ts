@@ -79,7 +79,7 @@ export async function downloadJpeg(input: ProjectInput, r: AnalysisResult, versi
     g.stroke();
   };
 
-  const { capacity: c, financial: f, apartment: apt } = r;
+  const { capacity: c, financial: f, apartment: apt, isletme } = r;
   const p = input.parcel;
   const tarih = new Date().toLocaleDateString('tr-TR');
 
@@ -105,7 +105,9 @@ export async function downloadJpeg(input: ProjectInput, r: AnalysisResult, versi
   text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`, M + 4 * K, y + 5.8 * K, INK, 10.5, true);
   text(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2(p.area)} · ${input.zoning.lejant.trim() || 'Lejant girilmedi'}`, M + 4 * K, y + 10.8 * K, GRAY, 8.4);
   text(`Rapor Tarihi: ${tarih}`, CW - M - 4 * K, y + 5.8 * K, GRAY, 8.2, false, 'right');
-  text(apt ? `Çok Katlı Bina · ${apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'}` : 'Villa Projesi',
+  text(isletme ? 'Ticari İşletme'
+       : apt ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'} · ${apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'}`
+       : 'Villa Projesi',
        CW - M - 4 * K, y + 10.8 * K, GRAY, 8.2, false, 'right');
   y += 19 * K;
 
@@ -114,8 +116,9 @@ export async function downloadJpeg(input: ProjectInput, r: AnalysisResult, versi
   fill(M, y, W, HH, NAVY, 2.2 * K);
   fill(M, y + HH - 1.2 * K, W, 1.2 * K, GOLD);
   text('ARSA DEĞERİ (GELİR PROJEKSİYONU)', M + 5 * K, y + 7 * K, LIGHT, 8);
-  text(tl(f.residualLandValue), M + 5 * K, y + 18 * K, '#FFFFFF', 20, true);
-  if (f.revenue > 0) text(`Arsa payı, hasılatın ${pct(f.landToRevenue)} kadarıdır`, M + 5 * K, y + 23.4 * K, LIGHT, 7.4);
+  text(tl(isletme ? isletme.landValue : f.residualLandValue), M + 5 * K, y + 18 * K, '#FFFFFF', 20, true);
+  if (isletme) text('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)', M + 5 * K, y + 23.4 * K, LIGHT, 7.4);
+  else if (f.revenue > 0) text(`Arsa payı, hasılatın ${pct(f.landToRevenue)} kadarıdır`, M + 5 * K, y + 23.4 * K, LIGHT, 7.4);
   const cx = M + W * 0.56;
   g.strokeStyle = '#3A587C'; g.lineWidth = 1.5;
   g.beginPath(); g.moveTo(cx - 4 * K, y + 4.5 * K); g.lineTo(cx - 4 * K, y + HH - 4.5 * K); g.stroke();
@@ -123,11 +126,17 @@ export async function downloadJpeg(input: ProjectInput, r: AnalysisResult, versi
     text(label, cx, sy, LIGHT, 7.4);
     text(val, CW - M - 5 * K, sy, '#FFFFFF', 10.6, true, 'right');
   };
-  stat('Arsa m² Birim Değeri', tlm2(f.landUnitValue), y + 8.6 * K);
-  stat('Toplam İnşaat Alanı', m2(c.totalArea), y + 15.4 * K);
-  if (apt) stat('Satılabilir Alan', m2(apt.saleableTotal), y + 22.2 * K);
-  else stat(c.unitCount > 0 ? 'Villa Adedi' : 'Bahçe / Açık Alan',
-            c.unitCount > 0 ? `${c.unitCount} adet` : m2(c.gardenArea), y + 22.2 * K);
+  if (isletme) {
+    stat('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), y + 8.6 * K);
+    stat('Toplam Maliyet', tl(isletme.totalCost), y + 15.4 * K);
+    stat('Öngörülen Satış Değeri', tl(isletme.salesTotal), y + 22.2 * K);
+  } else {
+    stat('Arsa m² Birim Değeri', tlm2(f.landUnitValue), y + 8.6 * K);
+    stat('Toplam İnşaat Alanı', m2(c.totalArea), y + 15.4 * K);
+    if (apt) stat('Satılabilir Alan', m2(apt.saleableTotal), y + 22.2 * K);
+    else stat(c.unitCount > 0 ? 'Villa Adedi' : 'Bahçe / Açık Alan',
+              c.unitCount > 0 ? `${c.unitCount} adet` : m2(c.gardenArea), y + 22.2 * K);
+  }
   y += HH + 8 * K;
 
   /* ── Bölüm başlığı ── */
@@ -140,9 +149,62 @@ export async function downloadJpeg(input: ProjectInput, r: AnalysisResult, versi
   };
 
   /* ── İçerik: kat tablosu (apartman) veya alan özeti (villa) ── */
-  const rowsAvail = apt ? apt.floors.length + 2 : 8;
+  const rowsAvail = isletme ? isletme.rows.length + 2 : apt ? apt.floors.length + 2 : 8;
   const rh = Math.min(6.4, Math.max(4.6, 120 / rowsAvail)) * K;   // sığdırma
   const C2 = M + W * 0.64, C3 = CW - M - 3 * K;
+
+  if (isletme) {
+    section('YAPILAR');
+    fill(M, y - 4.2 * K, W, rh, NAVY);
+    text('YAPI', M + 3 * K, y, '#FFFFFF', 7.6, true);
+    text('ALAN × BİRİM', C2, y, '#FFFFFF', 7.6, true, 'right');
+    text('MALİYET', C3, y, '#FFFFFF', 7.6, true, 'right');
+    y += rh + 0.6 * K;
+    let zi = true;
+    const fsz = rh / K > 5.6 ? 9 : 8.2;
+    for (const rw of isletme.rows) {
+      if (zi) fill(M, y - 4.2 * K, W, rh, FAINT);
+      zi = !zi;
+      text(`${rw.type} (${rw.buildingClass})`, M + 3 * K, y, INK, fsz);
+      text(`${m2(rw.area)} × ${tlm2(rw.effectiveUnitCost)}`, C2, y, INK, fsz, true, 'right');
+      text(tl(rw.cost), C3, y, INK, fsz, true, 'right');
+      y += rh;
+    }
+    fill(M, y - 4.2 * K, W, rh, NAVY);
+    text('YAPI MALİYETLERİ', M + 3 * K, y, '#FFFFFF', fsz, true);
+    text(m2(isletme.totalBuildingArea), C2, y, '#FFFFFF', fsz, true, 'right');
+    text(tl(isletme.buildingsCost), C3, y, '#FFFFFF', fsz, true, 'right');
+    y += rh + 6 * K;
+
+    section('DEĞERLEME');
+    const half0 = W / 2 - 3 * K;
+    const box0 = (x: number, label: string, val: string, tone: string) => {
+      fill(x, y, half0, 14 * K, FAINT, 1.6 * K);
+      strokeBox(x, y, half0, 14 * K, LINE, 1.6 * K);
+      text(label, x + 4 * K, y + 5.2 * K, GRAY, 7.4);
+      text(val, x + 4 * K, y + 11.2 * K, tone, 11.5, true);
+    };
+    box0(M, 'TOPLAM MALİYET', tl(isletme.totalCost), RED);
+    box0(M + half0 + 6 * K, 'ÖNGÖRÜLEN SATIŞ DEĞERİ', tl(isletme.salesTotal), GREEN);
+    y += 17.5 * K;
+    box0(M, isletme.extrasTotal > 0 ? 'İLAVE MALİYETLER' : 'YAPI MALİYETLERİ',
+         tl(isletme.extrasTotal > 0 ? isletme.extrasTotal : isletme.buildingsCost), INK);
+    box0(M + half0 + 6 * K, 'ARSA m² BİRİM DEĞERİ', tlm2(isletme.landUnitValue), NAVY);
+    y += 20 * K;
+
+    /* Altbilgi */
+    g.strokeStyle = LINE; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(M, CH - 9 * K); g.lineTo(CW - M, CH - 9 * K); g.stroke();
+    text(`${BRAND.preparedBy} · ${BRAND.developerLine}`, M, CH - 4.8 * K, '#8C98A5', 7.2);
+    text(`Yöntem: Gelir Projeksiyonu · Müteahhit kârı kesilmez · KDV hariç · ${BRAND.appName} ${version}`, CW - M, CH - 4.8 * K, '#8C98A5', 7.2, false, 'right');
+
+    const blob0: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('JPEG üretilemedi'))), 'image/jpeg', 0.92));
+    const name0 = `Arsa-Ozet-${(p.ilce || p.il || 'analiz').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.jpg`
+      .replace(/-+\./, '.');
+    triggerDownload(blob0, name0);
+    return;
+  }
 
   if (apt) {
     section('KAT TABLOSU');

@@ -11,6 +11,18 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.1.0 (2026.07.22)** — Üç yeni değerleme yolu eklendi. **Karma Kullanım:**
+proje tipi sorulmadan çok katlı kurguya geçilir; zemin kat ticari, bodrumlarda
+ortak/ticari/konut seçimi, asma kat desteği (varsayılan alan = zemin × %40,
+emsale dahilse havuzdan sabit düşer) ve altı birim değerli fiyatlama
+(bodrum ticari/konut · zemin · asma · normal · piyes). **Ticari Apartman:**
+karma ile birebir aynı motor. **Ticari İşletme:** ekle-mantığıyla yapı satırları
+(fabrika, depo, ahır, otel…), tebliğ maliyeti × güncelleme × (1 − yıpranma),
+ilave maliyetler (çevre duvarı/peyzaj/altyapı + serbest kalemler) ve tek toplam
+satış değeri; arsa değeri = satış − maliyet, müteahhit kârı kesilmez, kat
+karşılığı ve uzman değerlendirmesi uygulanmaz. PDF, Excel ve Özet JPEG üç yol
+için de uyarlandı.
+
 **v5.0.0 (2026.07.22)** — Kurumsal görsel dil yenilendi (lacivert + altın; künye,
 sonuç şeridi, zebra tablolar, büyütülmüş Dora logosu). "Artık Değer" ifadesi tüm
 uygulamada **Gelir Projeksiyonu** oldu. Rapor kimliği: "Bu rapor ArsaPlan ile

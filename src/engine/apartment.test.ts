@@ -36,6 +36,9 @@ const APT_TK: ApartmentInput = {
   normalCommonRate: 0.10,
   hasPiyes: true, piyesInEmsal: true, piyesRate: 0.30,
   piyesArea: null, piyesSaleable: null,
+    asmaCount: 0, asmaInEmsal: true, asmaRate: 0.40,
+    asmaAreas: [null, null, null, null],
+    asmaSaleables: [null, null, null, null],
   hasExtraSaleable: true, extraMode: 'oran', extraRate: 0.20, extraArea: 0,
 };
 
@@ -137,7 +140,10 @@ describe('Doğrudan Alan — Salih\'in örnek tablosu', () => {
     normalAreas: [240, null, null, null, null, null, null, null],   // 1. kat → diğerlerine kopyalanır
     normalSaleables: [220, null, null, null, null, null, null, null],
     hasPiyes: true, piyesArea: 100, piyesSaleable: 90,
-    hasExtraSaleable: false,
+      asmaCount: 0, asmaInEmsal: true, asmaRate: 0.40,
+    asmaAreas: [null, null, null, null],
+    asmaSaleables: [null, null, null, null],
+  hasExtraSaleable: false,
   };
   const c = computeApartment(parcel, zoningD, APT_D);
 
@@ -178,6 +184,8 @@ describe('analyze() — apartman hattı uçtan uca', () => {
   const input: ProjectInput = {
     assetType: 'konut',
     housingType: 'apartman-3-8',
+    ticariMode: 'apartman',
+    isletme: { buildings: [], inflationRate: 0, wallUnitCost: 0, landscapeUnitCost: 0, infraUnitCost: 0, otherCosts: [], salesTotal: 0 },
     parcel,
     zoning: zoningTK,
     emsal: {
@@ -189,7 +197,7 @@ describe('analyze() — apartman hattı uçtan uca', () => {
     apartment: APT_TK,
     cost: { buildingClass: 'IV-A', unitCost: 30000, inflationRate: 0, extrasRate: 0 },
     site: { landscapeArea: 0, landscapeUnitCost: 0, gardenPricePerM2: 0 },
-    sales: { unitPrice: 0, apt: { bodrum: 60000, zemin: 80000, normal: 100000, piyes: 90000 } },
+    sales: { unitPrice: 0, apt: { bodrum: 60000, bodrumTicari: 0, zemin: 80000, asma: 0, normal: 100000, piyes: 90000 } },
     residual: { profitRate: 0.25, financeRateOfCost: 0 },
     share: { enabled: true, ownerShare: 0.45 },
   };

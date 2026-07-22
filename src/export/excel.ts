@@ -40,7 +40,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   wb.created = new Date();
   const logoId = wb.addImage({ base64: DORA_LOGO_PNG, extension: 'png' });
 
-  const { capacity: c, financial: f, share: s, apartment: apt } = r;
+  const { capacity: c, financial: f, share: s, apartment: apt, isletme } = r;
+  const karma = apt != null && input.assetType !== 'konut';
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
 
@@ -179,12 +180,143 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   ws1.getRow(row).height = 3;
   row += 2;
 
+  if (isletme) {
+    row = section(ws1, row, 'PARSEL');
+    row = rows(ws1, row, [
+      ['Parsel Alanı (tapu)', p.area, 'm²'],
+      ['Net Parsel Alanı', p.netArea, 'm²'],
+      ['Değerleme Konusu', 'Ticari İşletme'],
+    ]);
+    ws1.getCell(`C${row - 3}`).numFmt = M2;
+    ws1.getCell(`C${row - 2}`).numFmt = M2;
+    row++;
+
+    row = section(ws1, row, 'YAPILAR');
+    const th2 = ['YAPI', 'ALAN × BİRİM', 'MALİYET'];
+    th2.forEach((h, i) => {
+      const cell = ws1.getCell(row, 2 + i);
+      cell.value = h;
+      cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3F66' } };
+      cell.alignment = i === 0 ? { indent: 1, vertical: 'middle' } : { horizontal: 'right', vertical: 'middle', indent: 1 };
+      cell.border = BOX;
+    });
+    ws1.getRow(row).height = 14;
+    row++;
+    for (const rw of isletme.rows) {
+      const zebra = row % 2 === 0;
+      const bg = zebra ? FAINT : 'FFFFFFFF';
+      const cells: Array<[number, string | number, boolean]> = [
+        [2, `${rw.type} (${rw.buildingClass}${rw.depreciation > 0 ? ` · yıpranma %${(rw.depreciation * 100).toFixed(0)}` : ''})`, false],
+        [3, `${Math.round(rw.area).toLocaleString('tr-TR')} m² × ${Math.round(rw.effectiveUnitCost).toLocaleString('tr-TR')} ₺/m²`, true],
+        [4, rw.cost, true],
+      ];
+      for (const [col, val, right] of cells) {
+        const cell = ws1.getCell(row, col);
+        cell.value = val;
+        if (col === 4 && typeof val === 'number') cell.numFmt = TL;
+        cell.font = { name: 'Arial', size: 9.5, bold: col === 4 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        cell.border = BOX;
+        cell.alignment = right ? { horizontal: 'right', vertical: 'middle', indent: 1 } : { indent: 1, vertical: 'middle' };
+      }
+      ws1.getRow(row).height = 14;
+      row++;
+    }
+    const tot: Array<[number, string | number]> = [
+      [2, 'YAPI MALİYETLERİ'],
+      [3, `${Math.round(isletme.totalBuildingArea).toLocaleString('tr-TR')} m²`],
+      [4, isletme.buildingsCost],
+    ];
+    for (const [col, val] of tot) {
+      const cell = ws1.getCell(row, col);
+      cell.value = val;
+      if (col === 4 && typeof val === 'number') cell.numFmt = TL;
+      cell.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      cell.border = BOX;
+      cell.alignment = col === 2 ? { indent: 1, vertical: 'middle' } : { horizontal: 'right', vertical: 'middle', indent: 1 };
+    }
+    ws1.getRow(row).height = 15;
+    row += 2;
+
+    row = section(ws1, row, 'DEĞERLEME');
+    const dStart = row;
+    row = rows(ws1, row, [
+      ...(isletme.wallCost > 0 ? [['Çevre Duvarı', isletme.wallCost] as Row] : []),
+      ...(isletme.landscapeCost > 0 ? [['Peyzaj / Çevre Düzenleme', isletme.landscapeCost] as Row] : []),
+      ...(isletme.infraCost > 0 ? [['Altyapı', isletme.infraCost] as Row] : []),
+      ...input.isletme.otherCosts.filter((o) => o.amount > 0)
+        .map((o): Row => [o.name || 'Diğer', Math.round(o.amount)]),
+      ['Yapı Maliyetleri', isletme.buildingsCost],
+      ['TOPLAM MALİYET', isletme.totalCost],
+      ['Öngörülen Satış Değeri', isletme.salesTotal],
+      ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', isletme.landValue],
+      ['Arsa m² Birim Değeri', Math.round(isletme.landUnitValue)],
+    ], TL);
+    ws1.getCell(`C${row - 1}`).numFmt = TLM2;
+    /* Bantlı toplamlar */
+    for (let i = dStart; i < row; i++) {
+      const lbl = String(ws1.getCell(`B${i}`).value);
+      if (lbl === 'TOPLAM MALİYET' || lbl === 'ARSA DEĞERİ (GELİR PROJEKSİYONU)') {
+        ['B', 'C', 'D'].forEach((col) => {
+          const cell = ws1.getCell(`${col}${i}`);
+          cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+        });
+      }
+    }
+    row += 2;
+    ws1.mergeCells(`B${row}:D${row}`);
+    const ftr0 = ws1.getCell(`B${row}`);
+    ftr0.value =
+      `${BRAND.preparedBy} · ${BRAND.developerLine}\n` +
+      `Yöntem: Gelir Projeksiyonu · Müteahhit kârı kesilmemiştir · Tutarlar KDV hariçtir · Birim maliyet kaynağı: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
+    ftr0.alignment = { indent: 1, wrapText: true };
+    ws1.getRow(row).height = 26;
+    ftr0.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
+
+    /* GİRDİLER sayfası — işletme varyantı */
+    const wsi = sheet('GİRDİLER', 'ANALİZDE KULLANILAN VARSAYIMLAR');
+    let ri = START;
+    ri = section(wsi, ri, 'GİRDİ ÖZETİ');
+    ri = rows(wsi, ri, [
+      ['Güncelleme Oranı (tüm satırlar)', input.isletme.inflationRate],
+      ['Yapı Satırı Sayısı', isletme.rows.length],
+      ...isletme.rows.map((rw, i): Row => [
+        `Yapı ${i + 1}`, `${rw.type} · ${rw.buildingClass} · ${Math.round(rw.area).toLocaleString('tr-TR')} m² · yıpranma %${(rw.depreciation * 100).toFixed(0)}${rw.overridden ? ' · birim elle sabit' : ''}`,
+      ]),
+      ['Çevre Duvarı Birim Maliyeti', input.isletme.wallUnitCost],
+      ['Peyzaj Birim Maliyeti', input.isletme.landscapeUnitCost],
+      ['Altyapı Birim Maliyeti', input.isletme.infraUnitCost],
+      ['Öngörülen Satış Değeri', Math.round(input.isletme.salesTotal)],
+    ]);
+    for (let i = START + 1; i < ri; i++) {
+      const lbl = String(wsi.getCell(`B${i}`).value);
+      const cell = wsi.getCell(`C${i}`);
+      if (typeof cell.value !== 'number') continue;
+      if (lbl.includes('Oranı')) cell.numFmt = PCT;
+      else if (lbl.includes('Birim Maliyeti')) cell.numFmt = TLM2;
+      else if (lbl.includes('Satış Değeri')) cell.numFmt = TL;
+    }
+
+    const buf0 = await wb.xlsx.writeBuffer();
+    const blob0 = new Blob([buf0], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const name0 = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.xlsx`
+      .replace(/-+\./, '.');
+    triggerDownload(blob0, name0);
+    return;
+  }
+
   row = section(ws1, row, 'PARSEL VE İMAR');
   row = rows(ws1, row, [
     ['Parsel Alanı (tapu)', p.area, 'm²'],
     ['Net Parsel Alanı', p.netArea, 'm²'],
-    ['Değerleme Konusu', input.assetType === 'konut' ? 'Konut' : input.assetType === 'ticari' ? 'Ticari' : 'Karma'],
-    ['Proje Tipi', apt ? '3-8 Katlı Bina' : 'Villa'],
+    ['Değerleme Konusu', input.assetType === 'konut' ? 'Konut' : input.assetType === 'ticari' ? 'Ticari' : 'Karma Kullanım'],
+    ['Proje Tipi', isletme ? 'Ticari İşletme'
+      : input.assetType === 'karma' ? 'Karma Kullanım'
+      : input.assetType === 'ticari' ? 'Ticari Apartman'
+      : apt ? 'Çok Katlı Bina' : 'Villa'],
     ['Plan Lejantı', input.zoning.lejant.trim() || '—'],
     ['Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan alan girişi'],
     ['TAKS', input.zoning.taks ?? '—'],
@@ -289,9 +421,18 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Proje, Ruhsat, Harç, Müşavirlik', Math.round(f.extrasCost), TL, false],
       ['Finansman Gideri', Math.round(f.financeCost), TL, false],
       ['TOPLAM MALİYET', Math.round(f.totalCost), TL, true],
-      ...(apt.saleableByKind.bodrum > 0
-        ? [['Bodrum Satış Birim Değeri', Math.round(input.sales.apt.bodrum), TLM2, false] as [string, number, string, boolean]] : []),
-      ['Zemin Kat Satış Birim Değeri', Math.round(input.sales.apt.zemin), TLM2, false],
+      ...(karma
+        ? [
+            ...(apt.bodrumSaleableByUse.ticari > 0
+              ? [['Bodrum (ticari) Satış Birim Değeri', Math.round(input.sales.apt.bodrumTicari), TLM2, false] as [string, number, string, boolean]] : []),
+            ...(apt.bodrumSaleableByUse.konut > 0
+              ? [['Bodrum (konut) Satış Birim Değeri', Math.round(input.sales.apt.bodrum), TLM2, false] as [string, number, string, boolean]] : []),
+          ]
+        : apt.saleableByKind.bodrum > 0
+          ? [['Bodrum Satış Birim Değeri', Math.round(input.sales.apt.bodrum), TLM2, false] as [string, number, string, boolean]] : []),
+      [karma ? 'Zemin Kat (ticari) Satış Birim Değeri' : 'Zemin Kat Satış Birim Değeri', Math.round(input.sales.apt.zemin), TLM2, false],
+      ...(karma && apt.saleableByKind.asma > 0
+        ? [['Asma Kat Satış Birim Değeri', Math.round(input.sales.apt.asma), TLM2, false] as [string, number, string, boolean]] : []),
       ['Normal Kat Satış Birim Değeri', Math.round(input.sales.apt.normal), TLM2, false],
       ...(apt.saleableByKind.piyes > 0
         ? [['Piyes Satış Birim Değeri', Math.round(input.sales.apt.piyes), TLM2, false] as [string, number, string, boolean]] : []),
@@ -410,6 +551,9 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Normal Kat Sayısı', apt.normalFloorCount,
         apt.mode === 'taks-kaks' && apt.derivedFloorsFromHmax != null
           ? `Hmax → zemin dahil ${apt.derivedFloorsFromHmax} kat` : undefined],
+      ...(karma ? [['Asma Kat', a.asmaCount > 0
+        ? `${a.asmaCount} adet · zeminin %${(a.asmaRate * 100).toFixed(0)}'ı önerisi · ${a.asmaInEmsal ? 'emsale dahil' : 'emsal dışı'}`
+        : 'Yok'] as Row] : []),
       ['Çatı Arası Piyesi', a.hasPiyes
         ? (apt.mode === 'taks-kaks'
           ? `Var · normal katın %${(a.piyesRate * 100).toFixed(0)}'i · ${a.piyesInEmsal ? 'emsale dahil' : 'emsal dışı'}`

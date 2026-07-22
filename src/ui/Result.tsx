@@ -13,9 +13,10 @@ const VERDICT_TEXT: Record<string, string> = {
 export function Result({ input, result, version }: {
   input: ProjectInput; result: AnalysisResult; version: string;
 }) {
-  const { capacity: c, financial: f, share: s, advice, apartment: apt } = result;
+  const { capacity: c, financial: f, share: s, advice, apartment: apt, isletme } = result;
   const p = input.parcel;
   const neg = f.residualLandValue < 0;
+  const karma = apt != null && input.assetType !== 'konut';
   const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel'>(null);
   const [err, setErr] = useState<string | null>(null);
 
@@ -57,16 +58,109 @@ export function Result({ input, result, version }: {
           <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
             {busy === 'jpeg' ? 'Hazırlanıyor…' : 'Özet JPEG'}
           </button>
-          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
-            {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
-          </button>
+          {!isletme && (
+            <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
+              {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
+            </button>
+          )}
         </div>
-        <div className="hint" style={{ marginTop: 8 }}>
-          Rapor PDF ve Özet JPEG, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
-          Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
-        </div>
+        {!isletme && (
+          <div className="hint" style={{ marginTop: 8 }}>
+            Rapor PDF ve Özet JPEG, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
+            Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
+          </div>
+        )}
         {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
       </div>
+
+      {isletme ? (
+      <>
+        <div className="card">
+          <div className="card-title">Taşınmaz</div>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>
+            {p.il} / {p.ilce}{p.mahalle ? ` · ${p.mahalle} Mah.` : ''}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 2 }}>
+            Ada {p.ada || '—'} · Parsel {p.parsel || '—'} · {fmtM2(p.area)} · Ticari İşletme
+          </div>
+        </div>
+
+        <div className="kpi-grid">
+          <div className="kpi hero">
+            <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
+            <div className="kpi-value" style={isletme.landValue < 0 ? { color: '#ff9c94' } : undefined}>{fmtTL(isletme.landValue)}</div>
+            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(isletme.landUnitValue)}</b> (tapu alanı üzerinden)</div>
+          </div>
+          <div className="kpi"><div className="kpi-label">Toplam Maliyet</div><div className="kpi-value">{fmtTL(isletme.totalCost)}</div></div>
+          <div className="kpi"><div className="kpi-label">Öngörülen Satış Değeri</div><div className="kpi-value">{fmtTL(isletme.salesTotal)}</div></div>
+          <div className="kpi"><div className="kpi-label">Toplam Yapı Alanı</div><div className="kpi-value">{fmtM2(isletme.totalBuildingArea)}</div></div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Yapılar</div>
+          <div className="floor-table floor-result">
+            <div className="floor-head">
+              <span>Yapı</span><span>Alan × Birim</span><span>Maliyet</span>
+            </div>
+            {isletme.rows.map((row, i) => (
+              <div className="floor-row" key={i}>
+                <span className="floor-label">{row.type} ({row.buildingClass}{row.depreciation > 0 ? ` · yıpranma %${(row.depreciation * 100).toFixed(0)}` : ''})</span>
+                <span className="floor-cell">{fmtM2(row.area)} × {fmtTLm2(row.effectiveUnitCost)}</span>
+                <span className="floor-cell">{fmtTL(row.cost)}</span>
+              </div>
+            ))}
+            <div className="floor-row floor-total">
+              <span className="floor-label">YAPI MALİYETLERİ</span>
+              <span className="floor-cell"><b>{fmtM2(isletme.totalBuildingArea)}</b></span>
+              <span className="floor-cell"><b>{fmtTL(isletme.buildingsCost)}</b></span>
+            </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Değerleme</div>
+          {isletme.wallCost > 0 && <Row label="Çevre Duvarı" value={fmtTL(isletme.wallCost)} />}
+          {isletme.landscapeCost > 0 && <Row label="Peyzaj / Çevre Düzenleme" value={fmtTL(isletme.landscapeCost)} />}
+          {isletme.infraCost > 0 && <Row label="Altyapı" value={fmtTL(isletme.infraCost)} />}
+          {input.isletme.otherCosts.filter((o) => o.amount > 0).map((o, i) => (
+            <Row key={i} label={o.name || 'Diğer'} value={fmtTL(o.amount)} />
+          ))}
+          <Row label="Yapı Maliyetleri" value={fmtTL(isletme.buildingsCost)} />
+          <Row label="TOPLAM MALİYET" value={fmtTL(isletme.totalCost)} tone="neg" />
+          <Row label="Öngörülen Satış Değeri" value={fmtTL(isletme.salesTotal)} tone="pos" />
+          <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(isletme.landValue)} tone="total" />
+          <Row label="Arsa m² Birim Değeri" value={fmtTLm2(isletme.landUnitValue)} />
+        </div>
+
+        {isletme.warnings.length > 0 && (
+          <div className="card">
+            <div className="card-title">Uyarılar</div>
+            {isletme.warnings.map((w, i) => (
+              <div key={i} className="advice uyari"><div className="advice-body">{w}</div></div>
+            ))}
+          </div>
+        )}
+
+        <div className="card">
+          <div className="card-title">Yöntem ve Kaynak</div>
+          <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6 }}>
+            Değerleme yaklaşımı: <b>Gelir Projeksiyonu</b> — Öngörülen Satış Değeri − Toplam Maliyet = Arsa Değeri.
+            Bu senaryoda projenin mülk sahibince yapılması amaçlandığından <b>müteahhit kârı kesilmemiştir</b>.
+            Tüm tutarlar KDV hariçtir. Birim maliyet kaynağı: {TEBLIG_KAYNAK}.
+            Satış değeri ve yıpranma varsayımları kullanıcıya aittir.
+          </div>
+        </div>
+
+        <div className="brand-footer">
+          <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+          <div>
+            <b>{BRAND.preparedBy}</b><br />
+            {BRAND.developerLine} · {BRAND.appName} {version}
+          </div>
+        </div>
+      </>
+      ) : (
+      <>
 
       <div className="card">
         <div className="card-title">Taşınmaz</div>
@@ -75,6 +169,7 @@ export function Result({ input, result, version }: {
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 2 }}>
           Ada {p.ada || '—'} · Parsel {p.parsel || '—'} · {fmtM2(p.area)} · {input.zoning.lejant || 'Lejant girilmedi'}
+          {karma && <> · {input.assetType === 'karma' ? 'Karma Kullanım' : 'Ticari Apartman'}</>}
         </div>
       </div>
 
@@ -173,10 +268,22 @@ export function Result({ input, result, version }: {
         <Row label="Toplam Yapım Maliyeti" value={fmtTL(f.totalCost)} tone="neg" />
         {apt ? (
           <>
-            {apt.saleableByKind.bodrum > 0 && (
+            {karma ? (
+              <>
+                {apt.bodrumSaleableByUse.ticari > 0 && (
+                  <Row label="Bodrum (ticari) Satış Birim Değeri" value={fmtTLm2(input.sales.apt.bodrumTicari)} />
+                )}
+                {apt.bodrumSaleableByUse.konut > 0 && (
+                  <Row label="Bodrum (konut) Satış Birim Değeri" value={fmtTLm2(input.sales.apt.bodrum)} />
+                )}
+              </>
+            ) : apt.saleableByKind.bodrum > 0 && (
               <Row label="Bodrum Satış Birim Değeri" value={fmtTLm2(input.sales.apt.bodrum)} />
             )}
-            <Row label="Zemin Kat Satış Birim Değeri" value={fmtTLm2(input.sales.apt.zemin)} />
+            <Row label={karma ? 'Zemin Kat (ticari) Satış Birim Değeri' : 'Zemin Kat Satış Birim Değeri'} value={fmtTLm2(input.sales.apt.zemin)} />
+            {karma && apt.saleableByKind.asma > 0 && (
+              <Row label="Asma Kat Satış Birim Değeri" value={fmtTLm2(input.sales.apt.asma)} />
+            )}
             <Row label="Normal Kat Satış Birim Değeri" value={fmtTLm2(input.sales.apt.normal)} />
             {apt.saleableByKind.piyes > 0 && (
               <Row label="Piyes Satış Birim Değeri" value={fmtTLm2(input.sales.apt.piyes)} />
@@ -257,6 +364,8 @@ export function Result({ input, result, version }: {
           {BRAND.developerLine} · {BRAND.appName} {version}
         </div>
       </div>
+      </>
+      )}
     </>
   );
 }

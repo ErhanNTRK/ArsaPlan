@@ -221,6 +221,16 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 
 .stamp { text-align: center; font-size: 11px; color: var(--text-3); padding: 14px 0 4px; line-height: 1.6; }
 
+/* ── Ticari İşletme · yapı satırları ── */
+.isletme-row {
+  border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+  margin-top: 12px; background: rgba(15, 42, 71, 0.02);
+}
+.isletme-row-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 10px; font-size: 14px;
+}
+
 /* ── 3-8 Katlı Bina · Kat Tablosu ── */
 .floor-table { display: flex; flex-direction: column; gap: 6px; }
 .floor-head, .floor-row {

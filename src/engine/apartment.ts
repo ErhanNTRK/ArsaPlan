@@ -48,6 +48,8 @@ const ord = (i: number) => `${i}.`;
 
 export function computeApartment(
   parcel: Parcel, zoning: Zoning, apt: ApartmentInput,
+  /** 'karma' → zemin ticari etiketi, bodrum kullanım etiketleri, asma kat aktif */
+  variant: 'konut' | 'karma' = 'konut',
 ): ApartmentCapacity {
   const warnings: string[] = [];
   const direct = zoning.mode === 'dogrudan';
@@ -89,16 +91,29 @@ export function computeApartment(
       const area = R(Math.max(0, b.area ?? 0));
       const saleable = b.use === 'ortak' ? 0 : R(Math.max(0, b.saleable ?? 0));
       floors.push({
-        kind: 'bodrum', index: i, label: `${ord(i)} Bodrum Kat`,
+        kind: 'bodrum', index: i,
+        label: `${ord(i)} Bodrum Kat` + (variant === 'karma' && b.use !== 'ortak' ? ` (${b.use})` : ''),
         area, saleable, autoArea: b.area == null, autoSaleable: b.use === 'ortak' || b.saleable == null,
       });
     }
     const zArea = R(Math.max(0, apt.zeminArea ?? 0));
     floors.push({
-      kind: 'zemin', index: 0, label: 'Zemin Kat',
+      kind: 'zemin', index: 0, label: variant === 'karma' ? 'Zemin Kat (ticari)' : 'Zemin Kat',
       area: zArea, saleable: R(Math.max(0, apt.zeminSaleable ?? 0)),
       autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
     });
+    /* Asma kat(lar) — yalnızca karma varyantında; alan elle (%40 öneri), satılabilir = alan */
+    const asmaN = variant === 'karma' ? Math.max(0, Math.round(apt.asmaCount)) : 0;
+    for (let i = 1; i <= asmaN; i++) {
+      const aOv = apt.asmaAreas[i - 1];
+      const area = R(Math.max(0, aOv ?? zArea * Math.max(0, apt.asmaRate)));
+      const sOv = apt.asmaSaleables[i - 1];
+      const saleable = R(Math.max(0, sOv ?? area));
+      floors.push({
+        kind: 'asma', index: i, label: asmaN > 1 ? `${ord(i)} Asma Kat (ticari)` : 'Asma Kat (ticari)',
+        area, saleable, autoArea: aOv == null, autoSaleable: sOv == null,
+      });
+    }
     /* Normal katlar — 1. kata girilen değer null satırlara kopyalanır */
     const masterA = apt.normalAreas[0];
     const masterS = apt.normalSaleables[0];
@@ -132,7 +147,8 @@ export function computeApartment(
         : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
       pool -= saleable;
       floors.push({
-        kind: 'bodrum', index: i, label: `${ord(i)} Bodrum Kat`,
+        kind: 'bodrum', index: i,
+        label: `${ord(i)} Bodrum Kat` + (variant === 'karma' && b.use !== 'ortak' ? ` (${b.use})` : ''),
         area, saleable, autoArea: b.area == null, autoSaleable: b.use === 'ortak' || b.saleable == null,
       });
     }
@@ -147,10 +163,26 @@ export function computeApartment(
     const zSaleable = R(Math.max(0, apt.zeminSaleable ?? zArea * (1 - Math.max(0, apt.zeminLossRate))));
     pool -= zSaleable;
     floors.push({
-      kind: 'zemin', index: 0, label: 'Zemin Kat',
+      kind: 'zemin', index: 0, label: variant === 'karma' ? 'Zemin Kat (ticari)' : 'Zemin Kat',
       area: zArea, saleable: zSaleable,
       autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
     });
+
+    /* Asma kat(lar) — karma: alan = zemin × oran (elle değişir), satılabilir = alan.
+       Emsale dahilse havuzdan SABİT tutar düşülür; orana katılmaz. */
+    const asmaN = variant === 'karma' ? Math.max(0, Math.round(apt.asmaCount)) : 0;
+    for (let i = 1; i <= asmaN; i++) {
+      const aOv = apt.asmaAreas[i - 1];
+      const area = R(Math.max(0, aOv ?? zArea * Math.max(0, apt.asmaRate)));
+      const sOv = apt.asmaSaleables[i - 1];
+      const saleable = R(Math.max(0, sOv ?? area));
+      if (apt.asmaInEmsal) pool -= saleable;
+      floors.push({
+        kind: 'asma', index: i,
+        label: (asmaN > 1 ? `${ord(i)} Asma Kat` : 'Asma Kat') + ' (ticari)' + (apt.asmaInEmsal ? '' : ' · emsal dışı'),
+        area, saleable, autoArea: aOv == null, autoSaleable: sOv == null,
+      });
+    }
 
     /* Elle girilen normal kat satılabilirleri havuzdan önce düşülür — sabittirler */
     let autoCount = 0;
@@ -215,7 +247,7 @@ export function computeApartment(
 
   /* ── Toplamlar ── */
   const sumBy = (pick: (f: AptFloor) => number): Record<AptFloorKind, number> => {
-    const acc: Record<AptFloorKind, number> = { bodrum: 0, zemin: 0, normal: 0, piyes: 0 };
+    const acc: Record<AptFloorKind, number> = { bodrum: 0, zemin: 0, asma: 0, normal: 0, piyes: 0 };
     for (const f of floors) acc[f.kind] += pick(f);
     return acc;
   };
@@ -231,9 +263,19 @@ export function computeApartment(
   }
   if (totalArea <= 0) warnings.push('Kat alanları girilmedi; maliyet hesaplanamıyor.');
 
-  /* Havuz artığı: emsale dahil olmayan piyes havuzu tüketmez */
+  /* Bodrum satılabilirinin kullanım kırılımı (karma fiyatlama) */
+  const bodrumSaleableByUse = { konut: 0, ticari: 0 };
+  for (const fl of floors) {
+    if (fl.kind !== 'bodrum') continue;
+    const use = apt.basements[fl.index - 1]?.use ?? 'konut';
+    if (use === 'ticari') bodrumSaleableByUse.ticari += fl.saleable;
+    else if (use === 'konut') bodrumSaleableByUse.konut += fl.saleable;
+  }
+
+  /* Havuz artığı: emsale dahil olmayan piyes ve asma havuzu tüketmez */
   const consumed = saleableByKind.bodrum + saleableByKind.zemin + saleableByKind.normal +
-    (apt.hasPiyes && apt.piyesInEmsal ? saleableByKind.piyes : 0);
+    (apt.hasPiyes && apt.piyesInEmsal ? saleableByKind.piyes : 0) +
+    (apt.asmaInEmsal ? saleableByKind.asma : 0);
   const poolRemainder = direct ? 0 : saleablePool - consumed;
 
   const groundFloor = floors.find((f) => f.kind === 'zemin');
@@ -244,7 +286,7 @@ export function computeApartment(
     mode: zoning.mode,
     footprintArea: direct ? (groundFloor?.area ?? 0) : footprintArea,
     emsalArea, extraSaleableArea, saleablePool, poolRemainder,
-    floors, totalArea, saleableTotal, saleableByKind, areaByKind,
+    floors, totalArea, saleableTotal, saleableByKind, areaByKind, bodrumSaleableByUse,
     normalFloorCount, derivedFloorsFromHmax, gardenArea, warnings,
   };
 }

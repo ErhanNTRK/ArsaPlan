@@ -80,11 +80,15 @@ export interface EmsalOptions {
  * Kural: elle girilen (override) değerler SABİT kalır; yeniden dağıtım yalnız
  * otomatik satırlara uygulanır. Türetilen tüm alanlar tam sayıya yuvarlanır. */
 
-export type AptFloorKind = 'bodrum' | 'zemin' | 'normal' | 'piyes';
+export type AptFloorKind = 'bodrum' | 'zemin' | 'asma' | 'normal' | 'piyes';
+
+/** Karma / Ticari Apartman'da bodrum ticari de olabilir. */
+export type BasementUse = 'konut' | 'ticari' | 'ortak';
 
 export interface AptBasementInput {
-  /** 'ortak' → satılabilir alan 0 (otopark, sığınak vb.) */
-  use: 'konut' | 'ortak';
+  /** 'ortak' → satılabilir alan 0 (otopark, sığınak vb.). 'ticari' hesapta
+   *  konut ile aynıdır; fark birim satış değerindedir. */
+  use: BasementUse;
   /** Kat alanı. null → otomatik (TAKS/KAKS'ta taban oturumu). */
   area: number | null;
   /** TAKS/KAKS: alan kaybı oranı → satılabilir = alan × (1 − oran) */
@@ -118,6 +122,17 @@ export interface ApartmentInput {
   piyesRate: number;
   piyesArea: number | null;
   piyesSaleable: number | null;
+  /* ── Asma kat (yalnızca Karma / Ticari Apartman) ──
+   *  Varsayılan alan = zemin kat alanı × asmaRate; satılabilir = alan (kayıpsız).
+   *  Emsale dahilse havuzdan SABİT tutar olarak düşülür (orana katılmaz);
+   *  değilse toplamın üstüne eklenir. */
+  asmaCount: number;
+  asmaInEmsal: boolean;
+  /** Zemin kat alanının oranı (0.40 varsayılan) */
+  asmaRate: number;
+  asmaAreas: (number | null)[];
+  asmaSaleables: (number | null)[];
+
   /** TAKS/KAKS: emsale dahil olmayan ama satılabilir ilave alan (Tip İmar Yön.) */
   hasExtraSaleable: boolean;
   extraMode: CalcMode;
@@ -156,6 +171,8 @@ export interface ApartmentCapacity {
   saleableTotal: number;
   saleableByKind: Record<AptFloorKind, number>;
   areaByKind: Record<AptFloorKind, number>;
+  /** Bodrum satılabilirinin kullanım kırılımı (karma fiyatlama için) */
+  bodrumSaleableByUse: { konut: number; ticari: number };
   normalFloorCount: number;
   /** Hmax'tan türetilen zemin dahil kat adedi (yalnızca TAKS/KAKS) */
   derivedFloorsFromHmax: number | null;
@@ -164,11 +181,78 @@ export interface ApartmentCapacity {
 }
 
 export interface AptSalesInput {
-  /** Kat tipine göre satılabilir m² birim satış değerleri (₺/m², KDV hariç) */
-  bodrum: number;
+  /** Kat tipine göre satılabilir m² birim satış değerleri (₺/m², KDV hariç).
+   *  Konut Çok Katlı Bina yalnızca bodrum/zemin/normal/piyes kullanır;
+   *  Karma ve Ticari Apartman altısını da kullanır. */
+  bodrum: number;          // konut bodrum
+  bodrumTicari: number;    // ticari bodrum
   zemin: number;
+  asma: number;
   normal: number;
   piyes: number;
+}
+
+/* ═══════════ TİCARİ İŞLETME ═══════════
+ * Ekle-mantığıyla yapı satırları; arsa değeri = öngörülen toplam satış değeri −
+ * (yapı maliyetleri + ilave maliyetler). Müteahhit kârı KESİLMEZ (senaryo:
+ * mülk sahibinin projeyi kendisinin yapması). */
+
+export type TicariMode = 'apartman' | 'isletme';
+
+export interface IsletmeBuilding {
+  /** Yapı türü etiketi (ör. 'Ahır') — raporda görünür */
+  type: string;
+  /** Tebliğ yapı sınıfı kodu (ör. 'III-A') — birim maliyeti belirler */
+  buildingClass: string;
+  area: number;
+  /** Yıpranma payı (0.10 = %10) — satır bazlı, opsiyonel */
+  depreciation: number;
+  /** null → tebliğ × (1 + enflasyon) × (1 − yıpranma); sayı → elle sabit */
+  unitCostOverride: number | null;
+}
+
+export interface IsletmeOtherCost { name: string; amount: number; }
+
+export interface IsletmeInput {
+  buildings: IsletmeBuilding[];
+  /** Tüm yapı satırlarına ortak güncelleme (enflasyon) oranı */
+  inflationRate: number;
+  /* İlave Maliyetler — tercihe bağlı; parsel m² başına birim ₺ (0 = yok) */
+  wallUnitCost: number;
+  landscapeUnitCost: number;
+  infraUnitCost: number;
+  /** Serbest kalemler (ad + tutar) */
+  otherCosts: IsletmeOtherCost[];
+  /** Öngörülen toplam satış değeri (₺, KDV hariç) */
+  salesTotal: number;
+}
+
+export interface IsletmeRow {
+  type: string;
+  buildingClass: string;
+  area: number;
+  baseUnitCost: number;
+  depreciation: number;
+  effectiveUnitCost: number;
+  overridden: boolean;
+  cost: number;
+}
+
+export interface IsletmeResult {
+  rows: IsletmeRow[];
+  buildingsCost: number;
+  totalBuildingArea: number;
+  wallCost: number;
+  landscapeCost: number;
+  infraCost: number;
+  otherCost: number;
+  extrasTotal: number;
+  totalCost: number;
+  salesTotal: number;
+  /** Arsa değeri = satış − toplam maliyet (müteahhit kârı kesilmez) */
+  landValue: number;
+  landUnitValue: number;
+  warnings: string[];
 }
 
 export interface VillaConfig {
@@ -216,11 +300,14 @@ export interface ShareInput {
 export interface ProjectInput {
   assetType: AssetType;
   housingType: HousingType;
+  /** Ticari seçilince izlenecek yol */
+  ticariMode: TicariMode;
   parcel: Parcel;
   zoning: Zoning;
   emsal: EmsalOptions;
   villa: VillaConfig;
   apartment: ApartmentInput;
+  isletme: IsletmeInput;
   cost: CostInput;
   site: SiteWorks;
   sales: SalesInput;
@@ -316,6 +403,8 @@ export interface AnalysisResult {
   financial: FinancialResult;
   share: ShareResult;
   advice: Advice[];
-  /** Yalnızca housingType 'apartman-3-8' iken dolu */
+  /** Konut Çok Katlı Bina, Karma ve Ticari Apartman'da dolu */
   apartment?: ApartmentCapacity;
+  /** Yalnızca Ticari İşletme'de dolu */
+  isletme?: IsletmeResult;
 }

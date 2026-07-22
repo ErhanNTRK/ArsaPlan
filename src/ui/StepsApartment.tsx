@@ -13,7 +13,7 @@ import { LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL } from './fields';
 import type { Upd, SetTop } from './Steps';
 
-interface P { input: ProjectInput; upd: Upd; setTop: SetTop; }
+interface P { input: ProjectInput; upd: Upd; setTop: SetTop; karma?: boolean; }
 
 /* Kat satırı → ApartmentInput içindeki override yuvası */
 function patchFloor(
@@ -26,6 +26,12 @@ function patchFloor(
   }
   if (f.kind === 'zemin') {
     return col === 'area' ? { zeminArea: value } : { zeminSaleable: value };
+  }
+  if (f.kind === 'asma') {
+    const key = col === 'area' ? 'asmaAreas' : 'asmaSaleables';
+    const arr = [...apt[key]];
+    arr[f.index - 1] = value;
+    return { [key]: arr };
   }
   if (f.kind === 'normal') {
     const key = col === 'area' ? 'normalAreas' : 'normalSaleables';
@@ -40,13 +46,14 @@ function patchFloor(
 function canReset(mode: 'taks-kaks' | 'dogrudan', f: AptFloor, auto: boolean): boolean {
   if (auto) return false;
   if (mode === 'taks-kaks') return true;
-  return f.kind === 'normal' && f.index > 1;   // doğrudan modda yalnızca kopyalanan satırlar
+  /* doğrudan modda: kopyalanan normal satırlar + öneriden türeyen asma satırları */
+  return (f.kind === 'normal' && f.index > 1) || f.kind === 'asma';
 }
 
-export function Step3Apartment({ input, upd }: P) {
+export function Step3Apartment({ input, upd, karma = false }: P) {
   const z = input.zoning;
   const a = input.apartment;
-  const c = computeApartment(input.parcel, z, a);
+  const c = computeApartment(input.parcel, z, a, karma ? 'karma' : 'konut');
   const taksKaks = z.mode === 'taks-kaks';
   const lejantOther = z.lejant === ' ' || (z.lejant !== '' && !LEJANTLAR.includes(z.lejant));
   const derived = floorsFromHmax(z.hmax);
@@ -144,12 +151,16 @@ export function Step3Apartment({ input, upd }: P) {
                    onChange={(u) => setApt({
                      basements: a.basements.map((b, k) => k === i ? { ...b, use: u } : b),
                    })}
-                   options={[
+                   options={karma ? [
+                     { value: 'ortak', label: 'Ortak mahal (otopark vb.)' },
+                     { value: 'ticari', label: 'Ticari (satılabilir)' },
+                     { value: 'konut', label: 'Konut (satılabilir)' },
+                   ] : [
                      { value: 'konut', label: 'Konut (satılabilir)' },
                      { value: 'ortak', label: 'Ortak mahal (otopark vb.)' },
                    ]} />
             </Field>
-            {taksKaks && a.basements[i].use === 'konut' ? (
+            {taksKaks && a.basements[i].use !== 'ortak' ? (
               <Field label="Alan Kaybı" hint="Satılabilir = alan × (1 − oran)">
                 <Pct value={a.basements[i].lossRate}
                      onChange={(n) => setApt({
@@ -184,6 +195,37 @@ export function Step3Apartment({ input, upd }: P) {
           </button>
         )}
 
+        {karma && (
+          <>
+            <Field label="Asma Kat var mı?"
+                   hint="Zemin katın ticari uzantısı · genelde 1 adet olur">
+              <Seg value={a.asmaCount > 0} onChange={(b) => setApt({ asmaCount: b ? 1 : 0 })}
+                   options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+            </Field>
+            {a.asmaCount > 0 && (
+              <div className="grid-2">
+                <Field label="Asma Kat Sayısı">
+                  <Num value={a.asmaCount}
+                       onChange={(n) => setApt({ asmaCount: Math.max(1, Math.round(n)) })} suffix="adet" />
+                </Field>
+                {taksKaks ? (
+                  <Field label="Emsale dahil mi?"
+                         hint="Dahilse satılabilir alan hakkından düşülür; değilse üstüne eklenir.">
+                    <Seg value={a.asmaInEmsal} onChange={(b) => setApt({ asmaInEmsal: b })}
+                         options={[{ value: true, label: 'Evet' }, { value: false, label: 'Hayır' }]} />
+                  </Field>
+                ) : <div />}
+              </div>
+            )}
+            {a.asmaCount > 0 && (
+              <div className="note-box" style={{ marginBottom: 10 }}>
+                Asma kat alanı zemin katın <b>%{(a.asmaRate * 100).toFixed(0)}</b>'ı olarak önerilir;
+                kat tablosundan elle değiştirilebilir. Ortak mahal ve kayıp uygulanmaz:
+                satılabilir alan = kat alanı.
+              </div>
+            )}
+          </>
+        )}
         <Field label="Çatı Arası Piyesi var mı?">
           <Seg value={a.hasPiyes} onChange={(b) => setApt({ hasPiyes: b })}
                options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
@@ -295,12 +337,15 @@ export function Step3Apartment({ input, upd }: P) {
 }
 
 /** Adım 4 — Satış kartı (kat tipine göre birim değerler) */
-export function ApartmentSalesCard({ input, upd }: P) {
+export function ApartmentSalesCard({ input, upd, karma = false }: P) {
   const s = input.sales.apt;
-  const c = computeApartment(input.parcel, input.zoning, input.apartment);
+  const c = computeApartment(input.parcel, input.zoning, input.apartment, karma ? 'karma' : 'konut');
   const setApt = (patch: Partial<typeof s>) => upd('sales', { apt: { ...s, ...patch } });
+  const bodrumGelir = karma
+    ? c.bodrumSaleableByUse.konut * s.bodrum + c.bodrumSaleableByUse.ticari * s.bodrumTicari
+    : c.saleableByKind.bodrum * s.bodrum;
   const gelir =
-    c.saleableByKind.bodrum * s.bodrum + c.saleableByKind.zemin * s.zemin +
+    bodrumGelir + c.saleableByKind.zemin * s.zemin + c.saleableByKind.asma * s.asma +
     c.saleableByKind.normal * s.normal + c.saleableByKind.piyes * s.piyes;
 
   return (
@@ -309,14 +354,32 @@ export function ApartmentSalesCard({ input, upd }: P) {
       <div className="hint" style={{ marginBottom: 10 }}>
         Satılabilir m² başına, KDV hariç. Normal katlar için tek ortalama değer girilir.
       </div>
-      {c.saleableByKind.bodrum > 0 && (
+      {karma ? (
+        <>
+          {c.bodrumSaleableByUse.ticari > 0 && (
+            <Field label="Bodrum Kat (ticari)" hint={`Satılabilir ${fmtM2(c.bodrumSaleableByUse.ticari)}`}>
+              <Num value={s.bodrumTicari} onChange={(n) => setApt({ bodrumTicari: n })} suffix="₺/m²" />
+            </Field>
+          )}
+          {c.bodrumSaleableByUse.konut > 0 && (
+            <Field label="Bodrum Kat (konut)" hint={`Satılabilir ${fmtM2(c.bodrumSaleableByUse.konut)}`}>
+              <Num value={s.bodrum} onChange={(n) => setApt({ bodrum: n })} suffix="₺/m²" />
+            </Field>
+          )}
+        </>
+      ) : c.saleableByKind.bodrum > 0 && (
         <Field label="Bodrum Kat" hint={`Satılabilir ${fmtM2(c.saleableByKind.bodrum)}`}>
           <Num value={s.bodrum} onChange={(n) => setApt({ bodrum: n })} suffix="₺/m²" />
         </Field>
       )}
-      <Field label="Zemin Kat" hint={`Satılabilir ${fmtM2(c.saleableByKind.zemin)}`}>
+      <Field label={karma ? 'Zemin Kat (ticari)' : 'Zemin Kat'} hint={`Satılabilir ${fmtM2(c.saleableByKind.zemin)}`}>
         <Num value={s.zemin} onChange={(n) => setApt({ zemin: n })} suffix="₺/m²" />
       </Field>
+      {karma && c.saleableByKind.asma > 0 && (
+        <Field label="Asma Kat (ticari)" hint={`Satılabilir ${fmtM2(c.saleableByKind.asma)}`}>
+          <Num value={s.asma} onChange={(n) => setApt({ asma: n })} suffix="₺/m²" />
+        </Field>
+      )}
       <Field label="Normal Kat (ortalama)" hint={`Satılabilir ${fmtM2(c.saleableByKind.normal)}`}>
         <Num value={s.normal} onChange={(n) => setApt({ normal: n })} suffix="₺/m²" />
       </Field>

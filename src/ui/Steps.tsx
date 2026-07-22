@@ -3,16 +3,17 @@ import { computeCapacity, computeApartment } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
 import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
+import { Step3Isletme, Step4Isletme } from './StepsIsletme';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
 interface P { input: ProjectInput; upd: Upd; setTop: SetTop; }
 
 /* ═══════════ ADIM 1 — TAŞINMAZ ═══════════ */
-const ASSETS: Array<{ v: AssetType; label: string; desc: string; ready: boolean }> = [
-  { v: 'konut', label: 'Konut', desc: 'Villa, apartman, blok veya site', ready: true },
-  { v: 'ticari', label: 'Ticari', desc: 'Dükkan, ofis, iş merkezi', ready: false },
-  { v: 'karma', label: 'Karma Kullanım', desc: 'Konut + ticari birlikte', ready: false },
+const ASSETS: Array<{ v: AssetType; label: string; desc: string }> = [
+  { v: 'konut', label: 'Konut', desc: 'Villa veya çok katlı bina' },
+  { v: 'ticari', label: 'Ticari', desc: 'Ticari apartman veya ticari işletme' },
+  { v: 'karma', label: 'Karma Kullanım', desc: 'Konut + ticaret lejantı · tek kurgu' },
 ];
 
 export function Step1({ input, setTop }: P) {
@@ -22,14 +23,21 @@ export function Step1({ input, setTop }: P) {
       <div className="choice-grid">
         {ASSETS.map((a) => (
           <Choice key={a.v} on={input.assetType === a.v}
-                  name={a.ready ? a.label : `${a.label} — yakında hizmette`} desc={a.desc}
-                  onClick={() => a.ready && setTop('assetType', a.v)} />
+                  name={a.label} desc={a.desc}
+                  onClick={() => {
+                    setTop('assetType', a.v);
+                    /* Karma tek kurgudur: çok katlı bina omurgası otomatik seçilir. */
+                    if (a.v === 'karma') setTop('housingType', 'apartman-3-8');
+                  }} />
         ))}
       </div>
-      <div className="note-box" style={{ marginTop: 12 }}>
-        Bu sürümde <b>Konut</b> değerlemesi aktiftir. Ticari ve karma kullanım senaryoları
-        aynı motor altyapısı üzerine eklenecektir.
-      </div>
+      {input.assetType === 'karma' && (
+        <div className="note-box" style={{ marginTop: 12 }}>
+          Karma kullanımda proje tipi sorulmaz; doğrudan çok katlı bina kurgusuna geçilir.
+          Zemin kat ticari kabul edilir, bodrumlarda kullanım (ortak / ticari / konut) seçilir
+          ve asma kat eklenebilir.
+        </div>
+      )}
     </div>
   );
 }
@@ -45,6 +53,7 @@ export function Step2({ input, upd, setTop }: P) {
   const p = input.parcel;
   return (
     <div className="cols">
+      {input.assetType === 'konut' && (
       <div className="card">
         <div className="card-title">Konut Proje Tipi</div>
         <div className="choice-grid two">
@@ -55,6 +64,27 @@ export function Step2({ input, upd, setTop }: P) {
           ))}
         </div>
       </div>
+      )}
+      {input.assetType === 'ticari' && (
+      <div className="card">
+        <div className="card-title">Ticari Yol</div>
+        <div className="choice-grid two">
+          <Choice on={input.ticariMode === 'apartman'} name="Ticari Apartman"
+                  desc="Kat tablosu ile hesap · karma kurguyla aynı"
+                  onClick={() => { setTop('ticariMode', 'apartman'); setTop('housingType', 'apartman-3-8'); }} />
+          <Choice on={input.ticariMode === 'isletme'} name="Ticari İşletme"
+                  desc="Yapı maliyetleri + satış değeri · sade hesap"
+                  onClick={() => setTop('ticariMode', 'isletme')} />
+        </div>
+        {input.ticariMode === 'isletme' && (
+          <div className="note-box" style={{ marginTop: 10 }}>
+            Ticari işletmede yapı satırları eklenir (fabrika, depo, ahır, otel…), maliyetler
+            toplanır ve öngörülen satış değerinden düşülerek arsa değeri bulunur.
+            Müteahhit kârı kesilmez.
+          </div>
+        )}
+      </div>
+      )}
 
       <div className="card">
         <div className="card-title">Taşınmaz Bilgileri</div>
@@ -88,8 +118,14 @@ export function Step2({ input, upd, setTop }: P) {
 }
 
 /* ═══════════ ADIM 3 — İMAR VE ALAN ÜRETİMİ ═══════════ */
+const isKarma = (i: ProjectInput) => i.assetType === 'karma' ||
+  (i.assetType === 'ticari' && i.ticariMode === 'apartman');
+
 export function Step3(props: P) {
-  if (props.input.housingType === 'apartman-3-8') return <Step3Apartment {...props} />;
+  const { input } = props;
+  if (input.assetType === 'ticari' && input.ticariMode === 'isletme') return <Step3Isletme {...props} />;
+  if (isKarma(input)) return <Step3Apartment {...props} karma />;
+  if (input.housingType === 'apartman-3-8') return <Step3Apartment {...props} />;
   return <Step3Villa {...props} />;
 }
 
@@ -288,10 +324,14 @@ function Step3Villa({ input, upd }: P) {
 /* ═══════════ ADIM 4 — MALİYET VE SATIŞ ═══════════ */
 export function Step4(props: P) {
   const { input, upd } = props;
+  if (input.assetType === 'ticari' && input.ticariMode === 'isletme') return <Step4Isletme {...props} />;
   const c = input.cost;
   const s = input.site;
-  const apartman = input.housingType === 'apartman-3-8';
-  const aptCap = apartman ? computeApartment(input.parcel, input.zoning, input.apartment) : null;
+  const karma = isKarma(input);
+  const apartman = karma || input.housingType === 'apartman-3-8';
+  const aptCap = apartman
+    ? computeApartment(input.parcel, input.zoning, input.apartment, karma ? 'karma' : 'konut')
+    : null;
   const villaCap = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
   const cap = aptCap
     ? { totalArea: aptCap.totalArea, gardenArea: aptCap.gardenArea }
@@ -350,7 +390,7 @@ export function Step4(props: P) {
       </div>
 
       {apartman ? (
-        <ApartmentSalesCard {...props} />
+        <ApartmentSalesCard {...props} karma={karma} />
       ) : (
         <div className="card">
           <div className="card-title">Satış</div>

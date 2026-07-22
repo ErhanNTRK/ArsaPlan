@@ -8,6 +8,8 @@ import { Result } from './Result';
 
 const input: ProjectInput = {
   assetType: 'konut', housingType: 'villa',
+  ticariMode: 'apartman',
+  isletme: { buildings: [], inflationRate: 0, wallUnitCost: 0, landscapeUnitCost: 0, infraUnitCost: 0, otherCosts: [], salesTotal: 0 },
   parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Çavuşbaşı', ada: '1245', parsel: '17', area: 1000, netArea: 1000 },
   zoning: { mode: 'taks-kaks', lejant: 'Az Yoğunluklu Konut Alanı', taks: 0.40, kaks: 0.80, hmax: 9.5,
             directFootprint: 0, directEmsalArea: 0,
@@ -31,11 +33,14 @@ const input: ProjectInput = {
     normalCommonRate: 0.10,
     hasPiyes: false, piyesInEmsal: true, piyesRate: 0.30,
     piyesArea: null, piyesSaleable: null,
-    hasExtraSaleable: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
+      asmaCount: 0, asmaInEmsal: true, asmaRate: 0.40,
+    asmaAreas: [null, null, null, null],
+    asmaSaleables: [null, null, null, null],
+  hasExtraSaleable: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
   },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.20, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1500, gardenPricePerM2: 3000 },
-  sales: { unitPrice: 105000, apt: { bodrum: 0, zemin: 0, normal: 0, piyes: 0 } },
+  sales: { unitPrice: 105000, apt: { bodrum: 0, bodrumTicari: 0, zemin: 0, asma: 0, normal: 0, piyes: 0 } },
   residual: { profitRate: 0.25, financeRateOfCost: 0.10 },
   share: { enabled: true, ownerShare: 0.40 },
 };
@@ -134,9 +139,12 @@ const aptInput: ProjectInput = {
     normalCommonRate: 0.10,
     hasPiyes: true, piyesInEmsal: true, piyesRate: 0.30,
     piyesArea: null, piyesSaleable: null,
-    hasExtraSaleable: true, extraMode: 'oran', extraRate: 0.20, extraArea: 0,
+      asmaCount: 0, asmaInEmsal: true, asmaRate: 0.40,
+    asmaAreas: [null, null, null, null],
+    asmaSaleables: [null, null, null, null],
+  hasExtraSaleable: true, extraMode: 'oran', extraRate: 0.20, extraArea: 0,
   },
-  sales: { unitPrice: 0, apt: { bodrum: 60000, zemin: 80000, normal: 100000, piyes: 90000 } },
+  sales: { unitPrice: 0, apt: { bodrum: 60000, bodrumTicari: 0, zemin: 80000, asma: 0, normal: 100000, piyes: 90000 } },
 };
 
 describe('3-8 katlı bina ekranları', () => {

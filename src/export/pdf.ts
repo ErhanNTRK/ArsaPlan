@@ -84,7 +84,8 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   await loadFonts(doc);
 
   let y = 0;
-  const { capacity: c, financial: f, share: s, apartment: apt } = r;
+  const { capacity: c, financial: f, share: s, apartment: apt, isletme } = r;
+  const karma = apt != null && input.assetType !== 'konut';
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
   const tarih = new Date().toLocaleDateString('tr-TR');
@@ -106,9 +107,10 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFontSize(8.2);
     doc.text(`Rapor Tarihi: ${tarih}`, PW - M - 4, y + 5.6, { align: 'right' });
     doc.text(
-      apt
-        ? `Çok Katlı Bina · ${apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'} Yöntemi`
-        : 'Villa Projesi',
+      isletme ? 'Ticari İşletme'
+        : apt
+          ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'} · ${apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'} Yöntemi`
+          : 'Villa Projesi',
       PW - M - 4, y + 10.6, { align: 'right' },
     );
     y += 19;
@@ -235,6 +237,98 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   drawHeader(doc, 'ARSA DEĞER ANALİZİ', 'Gelir Projeksiyonu Yöntemi · Proje Geliştirme Raporu');
   y = 41;
   kunye();
+
+  if (isletme) {
+    /* ── Ticari İşletme: sade rapor ── */
+    const H = 27;
+    doc.setFillColor(...NAVY);
+    doc.roundedRect(M, y, W, H, 2.2, 2.2, 'F');
+    doc.setFillColor(...GOLD);
+    doc.rect(M, y + H - 1.2, W, 1.2, 'F');
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
+    doc.text('ARSA DEĞERİ (GELİR PROJEKSİYONU)', M + 5, y + 7);
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
+    doc.text(tl(isletme.landValue), M + 5, y + 17.5);
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(168, 189, 212);
+    doc.text('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)', M + 5, y + 23);
+    const cx2 = M + W * 0.56;
+    doc.setDrawColor(58, 88, 124);
+    doc.line(cx2 - 4, y + 4.5, cx2 - 4, y + H - 4.5);
+    const stat2 = (label: string, val: string, sy: number) => {
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(168, 189, 212);
+      doc.text(label, cx2, sy);
+      doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
+      doc.text(val, PW - M - 5, sy, { align: 'right' });
+    };
+    stat2('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), y + 8.4);
+    stat2('Toplam Maliyet', tl(isletme.totalCost), y + 15.2);
+    stat2('Öngörülen Satış Değeri', tl(isletme.salesTotal), y + 22);
+    y += H + 7;
+
+    section('YAPILAR');
+    {
+      const h = 6.4;
+      const C2 = M + W * 0.62, C3 = PW - M - 3;
+      doc.setFillColor(...NAVY);
+      doc.rect(M, y - 4.2, W, h, 'F');
+      doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(255, 255, 255);
+      doc.text('YAPI', M + 3, y);
+      doc.text('ALAN × BİRİM MALİYET', C2, y, { align: 'right' });
+      doc.text('MALİYET', C3, y, { align: 'right' });
+      y += h + 0.6;
+      let z = true;
+      for (const rw of isletme.rows) {
+        pageBreak(h);
+        if (z) { doc.setFillColor(...FAINT); doc.rect(M, y - 4.2, W, h, 'F'); }
+        z = !z;
+        doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...INK);
+        doc.text(`${rw.type} (${rw.buildingClass}${rw.depreciation > 0 ? ` · yıpranma ${pct(rw.depreciation, 0)}` : ''})`, M + 3, y);
+        doc.setFont('NTRK', 'bold');
+        doc.text(`${m2(rw.area)} × ${tlm2(rw.effectiveUnitCost)}`, C2, y, { align: 'right' });
+        doc.text(tl(rw.cost), C3, y, { align: 'right' });
+        y += h;
+      }
+      doc.setFillColor(...NAVY);
+      doc.rect(M, y - 4.2, W, h, 'F');
+      doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
+      doc.text('YAPI MALİYETLERİ', M + 3, y);
+      doc.text(m2(isletme.totalBuildingArea), C2, y, { align: 'right' });
+      doc.text(tl(isletme.buildingsCost), C3, y, { align: 'right' });
+      y += h + 2;
+      if (input.isletme.inflationRate > 0) {
+        row('Güncelleme Oranı (tüm satırlara ortak)', pct(input.isletme.inflationRate, 1));
+      }
+      y += 3;
+    }
+
+    if (isletme.extrasTotal > 0) {
+      section('İLAVE MALİYETLER');
+      if (isletme.wallCost > 0) row('Çevre Duvarı', tl(isletme.wallCost));
+      if (isletme.landscapeCost > 0) row('Peyzaj / Çevre Düzenleme', tl(isletme.landscapeCost));
+      if (isletme.infraCost > 0) row('Altyapı', tl(isletme.infraCost));
+      for (const oc of input.isletme.otherCosts) {
+        if (oc.amount > 0) row(oc.name || 'Diğer', tl(oc.amount));
+      }
+      row('İLAVE MALİYETLER TOPLAMI', tl(isletme.extrasTotal), { band: true });
+      y += 3;
+    }
+
+    section('DEĞERLEME');
+    row('Yapı Maliyetleri', tl(isletme.buildingsCost));
+    if (isletme.extrasTotal > 0) row('İlave Maliyetler', tl(isletme.extrasTotal));
+    row('TOPLAM MALİYET', tl(isletme.totalCost), { band: true });
+    row('Öngörülen Satış Değeri', tl(isletme.salesTotal), { bold: true, color: GREEN });
+    row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(isletme.landValue), { band: true });
+    row('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), { bold: true });
+    y += 4;
+
+    drawFooter(doc, version, 'Ticari İşletme · Müteahhit kârı kesilmez · Tutarlar KDV hariçtir');
+    const name0 = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.pdf`
+      .replace(/-+\./, '.');
+    triggerDownload(doc.output('blob'), name0);
+    return;
+  }
+
   hero();
 
   section('PARSEL VE İMAR');
@@ -284,8 +378,14 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost));
   row('TOPLAM MALİYET', tl(f.totalCost), { band: true });
   if (apt) {
-    if (apt.saleableByKind.bodrum > 0) row('Bodrum Satış Birim Değeri', tlm2(input.sales.apt.bodrum));
-    row('Zemin Kat Satış Birim Değeri', tlm2(input.sales.apt.zemin));
+    if (karma) {
+      if (apt.bodrumSaleableByUse.ticari > 0) row('Bodrum (ticari) Satış Birim Değeri', tlm2(input.sales.apt.bodrumTicari));
+      if (apt.bodrumSaleableByUse.konut > 0) row('Bodrum (konut) Satış Birim Değeri', tlm2(input.sales.apt.bodrum));
+    } else if (apt.saleableByKind.bodrum > 0) {
+      row('Bodrum Satış Birim Değeri', tlm2(input.sales.apt.bodrum));
+    }
+    row(karma ? 'Zemin Kat (ticari) Satış Birim Değeri' : 'Zemin Kat Satış Birim Değeri', tlm2(input.sales.apt.zemin));
+    if (karma && apt.saleableByKind.asma > 0) row('Asma Kat Satış Birim Değeri', tlm2(input.sales.apt.asma));
     row('Normal Kat Satış Birim Değeri', tlm2(input.sales.apt.normal));
     if (apt.saleableByKind.piyes > 0) row('Piyes Satış Birim Değeri', tlm2(input.sales.apt.piyes));
   }
