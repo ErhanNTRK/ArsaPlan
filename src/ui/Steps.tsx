@@ -1,7 +1,8 @@
 import type { ProjectInput, AssetType, HousingType } from '../engine';
-import { computeCapacity } from '../engine';
+import { computeCapacity, computeApartment } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
+import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
@@ -36,7 +37,7 @@ export function Step1({ input, setTop }: P) {
 /* ═══════════ ADIM 2 — PROJE TİPİ VE TAŞINMAZ ═══════════ */
 const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boolean }> = [
   { v: 'villa', label: 'Villa', desc: 'Müstakil / ikiz / sıralı', ready: true },
-  { v: 'apartman-3-6', label: '3-6 Katlı Apartman', desc: 'Az katlı çok birimli', ready: false },
+  { v: 'apartman-3-8', label: '3-8 Katlı Bina', desc: 'Kat tablosu ile hesap', ready: true },
   { v: 'blok-7-18', label: '7-18 Katlı Blok', desc: 'Yüksek yoğunluk', ready: false },
   { v: 'site', label: 'Site', desc: 'Parsel içinde çok bloklu', ready: false },
 ];
@@ -88,7 +89,12 @@ export function Step2({ input, upd, setTop }: P) {
 }
 
 /* ═══════════ ADIM 3 — İMAR VE ALAN ÜRETİMİ ═══════════ */
-export function Step3({ input, upd }: P) {
+export function Step3(props: P) {
+  if (props.input.housingType === 'apartman-3-8') return <Step3Apartment {...props} />;
+  return <Step3Villa {...props} />;
+}
+
+function Step3Villa({ input, upd }: P) {
   const z = input.zoning;
   const e = input.emsal;
   const v = input.villa;
@@ -281,10 +287,16 @@ export function Step3({ input, upd }: P) {
 }
 
 /* ═══════════ ADIM 4 — MALİYET VE SATIŞ ═══════════ */
-export function Step4({ input, upd }: P) {
+export function Step4(props: P) {
+  const { input, upd } = props;
   const c = input.cost;
   const s = input.site;
-  const cap = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
+  const apartman = input.housingType === 'apartman-3-8';
+  const aptCap = apartman ? computeApartment(input.parcel, input.zoning, input.apartment) : null;
+  const villaCap = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
+  const cap = aptCap
+    ? { totalArea: aptCap.totalArea, gardenArea: aptCap.gardenArea }
+    : { totalArea: villaCap.totalArea, gardenArea: villaCap.gardenArea };
   const sinif = YAPI_SINIFLARI.find((x) => x.code === c.buildingClass);
   return (
     <div className="cols">
@@ -338,18 +350,22 @@ export function Step4({ input, upd }: P) {
         </div>
       </div>
 
-      <div className="card">
-        <div className="card-title">Satış</div>
-        <Field label="Satış Birim Değeri" hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
-          <Num value={input.sales.unitPrice} onChange={(n) => upd('sales', { unitPrice: n })} suffix="₺/m²" />
-        </Field>
-        {cap.totalArea > 0 && input.sales.unitPrice > 0 && (
-          <div className="note-box">
-            Toplam inşaat <b>{fmtM2(cap.totalArea)}</b> × birim fiyat =
-            {' '}<b>{(cap.totalArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b>
-          </div>
-        )}
-      </div>
+      {apartman ? (
+        <ApartmentSalesCard {...props} />
+      ) : (
+        <div className="card">
+          <div className="card-title">Satış</div>
+          <Field label="Satış Birim Değeri" hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
+            <Num value={input.sales.unitPrice} onChange={(n) => upd('sales', { unitPrice: n })} suffix="₺/m²" />
+          </Field>
+          {cap.totalArea > 0 && input.sales.unitPrice > 0 && (
+            <div className="note-box">
+              Toplam inşaat <b>{fmtM2(cap.totalArea)}</b> × birim fiyat =
+              {' '}<b>{(cap.totalArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

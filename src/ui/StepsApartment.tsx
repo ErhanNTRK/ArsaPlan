@@ -1,0 +1,337 @@
+/**
+ * 3-8 KATLI BİNA — ADIM BİLEŞENLERİ
+ *
+ * Kat tablosu davranışı (Salih'in kilitlediği kurallar):
+ *  · TAKS/KAKS: değerler gizli havuzdan otomatik türetilir; her hücre elle
+ *    değiştirilebilir. Elle girilen SABİT kalır, "otomatik" bağlantısıyla geri döner.
+ *  · Doğrudan Alan: 1. Normal Kat'a girilen değer diğer normal katlara kopyalanır;
+ *    her satır tek tek düzenlenebilir.
+ */
+import type { ProjectInput, ApartmentInput, AptFloor } from '../engine';
+import { computeApartment, floorsFromHmax } from '../engine';
+import { LEJANTLAR } from '../data/yapiSiniflari';
+import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL } from './fields';
+import type { Upd, SetTop } from './Steps';
+
+interface P { input: ProjectInput; upd: Upd; setTop: SetTop; }
+
+/* Kat satırı → ApartmentInput içindeki override yuvası */
+function patchFloor(
+  apt: ApartmentInput, f: AptFloor, col: 'area' | 'saleable', value: number | null,
+): Partial<ApartmentInput> {
+  if (f.kind === 'bodrum') {
+    const basements = apt.basements.map((b, i) =>
+      i === f.index - 1 ? { ...b, [col]: value } : b);
+    return { basements };
+  }
+  if (f.kind === 'zemin') {
+    return col === 'area' ? { zeminArea: value } : { zeminSaleable: value };
+  }
+  if (f.kind === 'normal') {
+    const key = col === 'area' ? 'normalAreas' : 'normalSaleables';
+    const arr = [...apt[key]];
+    arr[f.index - 1] = value;
+    return { [key]: arr };
+  }
+  return col === 'area' ? { piyesArea: value } : { piyesSaleable: value };
+}
+
+/** Otomatik değere dönüş bağlantısı gösterilsin mi? */
+function canReset(mode: 'taks-kaks' | 'dogrudan', f: AptFloor, auto: boolean): boolean {
+  if (auto) return false;
+  if (mode === 'taks-kaks') return true;
+  return f.kind === 'normal' && f.index > 1;   // doğrudan modda yalnızca kopyalanan satırlar
+}
+
+export function Step3Apartment({ input, upd }: P) {
+  const z = input.zoning;
+  const a = input.apartment;
+  const c = computeApartment(input.parcel, z, a);
+  const taksKaks = z.mode === 'taks-kaks';
+  const lejantOther = z.lejant === ' ' || (z.lejant !== '' && !LEJANTLAR.includes(z.lejant));
+  const derived = floorsFromHmax(z.hmax);
+  const setApt = (patch: Partial<ApartmentInput>) => upd('apartment', patch);
+
+  return (
+    <div className="cols">
+      {/* ── 1 · İMAR DURUMU ── */}
+      <div className="card">
+        <div className="card-title">1 · İmar Durumu</div>
+        <Field label="Plan Lejantı">
+          <Sel value={lejantOther ? 'Diğer (elle yazınız)' : z.lejant}
+               onChange={(val) => upd('zoning', { lejant: val === 'Diğer (elle yazınız)' ? ' ' : val })}
+               options={[{ value: '', label: 'Seçiniz…' }, ...LEJANTLAR.map((l) => ({ value: l, label: l }))]} />
+        </Field>
+        {lejantOther && (
+          <Field label="Lejant (elle)">
+            <Txt value={z.lejant.trim()} onChange={(val) => upd('zoning', { lejant: val || ' ' })} />
+          </Field>
+        )}
+        <Field label="Hesap Yöntemi">
+          <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan Alan' }]} />
+        </Field>
+        {taksKaks ? (
+          <>
+            <div className="grid-3">
+              <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
+              <Field label="KAKS"><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+              <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
+            </div>
+            <div className="mini-kpi">
+              <div><span>Taban oturumu limiti</span><b>{fmtM2(c.footprintArea)}</b></div>
+              <div><span>Emsale dahil alan</span><b>{fmtM2(c.emsalArea)}</b></div>
+            </div>
+            {derived != null && (
+              <div className="note-box" style={{ marginTop: 8 }}>
+                Hmax {z.hmax} m → zemin dahil <b>{derived} kat</b> (zemin + {derived - 1} normal kat).
+                Bodrum katlar ve çatı arası piyesi bu sayıya dahil değildir.
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="note-box">
+            Doğrudan Alan yönteminde kat alanları ve satılabilir alanlar aşağıdaki
+            kat tablosuna elle girilir; imar katsayısı kullanılmaz.
+          </div>
+        )}
+      </div>
+
+      {/* ── 2 · İLAVE SATILABİLİR ALAN (yalnızca TAKS/KAKS) ── */}
+      {taksKaks && (
+        <div className="card">
+          <div className="card-title">2 · İlave Satılabilir Alan</div>
+          <Field label="Emsale dahil olmayan satılabilir alan var mı?"
+                 hint="Tip İmar Yönetmeliği gereği emsal dışı kalan ancak satılabilen alanlar">
+            <Seg value={a.hasExtraSaleable} onChange={(b) => setApt({ hasExtraSaleable: b })}
+                 options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+          </Field>
+          {a.hasExtraSaleable && (
+            <>
+              <Field label="Nasıl hesaplansın?">
+                <Seg value={a.extraMode} onChange={(m) => setApt({ extraMode: m })}
+                     options={[{ value: 'oran', label: 'Emsalin yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
+              </Field>
+              {a.extraMode === 'oran' ? (
+                <Field label="Oran" hint={`Emsale dahil alanın yüzdesi · ${fmtM2(c.emsalArea)} üzerinden`}>
+                  <Pct value={a.extraRate} onChange={(n) => setApt({ extraRate: n })} />
+                </Field>
+              ) : (
+                <Field label="Alan"><Num value={a.extraArea} onChange={(n) => setApt({ extraArea: n })} suffix="m²" /></Field>
+              )}
+              <div className="note-box">İlave satılabilir alan: <b>{fmtM2(c.extraSaleableArea)}</b></div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* ── 3 · KAT KURGUSU ── */}
+      <div className="card">
+        <div className="card-title">{taksKaks ? '3' : '2'} · Kat Kurgusu</div>
+
+        <Field label="Bodrum Kat Sayısı">
+          <Seg value={String(Math.min(4, Math.max(0, a.basementCount))) as '0' | '1' | '2' | '3' | '4'}
+               onChange={(v) => setApt({ basementCount: Number(v) })}
+               options={[
+                 { value: '0', label: 'Yok' }, { value: '1', label: '1' }, { value: '2', label: '2' },
+                 { value: '3', label: '3' }, { value: '4', label: '4' },
+               ]} />
+        </Field>
+        {Array.from({ length: Math.min(4, Math.max(0, a.basementCount)) }, (_, i) => (
+          <div className="grid-2" key={i}>
+            <Field label={`${i + 1}. Bodrum — Kullanım`}>
+              <Sel value={a.basements[i].use}
+                   onChange={(u) => setApt({
+                     basements: a.basements.map((b, k) => k === i ? { ...b, use: u } : b),
+                   })}
+                   options={[
+                     { value: 'konut', label: 'Konut (satılabilir)' },
+                     { value: 'ortak', label: 'Ortak mahal (otopark vb.)' },
+                   ]} />
+            </Field>
+            {taksKaks && a.basements[i].use === 'konut' ? (
+              <Field label="Alan Kaybı" hint="Satılabilir = alan × (1 − oran)">
+                <Pct value={a.basements[i].lossRate}
+                     onChange={(n) => setApt({
+                       basements: a.basements.map((b, k) => k === i ? { ...b, lossRate: n } : b),
+                     })} />
+              </Field>
+            ) : <div />}
+          </div>
+        ))}
+
+        {taksKaks && (
+          <div className="grid-2">
+            <Field label="Zemin Kat Alan Kaybı" hint="Bina girişleri vb. · satılabilir = alan × (1 − oran)">
+              <Pct value={a.zeminLossRate} onChange={(n) => setApt({ zeminLossRate: n })} />
+            </Field>
+            <Field label="Normal Kat Ortak Mahal Payı" hint="Kat alanı = satılabilir × (1 + oran)">
+              <Pct value={a.normalCommonRate} onChange={(n) => setApt({ normalCommonRate: n })} />
+            </Field>
+          </div>
+        )}
+
+        <Field label="Normal Kat Sayısı"
+               hint={taksKaks && derived != null
+                 ? `Hmax'tan otomatik: ${derived - 1} normal kat · kat ekleyip çıkarabilirsiniz`
+                 : undefined}>
+          <Seg value={String(c.normalFloorCount) as '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}
+               onChange={(v) => setApt({ normalCount: Number(v) })}
+               options={Array.from({ length: 8 }, (_, i) => ({
+                 value: String(i + 1) as '1', label: String(i + 1),
+               }))} />
+        </Field>
+        {taksKaks && a.normalCount != null && derived != null && a.normalCount !== derived - 1 && (
+          <button type="button" className="link-btn" onClick={() => setApt({ normalCount: null })}>
+            Hmax türetimine dön ({derived - 1} normal kat)
+          </button>
+        )}
+
+        <Field label="Çatı Arası Piyesi var mı?">
+          <Seg value={a.hasPiyes} onChange={(b) => setApt({ hasPiyes: b })}
+               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+        </Field>
+        {a.hasPiyes && taksKaks && (
+          <div className="grid-2">
+            <Field label="Emsale dahil mi?"
+                   hint="Dahilse satılabilir alan hakkından pay alır; değilse toplamın üstüne eklenir.">
+              <Seg value={a.piyesInEmsal} onChange={(b) => setApt({ piyesInEmsal: b })}
+                   options={[{ value: true, label: 'Evet' }, { value: false, label: 'Hayır' }]} />
+            </Field>
+            <Field label="Piyes Oranı" hint="Normal kat satılabilir alanının yüzdesi">
+              <Pct value={a.piyesRate} onChange={(n) => setApt({ piyesRate: n })} />
+            </Field>
+          </div>
+        )}
+      </div>
+
+      {/* ── KAT TABLOSU ── */}
+      <div className="card">
+        <div className="card-title">{taksKaks ? '4' : '3'} · Kat Tablosu</div>
+        {taksKaks ? (
+          <div className="hint" style={{ marginBottom: 10 }}>
+            Değerler imar haklarından otomatik türetilmiştir; her hücre elle değiştirilebilir.
+            Elle girilenler sabit kalır, kalan alan otomatik satırlara dağıtılır.
+          </div>
+        ) : (
+          <div className="hint" style={{ marginBottom: 10 }}>
+            1. Normal Kat'a girilen değerler diğer normal katlara kopyalanır; her satır tek tek düzenlenebilir.
+          </div>
+        )}
+        <div className="floor-table">
+          <div className="floor-head">
+            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span>
+          </div>
+          {c.floors.map((f) => {
+            const ortak = f.kind === 'bodrum' && a.basements[f.index - 1]?.use === 'ortak';
+            return (
+              <div className="floor-row" key={`${f.kind}-${f.index}`}>
+                <span className="floor-label">{f.label}</span>
+                <span className="floor-cell">
+                  <Num value={f.area}
+                       onChange={(n) => setApt(patchFloor(a, f, 'area', n))} suffix="m²" />
+                  {canReset(z.mode, f, f.autoArea) && (
+                    <button type="button" className="cell-reset" title="Otomatik değere dön"
+                            onClick={() => setApt(patchFloor(a, f, 'area', null))}>↺</button>
+                  )}
+                </span>
+                <span className="floor-cell">
+                  {ortak ? (
+                    <span className="floor-fixed">0 m² · ortak mahal</span>
+                  ) : (
+                    <>
+                      <Num value={f.saleable}
+                           onChange={(n) => setApt(patchFloor(a, f, 'saleable', n))} suffix="m²" />
+                      {canReset(z.mode, f, f.autoSaleable) && (
+                        <button type="button" className="cell-reset" title="Otomatik değere dön"
+                                onClick={() => setApt(patchFloor(a, f, 'saleable', null))}>↺</button>
+                      )}
+                    </>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+          <div className="floor-row floor-total">
+            <span className="floor-label">TOPLAM</span>
+            <span className="floor-cell"><b>{fmtM2(c.totalArea)}</b></span>
+            <span className="floor-cell"><b>{fmtM2(c.saleableTotal)}</b></span>
+          </div>
+        </div>
+        {c.warnings.map((w, i) => (
+          <div className="leftover" style={{ marginTop: 8 }} key={i}>{w}</div>
+        ))}
+        {taksKaks && c.poolRemainder > 0.5 && (
+          <div className="leftover" style={{ marginTop: 8 }}>
+            Elle girişler nedeniyle <b>{fmtM2(c.poolRemainder)}</b> satılabilir alan hakkı dağıtılmadı.
+          </div>
+        )}
+      </div>
+
+      {/* ── ÖZET ── */}
+      <div className="card result-preview">
+        <div className="card-title">Alan Özeti</div>
+        <div className="mini-kpi">
+          <div><span>Toplam inşaat alanı</span><b>{fmtM2(c.totalArea)}</b></div>
+          <div><span>Toplam satılabilir alan</span><b>{fmtM2(c.saleableTotal)}</b></div>
+        </div>
+        <div className="mini-kpi" style={{ marginTop: 8 }}>
+          <div><span>Bahçe / açık alan</span><b>{fmtM2(c.gardenArea)}</b></div>
+          <div><span>Kat adedi</span><b>{c.floors.length}</b></div>
+        </div>
+        {c.totalArea > 0 && (c.areaByKind.bodrum + c.areaByKind.piyes) / c.totalArea > 0.35 && (
+          <div className="leftover" style={{ marginTop: 10 }}>
+            Toplam alanın <b>%{(((c.areaByKind.bodrum + c.areaByKind.piyes) / c.totalArea) * 100).toFixed(0)}</b>'i
+            bodrum ve çatı arası piyesidir. Bu katlar normal katlarla aynı m² değerinde satılmaz;
+            birim satış fiyatlarını belirlerken bu kompozisyonu dikkate alınız. <i>(Bu not rapora yazılmaz.)</i>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Plan Notları (opsiyonel)</div>
+        <textarea value={z.planNotes} onChange={(ev) => upd('zoning', { planNotes: ev.target.value })}
+                  placeholder="Emsal istisnaları, çıkma ve piyes kuralları — raporda aynen görünür." />
+      </div>
+    </div>
+  );
+}
+
+/** Adım 4 — Satış kartı (kat tipine göre birim değerler) */
+export function ApartmentSalesCard({ input, upd }: P) {
+  const s = input.sales.apt;
+  const c = computeApartment(input.parcel, input.zoning, input.apartment);
+  const setApt = (patch: Partial<typeof s>) => upd('sales', { apt: { ...s, ...patch } });
+  const gelir =
+    c.saleableByKind.bodrum * s.bodrum + c.saleableByKind.zemin * s.zemin +
+    c.saleableByKind.normal * s.normal + c.saleableByKind.piyes * s.piyes;
+
+  return (
+    <div className="card">
+      <div className="card-title">Satış — Kat Tipine Göre Birim Değerler</div>
+      <div className="hint" style={{ marginBottom: 10 }}>
+        Satılabilir m² başına, KDV hariç. Normal katlar için tek ortalama değer girilir.
+      </div>
+      {c.saleableByKind.bodrum > 0 && (
+        <Field label="Bodrum Kat" hint={`Satılabilir ${fmtM2(c.saleableByKind.bodrum)}`}>
+          <Num value={s.bodrum} onChange={(n) => setApt({ bodrum: n })} suffix="₺/m²" />
+        </Field>
+      )}
+      <Field label="Zemin Kat" hint={`Satılabilir ${fmtM2(c.saleableByKind.zemin)}`}>
+        <Num value={s.zemin} onChange={(n) => setApt({ zemin: n })} suffix="₺/m²" />
+      </Field>
+      <Field label="Normal Kat (ortalama)" hint={`Satılabilir ${fmtM2(c.saleableByKind.normal)}`}>
+        <Num value={s.normal} onChange={(n) => setApt({ normal: n })} suffix="₺/m²" />
+      </Field>
+      {input.apartment.hasPiyes && (
+        <Field label="Çatı Arası Piyesi"
+               hint={`Satılabilir ${fmtM2(c.saleableByKind.piyes)} · manzaraya göre normal kattan yüksek veya düşük olabilir`}>
+          <Num value={s.piyes} onChange={(n) => setApt({ piyes: n })} suffix="₺/m²" />
+        </Field>
+      )}
+      {gelir > 0 && (
+        <div className="note-box">Yapı satış hasılatı: <b>{fmtTL(gelir)}</b></div>
+      )}
+    </div>
+  );
+}

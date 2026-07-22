@@ -38,7 +38,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
 
   const M = 14, W = 210 - 2 * M;
   let y = 0;
-  const { capacity: c, financial: f, share: s } = r;
+  const { capacity: c, financial: f, share: s, apartment: apt } = r;
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
 
@@ -80,6 +80,29 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.line(M, y + 1.8, 210 - M, y + 1.8);
     y += 6.2;
   }
+  /** Kat tablosu satırı — Kat Bilgisi | Kat Alanı | Satılabilir Alan */
+  const COL2 = M + W * 0.66, COL3 = 210 - M - 1;
+  function floorRow(label: string, a: string, sVal: string, bold = false) {
+    pageBreak();
+    doc.setFont('NTRK', bold ? 'bold' : 'normal'); doc.setFontSize(9);
+    doc.setTextColor(...(bold ? NAVY : GRAY));
+    doc.text(label, M + 1, y);
+    doc.setFont('NTRK', 'bold'); doc.setTextColor(23, 32, 44);
+    doc.text(a, COL2, y, { align: 'right' });
+    doc.text(sVal, COL3, y, { align: 'right' });
+    doc.setDrawColor(223, 229, 236);
+    doc.line(M, y + 1.8, 210 - M, y + 1.8);
+    y += 6.2;
+  }
+  function floorHead() {
+    pageBreak();
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(7.5); doc.setTextColor(...GRAY);
+    doc.text('KAT BİLGİSİ', M + 1, y);
+    doc.text('KAT ALANI', COL2, y, { align: 'right' });
+    doc.text('SATILABİLİR ALAN', COL3, y, { align: 'right' });
+    y += 5;
+  }
+
   function paragraph(text: string, size = 8.5, color: [number, number, number] = GRAY) {
     doc.setFont('NTRK', 'normal'); doc.setFontSize(size); doc.setTextColor(...color);
     const lines = doc.splitTextToSize(text, W - 2);
@@ -106,7 +129,12 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   doc.text(tl(f.residualLandValue), M + 4, y + 9);
   doc.text(tlm2(f.landUnitValue), M + W / 2 + 4, y + 9);
   doc.setFont('NTRK', 'normal'); doc.setFontSize(7.5); doc.setTextColor(185, 201, 220);
-  doc.text(`${c.unitCount > 0 ? c.unitCount + ' villa · ' : ''}${m2(c.totalArea)} toplam inşaat · arsa payı hasılatın ${pct(f.landToRevenue)} kadarı`, M + 4, y + 15);
+  doc.text(
+    apt
+      ? `${apt.floors.length} kat · ${m2(apt.totalArea)} toplam inşaat · ${m2(apt.saleableTotal)} satılabilir · arsa payı hasılatın ${pct(f.landToRevenue)} kadarı`
+      : `${c.unitCount > 0 ? c.unitCount + ' villa · ' : ''}${m2(c.totalArea)} toplam inşaat · arsa payı hasılatın ${pct(f.landToRevenue)} kadarı`,
+    M + 4, y + 15,
+  );
   y += 28;
 
   section('PARSEL VE İMAR');
@@ -120,6 +148,21 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   }
   y += 3;
 
+  if (apt) {
+    section('KAT TABLOSU');
+    floorHead();
+    for (const fl of apt.floors) {
+      floorRow(fl.label, m2(fl.area), fl.kind === 'bodrum' && input.apartment.basements[fl.index - 1]?.use === 'ortak' ? 'ortak mahal' : m2(fl.saleable));
+    }
+    floorRow('TOPLAM', m2(apt.totalArea), m2(apt.saleableTotal), true);
+    y += 2;
+    if (apt.mode === 'taks-kaks') {
+      row('Taban Oturumu Limiti (parsel × TAKS)', m2(apt.footprintArea));
+      if (apt.extraSaleableArea > 0) row('İlave Satılabilir Alan (emsal dışı)', m2(apt.extraSaleableArea));
+    }
+    row('Bahçe / Açık Alan', m2(apt.gardenArea));
+    y += 3;
+  } else {
   section('ALAN ÜRETİMİ');
   row('Taban Oturumu', m2(c.footprintArea));
   row('Emsale Dahil Alan', m2(c.emsalArea));
@@ -134,8 +177,8 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     row('Villa Adedi', `${c.unitCount} adet`);
     row('Villa Başına Toplam Alan', m2(c.areaPerUnit));
   }
-  row('Zemin Üstü Kat Adedi', `${c.floorsAboveGround} · kat başına ${m2(c.areaPerFloor)}`);
   y += 3;
+  }
 
   section('FİZİBİLİTE');
   row('Yapı Sınıfı', `${input.cost.buildingClass}${sinif ? ' — ' + sinif.label : ''}`);
@@ -145,6 +188,12 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   if (f.extrasCost > 0) row('Proje, Ruhsat, Harç, Müşavirlik', tl(f.extrasCost));
   if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost));
   row('TOPLAM MALİYET', tl(f.totalCost), true, RED);
+  if (apt) {
+    if (apt.saleableByKind.bodrum > 0) row('Bodrum Satış Birim Değeri', tlm2(input.sales.apt.bodrum));
+    row('Zemin Kat Satış Birim Değeri', tlm2(input.sales.apt.zemin));
+    row('Normal Kat Satış Birim Değeri', tlm2(input.sales.apt.normal));
+    if (apt.saleableByKind.piyes > 0) row('Piyes Satış Birim Değeri', tlm2(input.sales.apt.piyes));
+  }
   row('Yapı Satış Hasılatı', tl(f.buildingRevenue));
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), true, GREEN);
@@ -152,7 +201,6 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('ARTIK ARSA DEĞERİ', tl(f.residualLandValue), true, f.residualLandValue < 0 ? RED : GREEN);
   row('Arsa m² Birim Değeri', tlm2(f.landUnitValue), true);
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
-  row('Fiyat Düşüşüne Dayanım', pct(f.safetyMargin));
   y += 3;
 
   if (input.share.enabled) {

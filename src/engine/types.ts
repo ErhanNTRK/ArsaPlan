@@ -13,7 +13,7 @@
  */
 
 export type AssetType = 'konut' | 'ticari' | 'karma';
-export type HousingType = 'villa' | 'apartman-3-6' | 'blok-7-18' | 'site';
+export type HousingType = 'villa' | 'apartman-3-8' | 'blok-7-18' | 'site';
 
 export interface Parcel {
   il: string; ilce: string; mahalle: string; ada: string; parsel: string;
@@ -71,6 +71,106 @@ export interface EmsalOptions {
   basementInEmsal: boolean;
 }
 
+/* ═══════════ 3-8 KATLI BİNA (apartman) ═══════════
+ * İki yöntem: 'dogrudan' → kat alanları elle girilir.
+ *             'taks-kaks' → TAKS taban limitini, KAKS + ilave satılabilir alan
+ *                           GİZLİ satılabilir havuzu belirler; bodrum ve zemin
+ *                           havuzdan düşülür, kalan normal katlara (+ emsale
+ *                           dahil piyese) dağıtılır.
+ * Kural: elle girilen (override) değerler SABİT kalır; yeniden dağıtım yalnız
+ * otomatik satırlara uygulanır. Türetilen tüm alanlar tam sayıya yuvarlanır. */
+
+export type AptFloorKind = 'bodrum' | 'zemin' | 'normal' | 'piyes';
+
+export interface AptBasementInput {
+  /** 'ortak' → satılabilir alan 0 (otopark, sığınak vb.) */
+  use: 'konut' | 'ortak';
+  /** Kat alanı. null → otomatik (TAKS/KAKS'ta taban oturumu). */
+  area: number | null;
+  /** TAKS/KAKS: alan kaybı oranı → satılabilir = alan × (1 − oran) */
+  lossRate: number;
+  /** Satılabilir alan. null → otomatik; elle girilirse sabittir. */
+  saleable: number | null;
+}
+
+export interface ApartmentInput {
+  /** 0-4 */
+  basementCount: number;
+  /** 4 slot; ilk basementCount tanesi kullanılır */
+  basements: AptBasementInput[];
+  /** null → otomatik (taban oturumu). Elle girilip TAKS limitini aşarsa uyarı. */
+  zeminArea: number | null;
+  /** TAKS/KAKS: zemin kat kaybı (bina girişi vb.) */
+  zeminLossRate: number;
+  zeminSaleable: number | null;
+  /** Normal kat adedi. null → TAKS/KAKS'ta Hmax'tan türetilir; doğrudan modda 3. */
+  normalCount: number | null;
+  /** 8 slot; doğrudan modda [0] ana giriştir, null satırlar ondan kopyalanır.
+   *  TAKS/KAKS'ta null → havuzdan otomatik, sayı → sabit override. */
+  normalAreas: (number | null)[];
+  normalSaleables: (number | null)[];
+  /** TAKS/KAKS: ortak mahal payı — kat alanı = satılabilir × (1 + oran) */
+  normalCommonRate: number;
+  hasPiyes: boolean;
+  /** TAKS/KAKS: emsale dahilse havuzdan pay alır; değilse toplamın üstüne eklenir. */
+  piyesInEmsal: boolean;
+  /** Piyes satılabilir alanı = normal kat satılabilirinin bu oranı */
+  piyesRate: number;
+  piyesArea: number | null;
+  piyesSaleable: number | null;
+  /** TAKS/KAKS: emsale dahil olmayan ama satılabilir ilave alan (Tip İmar Yön.) */
+  hasExtraSaleable: boolean;
+  extraMode: CalcMode;
+  /** Emsale dahil alanın oranı */
+  extraRate: number;
+  /** Elle girilen ilave satılabilir alan (m²) */
+  extraArea: number;
+}
+
+export interface AptFloor {
+  kind: AptFloorKind;
+  /** bodrum: 1..4 (1. Bodrum), normal: 1..8; zemin/piyes: 0 */
+  index: number;
+  label: string;
+  area: number;
+  saleable: number;
+  /** Değer otomatik mi türetildi (true) yoksa elle mi girildi (false) */
+  autoArea: boolean;
+  autoSaleable: boolean;
+}
+
+export interface ApartmentCapacity {
+  mode: ZoningMode;
+  footprintArea: number;
+  emsalArea: number;
+  /** İlave (emsal dışı) satılabilir alan */
+  extraSaleableArea: number;
+  /** Gizli satılabilir alan havuzu (emsal + ilave) — kullanıcıya gösterilmez */
+  saleablePool: number;
+  /** Havuzdan dağıtım sonrası kalan (0 beklenir; negatifse uyarı üretilir) */
+  poolRemainder: number;
+  floors: AptFloor[];
+  /** Σ kat alanı — maliyet bu alan üzerinden hesaplanır */
+  totalArea: number;
+  /** Σ satılabilir alan — gelir kat tipine göre birim değerlerle hesaplanır */
+  saleableTotal: number;
+  saleableByKind: Record<AptFloorKind, number>;
+  areaByKind: Record<AptFloorKind, number>;
+  normalFloorCount: number;
+  /** Hmax'tan türetilen zemin dahil kat adedi (yalnızca TAKS/KAKS) */
+  derivedFloorsFromHmax: number | null;
+  gardenArea: number;
+  warnings: string[];
+}
+
+export interface AptSalesInput {
+  /** Kat tipine göre satılabilir m² birim satış değerleri (₺/m², KDV hariç) */
+  bodrum: number;
+  zemin: number;
+  normal: number;
+  piyes: number;
+}
+
 export interface VillaConfig {
   villaType: 'mustakil' | 'ikiz' | 'sirali';
   /** Villa adedi — OPSİYONEL. 0 ise villa dağılımı hesaplanmaz. */
@@ -96,8 +196,10 @@ export interface SiteWorks {
 }
 
 export interface SalesInput {
-  /** Toplam inşaat alanı m² başına satış fiyatı (₺/m²) */
+  /** Villa: toplam inşaat alanı m² başına satış fiyatı (₺/m²) */
   unitPrice: number;
+  /** 3-8 katlı bina: kat tipine göre birim değerler */
+  apt: AptSalesInput;
 }
 
 export interface ResidualInput {
@@ -118,6 +220,7 @@ export interface ProjectInput {
   zoning: Zoning;
   emsal: EmsalOptions;
   villa: VillaConfig;
+  apartment: ApartmentInput;
   cost: CostInput;
   site: SiteWorks;
   sales: SalesInput;
@@ -213,4 +316,6 @@ export interface AnalysisResult {
   financial: FinancialResult;
   share: ShareResult;
   advice: Advice[];
+  /** Yalnızca housingType 'apartman-3-8' iken dolu */
+  apartment?: ApartmentCapacity;
 }

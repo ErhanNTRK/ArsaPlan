@@ -28,9 +28,26 @@ const input: ProjectInput = {
            hasAttic: true, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
            hasBasement: true, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false },
   villa: { villaType: 'mustakil', unitCount: 6, floorsAboveGround: 2 },
+  apartment: {
+    basementCount: 0,
+    basements: [
+      { use: 'konut', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+    ],
+    zeminArea: null, zeminLossRate: 0.15, zeminSaleable: null,
+    normalCount: null,
+    normalAreas: [null, null, null, null, null, null, null, null],
+    normalSaleables: [null, null, null, null, null, null, null, null],
+    normalCommonRate: 0.10,
+    hasPiyes: false, piyesInEmsal: true, piyesRate: 0.30,
+    piyesArea: null, piyesSaleable: null,
+    hasExtraSaleable: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
+  },
   cost: { buildingClass: 'III-C', unitCost: 23400, inflationRate: 0.20, extrasRate: 0.12 },
   site: { landscapeArea: 0, landscapeUnitCost: 1500, gardenPricePerM2: 3000 },
-  sales: { unitPrice: 105000 },
+  sales: { unitPrice: 105000, apt: { bodrum: 0, zemin: 0, normal: 0, piyes: 0 } },
   residual: { profitRate: 0.25, financeRateOfCost: 0.10 },
   share: { enabled: true, ownerShare: 0.40 },
 };
@@ -73,10 +90,47 @@ describe('PDF çıktısı', () => {
 
   it('negatif senaryoda da üretir', async () => {
     captured = null;
-    const kotu = { ...input, sales: { unitPrice: 15000 } };
+    const kotu = { ...input, sales: { ...input.sales, unitPrice: 15000 } };
     const { downloadPdf } = await import('./pdf');
     await downloadPdf(kotu, analyze(kotu), 'test-v1');
     const buf = Buffer.from(await captured!.blob.arrayBuffer());
     expect(buf.subarray(0, 4).toString()).toBe('%PDF');
+  });
+});
+
+/* ── 3-8 Katlı Bina çıktıları ── */
+describe('3-8 katlı bina çıktıları', () => {
+  const aptInput: ProjectInput = {
+    ...input,
+    housingType: 'apartman-3-8',
+    zoning: { ...input.zoning, taks: 0.30, kaks: 2.70, hmax: 27.5 },
+    apartment: {
+      ...input.apartment,
+      basementCount: 2,
+      basements: [
+        { use: 'konut', area: null, lossRate: 0.10, saleable: null },
+        { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+        { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+        { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+      ],
+      hasPiyes: true, hasExtraSaleable: true, extraMode: 'oran', extraRate: 0.20,
+    },
+    sales: { unitPrice: 0, apt: { bodrum: 60000, zemin: 80000, normal: 100000, piyes: 90000 } },
+  };
+
+  it('Excel üretilir', async () => {
+    captured = null;
+    const { downloadExcel } = await import('./excel');
+    await downloadExcel(aptInput, analyze(aptInput), 'test');
+    expect(captured).not.toBeNull();
+    expect((captured as any).blob.size).toBeGreaterThan(5000);
+  });
+
+  it('PDF üretilir', async () => {
+    captured = null;
+    const { downloadPdf } = await import('./pdf');
+    await downloadPdf(aptInput, analyze(aptInput), 'test');
+    expect(captured).not.toBeNull();
+    expect((captured as any).blob.size).toBeGreaterThan(20000);
   });
 });

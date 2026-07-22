@@ -11,6 +11,15 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v4.2.0 (2026.07.22)** — Yeni proje tipi: **3-8 Katlı Bina**. İki hesap yöntemi:
+*TAKS/KAKS* (satılabilir alan hakkı bodrum ve zeminden düşülüp normal katlara ve
+emsale dahil çatı arası piyesine otomatik dağıtılır; Hmax'tan kat adedi türetilir;
+elle girilen değerler sabit kalır) ve *Doğrudan Alan* (kat tablosuna elle giriş,
+1. normal kat diğerlerine kopyalanır). Maliyet toplam kat alanı, gelir kat tipine
+göre birim değerler (bodrum / zemin / normal / piyes) üzerinden hesaplanır.
+Ayrıca: "Fiyat Düşüşüne Dayanım" satırı tüm rapor görünümlerinden kaldırıldı;
+kat adedi satırı yalnızca PDF'ten çıkarıldı (Excel ve uygulamada durur).
+
 ---
 
 ## 1. GitHub'a Yükleme (ilk kurulum)

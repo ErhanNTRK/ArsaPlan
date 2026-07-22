@@ -7,7 +7,7 @@ import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 
 const VERSION = BRAND.version;
-const DRAFT_KEY = 'arsaplan-taslak-v5';
+const DRAFT_KEY = 'arsaplan-taslak-v6';
 
 const DEFAULT_INPUT: ProjectInput = {
   assetType: 'konut',
@@ -23,13 +23,30 @@ const DEFAULT_INPUT: ProjectInput = {
     hasBasement: false, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false,
   },
   villa: { villaType: 'mustakil', unitCount: 0, floorsAboveGround: 2 },
+  apartment: {
+    basementCount: 1,
+    basements: [
+      { use: 'konut', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+      { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+    ],
+    zeminArea: null, zeminLossRate: 0.15, zeminSaleable: null,
+    normalCount: null,
+    normalAreas: [null, null, null, null, null, null, null, null],
+    normalSaleables: [null, null, null, null, null, null, null, null],
+    normalCommonRate: 0.10,
+    hasPiyes: false, piyesInEmsal: true, piyesRate: 0.30,
+    piyesArea: null, piyesSaleable: null,
+    hasExtraSaleable: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
+  },
   cost: {
     buildingClass: VILLA_DEFAULT_CLASS,
     unitCost: YAPI_SINIFLARI.find((s) => s.code === VILLA_DEFAULT_CLASS)!.unitCost,
     inflationRate: 0, extrasRate: 0.12,
   },
   site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 0 },
-  sales: { unitPrice: 0 },
+  sales: { unitPrice: 0, apt: { bodrum: 0, zemin: 0, normal: 0, piyes: 0 } },
   residual: { profitRate: 0.25, financeRateOfCost: 0 },
   share: { enabled: true, ownerShare: 0.45 },
 };
@@ -54,9 +71,17 @@ function loadDraft(): ProjectInput {
       zoning: { ...DEFAULT_INPUT.zoning, ...(d.zoning ?? {}) },
       emsal: { ...DEFAULT_INPUT.emsal, ...(d.emsal ?? {}) },
       villa: { ...DEFAULT_INPUT.villa, ...(d.villa ?? {}) },
+      apartment: {
+        ...DEFAULT_INPUT.apartment, ...(d.apartment ?? {}),
+        basements: (d.apartment?.basements ?? DEFAULT_INPUT.apartment.basements)
+          .map((b, i) => ({ ...DEFAULT_INPUT.apartment.basements[i], ...b })),
+      },
       cost: { ...DEFAULT_INPUT.cost, ...(d.cost ?? {}) },
       site: { ...DEFAULT_INPUT.site, ...(d.site ?? {}) },
-      sales: { ...DEFAULT_INPUT.sales, ...(d.sales ?? {}) },
+      sales: {
+        ...DEFAULT_INPUT.sales, ...(d.sales ?? {}),
+        apt: { ...DEFAULT_INPUT.sales.apt, ...(d.sales?.apt ?? {}) },
+      },
       residual: { ...DEFAULT_INPUT.residual, ...(d.residual ?? {}) },
       share: { ...DEFAULT_INPUT.share, ...(d.share ?? {}) },
     };
@@ -87,14 +112,17 @@ export default function App() {
       if (!input.parcel.area) return 'Parsel alanı giriniz.';
       if (!input.parcel.netArea) return 'Net parsel alanı giriniz.';
     }
+    const apartman = input.housingType === 'apartman-3-8';
     if (step === 3) {
       const z = input.zoning;
       if (z.mode === 'taks-kaks' && z.kaks == null) return 'KAKS (emsal) değerini giriniz.';
-      if (z.mode === 'dogrudan' && !z.directEmsalArea) return 'Emsale dahil alanı giriniz.';
+      if (z.mode === 'dogrudan' && !apartman && !z.directEmsalArea) return 'Emsale dahil alanı giriniz.';
     }
     if (step === 4) {
       if (!input.cost.unitCost) return 'Birim maliyet giriniz.';
-      if (!input.sales.unitPrice) return 'Satış birim değeri giriniz.';
+      if (apartman) {
+        if (!input.sales.apt.normal) return 'Normal kat satış birim değerini giriniz.';
+      } else if (!input.sales.unitPrice) return 'Satış birim değeri giriniz.';
     }
     return null;
   };

@@ -130,12 +130,6 @@ export function buildAdvice(
       add('olumlu', 'Arsa payı makul bantta',
         `Arsa değeri hasılatın ${pct(financial.landToRevenue, 1)}'ine denk — sektörde kabul gören %20-35 bandında.`);
     }
-    add(financial.safetyMargin < 0.10 ? 'uyari' : financial.safetyMargin < 0.20 ? 'dikkat' : 'olumlu',
-      'Fiyat düşüşüne dayanım',
-      `Satış fiyatları ${pct(financial.safetyMargin, 1)} düşerse artık arsa değeri sıfırlanır. ` +
-      (financial.safetyMargin < 0.10 ? 'Bu çok dar bir emniyet payıdır.'
-        : financial.safetyMargin < 0.20 ? 'Emniyet payı sınırlı; satış fiyatı temkinli seçilmelidir.'
-          : 'Proje makul bir piyasa dalgalanmasını kaldırabilir.'));
   }
 
   /* ── Finansman ── */

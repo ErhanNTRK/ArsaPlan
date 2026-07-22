@@ -13,7 +13,7 @@ const VERDICT_TEXT: Record<string, string> = {
 export function Result({ input, result, version }: {
   input: ProjectInput; result: AnalysisResult; version: string;
 }) {
-  const { capacity: c, financial: f, share: s, advice } = result;
+  const { capacity: c, financial: f, share: s, advice, apartment: apt } = result;
   const p = input.parcel;
   const neg = f.residualLandValue < 0;
   const [busy, setBusy] = useState<null | 'pdf' | 'excel'>(null);
@@ -71,13 +71,58 @@ export function Result({ input, result, version }: {
           <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValue)}</div>
           <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
         </div>
-        <div className="kpi"><div className="kpi-label">Villa Adedi</div>
-          <div className="kpi-value">{c.unitCount > 0 ? c.unitCount : '—'}</div></div>
+        {apt ? (
+          <div className="kpi"><div className="kpi-label">Kat Adedi</div>
+            <div className="kpi-value">{apt.floors.length}</div></div>
+        ) : (
+          <div className="kpi"><div className="kpi-label">Villa Adedi</div>
+            <div className="kpi-value">{c.unitCount > 0 ? c.unitCount : '—'}</div></div>
+        )}
         <div className="kpi"><div className="kpi-label">Toplam İnşaat Alanı</div><div className="kpi-value">{fmtM2(c.totalArea)}</div></div>
-        <div className="kpi"><div className="kpi-label">Emsale Dahil Alan</div><div className="kpi-value">{fmtM2(c.emsalArea)}</div></div>
+        {apt ? (
+          <div className="kpi"><div className="kpi-label">Satılabilir Alan</div><div className="kpi-value">{fmtM2(apt.saleableTotal)}</div></div>
+        ) : (
+          <div className="kpi"><div className="kpi-label">Emsale Dahil Alan</div><div className="kpi-value">{fmtM2(c.emsalArea)}</div></div>
+        )}
         <div className="kpi"><div className="kpi-label">Bahçe Alanı</div><div className="kpi-value">{fmtM2(c.gardenArea)}</div></div>
       </div>
 
+      {apt ? (
+      <div className="card">
+        <div className="card-title">Kapasite ve Kat Tablosu</div>
+        <Row label="Parsel Alanı (tapu)" value={fmtM2(p.area)} />
+        <Row label="Net Parsel Alanı" value={fmtM2(p.netArea)} />
+        <Row label="Hesap Yöntemi" value={apt.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan'} />
+        {apt.mode === 'taks-kaks' && (
+          <>
+            <Row label="TAKS / KAKS" value={`${input.zoning.taks != null ? fmtNum(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? fmtNum(input.zoning.kaks) : '—'}`} />
+            {input.zoning.hmax != null && <Row label="Hmax" value={`${input.zoning.hmax} m`} />}
+            <Row label="Taban Oturumu Limiti" value={fmtM2(apt.footprintArea)} />
+            {apt.extraSaleableArea > 0 && <Row label="İlave Satılabilir Alan (emsal dışı)" value={fmtM2(apt.extraSaleableArea)} />}
+          </>
+        )}
+        <div className="floor-table floor-result" style={{ marginTop: 12 }}>
+          <div className="floor-head">
+            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span>
+          </div>
+          {apt.floors.map((fl) => (
+            <div className="floor-row" key={`${fl.kind}-${fl.index}`}>
+              <span className="floor-label">{fl.label}</span>
+              <span className="floor-cell">{fmtM2(fl.area)}</span>
+              <span className="floor-cell">{fl.kind === 'bodrum' && input.apartment.basements[fl.index - 1]?.use === 'ortak' ? 'ortak mahal' : fmtM2(fl.saleable)}</span>
+            </div>
+          ))}
+          <div className="floor-row floor-total">
+            <span className="floor-label">TOPLAM</span>
+            <span className="floor-cell"><b>{fmtM2(apt.totalArea)}</b></span>
+            <span className="floor-cell"><b>{fmtM2(apt.saleableTotal)}</b></span>
+          </div>
+        </div>
+        <div style={{ marginTop: 10 }}>
+          <Row label="Bahçe / Açık Alan" value={fmtM2(apt.gardenArea)} />
+        </div>
+      </div>
+      ) : (
       <div className="card">
         <div className="card-title">Kapasite ve İmar</div>
         <Row label="Parsel Alanı (tapu)" value={fmtM2(p.area)} />
@@ -102,6 +147,7 @@ export function Result({ input, result, version }: {
         {c.unitCount > 0 && <Row label="Villa Başına Toplam Alan" value={fmtM2(c.areaPerUnit)} />}
         <Row label="Zemin Üstü Kat Adedi" value={`${c.floorsAboveGround} (kat başına ${fmtM2(c.areaPerFloor)})`} />
       </div>
+      )}
 
       <div className="card">
         <div className="card-title">Fizibilite</div>
@@ -112,7 +158,20 @@ export function Result({ input, result, version }: {
         {f.extrasCost > 0 && <Row label="Proje, Ruhsat, Harç, Müşavirlik" value={fmtTL(f.extrasCost)} />}
         {f.financeCost > 0 && <Row label="Finansman Gideri" value={fmtTL(f.financeCost)} />}
         <Row label="Toplam Yapım Maliyeti" value={fmtTL(f.totalCost)} tone="neg" />
-        <Row label="Satış Birim Değeri" value={fmtTLm2(input.sales.unitPrice)} />
+        {apt ? (
+          <>
+            {apt.saleableByKind.bodrum > 0 && (
+              <Row label="Bodrum Satış Birim Değeri" value={fmtTLm2(input.sales.apt.bodrum)} />
+            )}
+            <Row label="Zemin Kat Satış Birim Değeri" value={fmtTLm2(input.sales.apt.zemin)} />
+            <Row label="Normal Kat Satış Birim Değeri" value={fmtTLm2(input.sales.apt.normal)} />
+            {apt.saleableByKind.piyes > 0 && (
+              <Row label="Piyes Satış Birim Değeri" value={fmtTLm2(input.sales.apt.piyes)} />
+            )}
+          </>
+        ) : (
+          <Row label="Satış Birim Değeri" value={fmtTLm2(input.sales.unitPrice)} />
+        )}
         <Row label="Yapı Satış Hasılatı" value={fmtTL(f.buildingRevenue)} />
         {f.gardenRevenue > 0 && <Row label="Bahçe Satış Hasılatı" value={fmtTL(f.gardenRevenue)} />}
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
@@ -120,7 +179,6 @@ export function Result({ input, result, version }: {
         <Row label="ARTIK ARSA DEĞERİ" value={fmtTL(f.residualLandValue)} tone="total" />
         <Row label="Arsa m² Birim Değeri" value={fmtTLm2(f.landUnitValue)} />
         <Row label="Arsa Değeri / Hasılat" value={fmtPct(f.landToRevenue)} />
-        <Row label="Fiyat Düşüşüne Dayanım" value={fmtPct(f.safetyMargin)} />
       </div>
 
       {input.share.enabled && (
@@ -168,8 +226,14 @@ export function Result({ input, result, version }: {
         <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6 }}>
           Değerleme yaklaşımı: <b>Artık Değer (Residual Land Value)</b> — Hasılat − Toplam Maliyet − Müteahhit Kârı.
           Tüm tutarlar KDV hariçtir. Birim maliyet kaynağı: {TEBLIG_KAYNAK}.
-          Villa adedi, yapılaşma zarfı ve yerleşim verimliliği üzerinden üretilmiş bir <b>tahmindir</b>;
-          kesin adet mimari avan projeyle belirlenir. Satış fiyatı, kâr ve finansman varsayımları kullanıcıya aittir.
+          {apt ? (
+            <> Kat tablosu, imar hakları ve girilen kayıp/ortak mahal oranları üzerinden üretilmiş bir <b>tahmindir</b>;
+            kesin kat kurgusu mimari avan projeyle belirlenir.</>
+          ) : (
+            <> Villa adedi, yapılaşma zarfı ve yerleşim verimliliği üzerinden üretilmiş bir <b>tahmindir</b>;
+            kesin adet mimari avan projeyle belirlenir.</>
+          )}
+          {' '}Satış fiyatı, kâr ve finansman varsayımları kullanıcıya aittir.
         </div>
       </div>
 

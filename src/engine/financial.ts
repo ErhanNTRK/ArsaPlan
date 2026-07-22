@@ -13,6 +13,8 @@ const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
 export function computeFinancial(
   parcel: Parcel, capacity: CapacityResult, cost: CostInput,
   site: SiteWorks, sales: SalesInput, residual: ResidualInput,
+  /** 3-8 katlı binada yapı hasılatı kat tipi bazında hesaplanıp buradan verilir */
+  buildingRevenueOverride?: number,
 ): FinancialResult {
   const effectiveUnitCost = cost.unitCost * (1 + cost.inflationRate);
   const constructionCost = capacity.totalArea * effectiveUnitCost;
@@ -25,7 +27,7 @@ export function computeFinancial(
   const financeCost = baseCost * Math.max(0, residual.financeRateOfCost);
   const totalCost = baseCost + financeCost;
 
-  const buildingRevenue = capacity.saleableArea * sales.unitPrice;
+  const buildingRevenue = buildingRevenueOverride ?? capacity.saleableArea * sales.unitPrice;
   const gardenRevenue = site.gardenPricePerM2 > 0 ? capacity.gardenArea * site.gardenPricePerM2 : 0;
   const revenue = buildingRevenue + gardenRevenue;
 
