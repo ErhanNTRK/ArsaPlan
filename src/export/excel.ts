@@ -10,13 +10,19 @@ import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG } from '../brand/logo';
 
 const NAVY = 'FF0F2A47';
-const BAND = 'FFEAEFF5';
+const GOLD = 'FFB28D42';
+const FAINT = 'FFF6F8FB';
+const LINEC = 'FFDCE3EB';
 const GREEN = 'FFE4EFE2';
+const THIN = { style: 'thin' as const, color: { argb: LINEC } };
+const BOX = { top: THIN, left: THIN, bottom: THIN, right: THIN };
+/** Banner satır 1-4'ü kaplar; içerik 6'dan başlar. */
+const START = 6;
 
 const VERDICT_TEXT: Record<string, string> = {
   'yakin': 'İki yöntem birbirine yakın',
   'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
-  'gelir-yontemi-yuksek': 'Gelir yöntemi değeri daha yüksek',
+  'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
 };
 
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
@@ -40,19 +46,32 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
 
   function sheet(name: string, title: string) {
     const ws = wb.addWorksheet(name, {
+      views: [{ showGridLines: false }],
       properties: { defaultRowHeight: 16 },
       pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } },
     });
-    ws.columns = [{ width: 3 }, { width: 46 }, { width: 24 }, { width: 30 }];
-    ws.mergeCells('B1:D1');
-    const t = ws.getCell('B1');
-    t.value = title;
-    t.font = { name: 'Arial', size: 13, bold: true, color: { argb: 'FFFFFFFF' } };
+    ws.columns = [{ width: 3 }, { width: 46 }, { width: 24 }, { width: 30 }, { width: 3 }];
+    /* Kurumsal banner: lacivert blok + alt başlık + altın şerit */
+    ws.mergeCells('A1:E2');
+    const t = ws.getCell('A1');
+    t.value = `  ${title}`;
+    t.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
     t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
-    t.alignment = { vertical: 'middle', indent: 1 };
-    ws.getRow(1).height = 30;
-    /* Kurumsal logo — başlık bandının sağ ucunda */
-    ws.addImage(logoId, { tl: { col: 3.05, row: 0.15 }, ext: { width: 96, height: 29 } });
+    t.alignment = { vertical: 'middle' };
+    ws.getRow(1).height = 24;
+    ws.getRow(2).height = 20;
+    ws.mergeCells('A3:E3');
+    const st = ws.getCell('A3');
+    st.value = `  Gelir Projeksiyonu Yöntemi · ${BRAND.company}`;
+    st.font = { name: 'Arial', size: 9.5, color: { argb: 'FFC4D4E5' } };
+    st.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    st.alignment = { vertical: 'middle' };
+    ws.getRow(3).height = 15;
+    ws.mergeCells('A4:E4');
+    ws.getCell('A4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+    ws.getRow(4).height = 3;
+    /* Büyütülmüş kurumsal logo — banner sağında */
+    ws.addImage(logoId, { tl: { col: 3.25, row: 0.3 }, ext: { width: 132, height: 40 } });
     return ws;
   }
 
@@ -60,56 +79,105 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ws.mergeCells(`B${row}:D${row}`);
     const cell = ws.getCell(`B${row}`);
     cell.value = text;
-    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: NAVY } };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: BAND } };
+    cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
     cell.alignment = { vertical: 'middle', indent: 1 };
-    ws.getRow(row).height = 19;
+    ws.getRow(row).height = 17;
     return row + 1;
   }
 
   function rows(ws: ExcelJS.Worksheet, start: number, list: Row[], fmt?: string, highlight = false) {
     let row = start;
     for (const [label, value, note] of list) {
+      const zebra = (row - start) % 2 === 1;
+      const bg = zebra ? FAINT : 'FFFFFFFF';
       const l = ws.getCell(`B${row}`);
       l.value = label;
-      l.font = { name: 'Arial', size: 10, bold: highlight };
-      l.alignment = { indent: 1 };
+      l.font = { name: 'Arial', size: 10, bold: highlight, color: { argb: highlight ? NAVY : 'FF5A6774' } };
+      l.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+      l.border = BOX;
+      l.alignment = { indent: 1, vertical: 'middle' };
       const v = ws.getCell(`C${row}`);
       v.value = value;
-      v.font = { name: 'Arial', size: 10, bold: highlight, color: { argb: highlight ? 'FF1E6B41' : 'FF17202C' } };
-      v.alignment = { horizontal: 'right', indent: 1 };
+      v.font = { name: 'Arial', size: 10, bold: true, color: { argb: highlight ? 'FF1E6B41' : 'FF17202C' } };
+      v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: highlight ? GREEN : bg } };
+      v.border = BOX;
+      v.alignment = { horizontal: 'right', indent: 1, vertical: 'middle' };
       if (typeof value === 'number' && fmt) v.numFmt = fmt;
-      if (highlight) {
-        v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } };
-      }
+      const n = ws.getCell(`D${row}`);
       if (note) {
-        const n = ws.getCell(`D${row}`);
         n.value = note;
         n.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
-        n.alignment = { indent: 1, wrapText: false };
       }
+      n.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+      n.border = BOX;
+      n.alignment = { indent: 1, wrapText: false, vertical: 'middle' };
+      ws.getRow(row).height = 15;
       row++;
     }
     return row;
   }
 
   /* ── 1. RAPOR ── */
-  const ws1 = sheet('RAPOR', 'ARSA DEĞER ANALİZİ — YÖNETİCİ ÖZETİ');
-  let row = 3;
+  const ws1 = sheet('RAPOR', 'ARSA DEĞER ANALİZİ');
+  let row = START;
+  /* Künye çipi */
   ws1.mergeCells(`B${row}:D${row}`);
-  ws1.getCell(`B${row}`).value =
-    `${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mah.' : ''} · Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'}`;
-  ws1.getCell(`B${row}`).font = { name: 'Arial', size: 10, bold: true };
-  ws1.getCell(`B${row}`).alignment = { indent: 1 };
+  const kk1 = ws1.getCell(`B${row}`);
+  kk1.value = `${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`;
+  kk1.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FF17202C' } };
+  kk1.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: FAINT } };
+  kk1.border = { top: THIN, left: THIN, right: THIN };
+  kk1.alignment = { indent: 1, vertical: 'middle' };
+  ws1.getRow(row).height = 18;
+  row++;
+  ws1.mergeCells(`B${row}:D${row}`);
+  const kk2 = ws1.getCell(`B${row}`);
+  kk2.value = `Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${p.area.toLocaleString('tr-TR')} m² · ${input.zoning.lejant.trim() || 'Lejant girilmedi'} · ${new Date().toLocaleDateString('tr-TR')}`;
+  kk2.font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
+  kk2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: FAINT } };
+  kk2.border = { left: THIN, right: THIN, bottom: THIN };
+  kk2.alignment = { indent: 1, vertical: 'middle' };
+  ws1.getRow(row).height = 14;
   row += 2;
 
-  row = section(ws1, row, 'SONUÇ');
-  row = rows(ws1, row, [
-    ['ARTIK ARSA DEĞERİ (RLV)', Math.round(f.residualLandValue)],
-    ['ARSA m² BİRİM DEĞERİ', Math.round(f.landUnitValue)],
-  ], TL, true);
-  ws1.getCell(`C${row - 1}`).numFmt = TLM2;
+  /* Sonuç bloğu — lacivert hero */
+  ws1.mergeCells(`B${row}:B${row + 1}`);
+  const hero = ws1.getCell(`B${row}`);
+  hero.value = 'ARSA DEĞERİ\n(GELİR PROJEKSİYONU)';
+  hero.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFC4D4E5' } };
+  hero.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  hero.alignment = { vertical: 'middle', indent: 1, wrapText: true };
+  ws1.mergeCells(`C${row}:D${row + 1}`);
+  const hv = ws1.getCell(`C${row}`);
+  hv.value = Math.round(f.residualLandValue);
+  hv.numFmt = TL;
+  hv.font = { name: 'Arial', size: 19, bold: true, color: { argb: 'FFFFFFFF' } };
+  hv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  hv.alignment = { vertical: 'middle', horizontal: 'right', indent: 1 };
+  ws1.getRow(row).height = 19;
+  ws1.getRow(row + 1).height = 19;
+  row += 2;
+  const hsub = ws1.getCell(`B${row}`);
+  hsub.value = f.revenue > 0
+    ? `Arsa payı, hasılatın %${(f.landToRevenue * 100).toFixed(1).replace('.', ',')} kadarıdır`
+    : '';
+  hsub.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FFC4D4E5' } };
+  hsub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  hsub.alignment = { indent: 1, vertical: 'middle' };
+  ws1.mergeCells(`C${row}:D${row}`);
+  const hbir = ws1.getCell(`C${row}`);
+  hbir.value = Math.round(f.landUnitValue);
+  hbir.numFmt = TLM2;
+  hbir.font = { name: 'Arial', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
+  hbir.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+  hbir.alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+  ws1.getRow(row).height = 14;
   row++;
+  ws1.mergeCells(`B${row}:D${row}`);
+  ws1.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+  ws1.getRow(row).height = 3;
+  row += 2;
 
   row = section(ws1, row, 'PARSEL VE İMAR');
   row = rows(ws1, row, [
@@ -231,7 +299,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue), TL, false],
       ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue), TL, true],
       ['Müteahhit Kârı', Math.round(f.developerProfit), TL, false],
-      ['ARTIK ARSA DEĞERİ', Math.round(f.residualLandValue), TL, true],
+      ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue), TL, true],
       ['Arsa m² Birim Değeri', Math.round(f.landUnitValue), TLM2, false],
       ['Arsa Değeri / Hasılat', f.landToRevenue, PCT, false],
       ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2), TLM2, false],
@@ -244,7 +312,14 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       v.font = { name: 'Arial', size: 10, bold };
       v.alignment = { horizontal: 'right', indent: 1 };
       if (typeof value === 'number' && fmt) v.numFmt = fmt;
-      if (bold) v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREEN } };
+      if (bold) {
+        l.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+        l.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+        v.font = { name: 'Arial', size: 9.5, bold: true, color: { argb: 'FFFFFFFF' } };
+        v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+      }
+      l.border = BOX; v.border = BOX;
+      ws1.getRow(row).height = 15;
       row++;
     }
   } else {
@@ -263,7 +338,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue)],
     ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue)],
     ['Müteahhit Kârı', Math.round(f.developerProfit)],
-    ['ARTIK ARSA DEĞERİ', Math.round(f.residualLandValue)],
+    ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue)],
     ['Arsa m² Birim Değeri', Math.round(f.landUnitValue)],
     ['Arsa Değeri / Hasılat', f.landToRevenue],
     ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2)],
@@ -275,8 +350,12 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   ws1.getCell(`C${finStart + 15}`).numFmt = PCT;
   ws1.getCell(`C${finStart + 16}`).numFmt = TLM2;
   [finStart + 8, finStart + 11, finStart + 13].forEach((i) => {
-    ws1.getCell(`B${i}`).font = { name: 'Arial', size: 10, bold: true };
-    ws1.getCell(`C${i}`).font = { name: 'Arial', size: 10, bold: true };
+    ['B', 'C'].forEach((col) => {
+      const cell = ws1.getCell(`${col}${i}`);
+      cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
+    });
+    ws1.getCell(`D${i}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   });
   }
   row++;
@@ -288,10 +367,10 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Arsa Sahibi Payı', s.ownerShare],
     ['Müteahhit Payı', s.contractorShare],
     ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValue)],
-    ['Gelir Yöntemine Göre Arsa Değeri', Math.round(f.residualLandValue)],
+    ['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValue)],
     ['İki Yöntem Arasındaki Fark', Math.round(Math.abs(s.difference))],
     ['Farkın Oranı', Math.abs(s.differenceRate)],
-    ['Gelir Yöntemine Denk Gelen Arsa Payı', s.balancedShare],
+    ['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare],
     ['Değerlendirme', VERDICT_TEXT[s.verdict]],
   ], TL);
   ws1.getCell(`C${shStart}`).numFmt = PCT;
@@ -307,8 +386,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
 
   ws1.mergeCells(`B${row}:D${row}`);
   ws1.getCell(`B${row}`).value =
-    `${BRAND.preparedBy} · ${BRAND.authorLine}\n` +
-    `Yöntem: Artık Değer (Residual Land Value) · Tutarlar KDV hariçtir · Birim maliyet kaynağı: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
+    `${BRAND.preparedBy} · ${BRAND.developerLine}\n` +
+    `Yöntem: Gelir Projeksiyonu · Tutarlar KDV hariçtir · Birim maliyet kaynağı: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
   ws1.getCell(`B${row}`).alignment = { indent: 1, wrapText: true };
   ws1.getRow(row).height = 26;
   ws1.getCell(`B${row}`).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
@@ -316,7 +395,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
 
   /* ── 2. GİRDİLER ── */
   const ws2 = sheet('GİRDİLER', 'ANALİZDE KULLANILAN VARSAYIMLAR');
-  let r2 = 3;
+  let r2 = START;
   r2 = section(ws2, r2, 'GİRDİ ÖZETİ');
   if (apt) {
     const a = input.apartment;
@@ -382,8 +461,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Kat Karşılığı Bölümü', input.share.enabled ? 'Raporda gösteriliyor' : 'Kapalı'],
     ['Arsa Sahibi Payı', input.share.ownerShare],
   ]);
-  ['C10', 'C11', 'C12'].forEach((a) => { ws2.getCell(a).numFmt = TLM2; });
-  ['C13', 'C14', 'C16'].forEach((a) => { ws2.getCell(a).numFmt = PCT; });
+  ['C13', 'C14', 'C15'].forEach((a) => { ws2.getCell(a).numFmt = TLM2; });
+  ['C16', 'C17', 'C19'].forEach((a) => { ws2.getCell(a).numFmt = PCT; });
   }
   if (input.zoning.planNotes.trim()) {
     r2 += 1;
@@ -397,8 +476,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
 
   /* ── 3. UZMAN GÖRÜŞÜ ── */
   const ws3 = sheet('UZMAN GÖRÜŞÜ', 'UZMAN DEĞERLENDİRMESİ');
-  ws3.columns = [{ width: 3 }, { width: 14 }, { width: 34 }, { width: 92 }];
-  let r3 = 3;
+  ws3.columns = [{ width: 3 }, { width: 14 }, { width: 34 }, { width: 92 }, { width: 3 }];
+  let r3 = START;
   const head = ['DÜZEY', 'BAŞLIK', 'DEĞERLENDİRME'];
   head.forEach((h, i) => {
     const cell = ws3.getCell(r3, 2 + i);

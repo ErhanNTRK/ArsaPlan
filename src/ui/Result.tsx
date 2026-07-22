@@ -7,7 +7,7 @@ import { BRAND } from '../brand/brand';
 const VERDICT_TEXT: Record<string, string> = {
   'yakin': 'İki yöntem birbirine yakın',
   'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
-  'gelir-yontemi-yuksek': 'Gelir yöntemi değeri daha yüksek',
+  'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
 };
 
 export function Result({ input, result, version }: {
@@ -16,16 +16,22 @@ export function Result({ input, result, version }: {
   const { capacity: c, financial: f, share: s, advice, apartment: apt } = result;
   const p = input.parcel;
   const neg = f.residualLandValue < 0;
-  const [busy, setBusy] = useState<null | 'pdf' | 'excel'>(null);
+  const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel'>(null);
   const [err, setErr] = useState<string | null>(null);
 
   /** Dışa aktarma modülleri yalnızca tıklandığında yüklenir (dinamik import). */
-  async function run(kind: 'pdf' | 'excel') {
+  async function run(kind: 'pdf' | 'advice' | 'jpeg' | 'excel') {
     setBusy(kind); setErr(null);
     try {
       if (kind === 'pdf') {
         const { downloadPdf } = await import('../export/pdf');
         await downloadPdf(input, result, version);
+      } else if (kind === 'advice') {
+        const { downloadAdvicePdf } = await import('../export/advicePdf');
+        await downloadAdvicePdf(input, result, version);
+      } else if (kind === 'jpeg') {
+        const { downloadJpeg } = await import('../export/jpeg');
+        await downloadJpeg(input, result, version);
       } else {
         const { downloadExcel } = await import('../export/excel');
         await downloadExcel(input, result, version);
@@ -41,16 +47,23 @@ export function Result({ input, result, version }: {
     <>
       <div className="card no-print">
         <div className="card-title">Raporu İndir</div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary btn-sm" style={{ flex: 1 }} disabled={busy !== null}
-                  onClick={() => run('pdf')}>
-            {busy === 'pdf' ? 'Hazırlanıyor…' : 'PDF İndir'}
+        <div className="dl-grid">
+          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
+            {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
           </button>
-          <button className="btn btn-accent btn-sm" style={{ flex: 1 }} disabled={busy !== null}
-                  onClick={() => run('excel')}>
-            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel İndir'}
+          <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
+            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
           </button>
-          <button className="btn btn-ghost btn-sm" onClick={() => window.print()}>Yazdır</button>
+          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
+            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'Özet JPEG'}
+          </button>
+          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
+            {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
+          </button>
+        </div>
+        <div className="hint" style={{ marginTop: 8 }}>
+          Rapor PDF ve Özet JPEG, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
+          Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
         </div>
         {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
       </div>
@@ -67,7 +80,7 @@ export function Result({ input, result, version }: {
 
       <div className="kpi-grid">
         <div className="kpi hero">
-          <div className="kpi-label">Artık Arsa Değeri (Residual Land Value)</div>
+          <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
           <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValue)}</div>
           <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
         </div>
@@ -96,7 +109,7 @@ export function Result({ input, result, version }: {
         {apt.mode === 'taks-kaks' && (
           <>
             <Row label="TAKS / KAKS" value={`${input.zoning.taks != null ? fmtNum(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? fmtNum(input.zoning.kaks) : '—'}`} />
-            {input.zoning.hmax != null && <Row label="Hmax" value={`${input.zoning.hmax} m`} />}
+            {input.zoning.hmax != null && <Row label="Hmax" value={`${input.zoning.hmax.toLocaleString('tr-TR')} m`} />}
             <Row label="Taban Oturumu Limiti" value={fmtM2(apt.footprintArea)} />
             {apt.extraSaleableArea > 0 && <Row label="İlave Satılabilir Alan (emsal dışı)" value={fmtM2(apt.extraSaleableArea)} />}
           </>
@@ -176,7 +189,7 @@ export function Result({ input, result, version }: {
         {f.gardenRevenue > 0 && <Row label="Bahçe Satış Hasılatı" value={fmtTL(f.gardenRevenue)} />}
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
         <Row label={`Müteahhit Kârı (${fmtPct(input.residual.profitRate, 0)})`} value={fmtTL(f.developerProfit)} tone="neg" />
-        <Row label="ARTIK ARSA DEĞERİ" value={fmtTL(f.residualLandValue)} tone="total" />
+        <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(f.residualLandValue)} tone="total" />
         <Row label="Arsa m² Birim Değeri" value={fmtTLm2(f.landUnitValue)} />
         <Row label="Arsa Değeri / Hasılat" value={fmtPct(f.landToRevenue)} />
       </div>
@@ -189,10 +202,10 @@ export function Result({ input, result, version }: {
         <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`}
              value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
         <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValue)} />
-        <Row label="Gelir Yöntemine Göre Arsa Değeri" value={fmtTL(f.residualLandValue)} />
+        <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValue)} />
         <Row label="İki Yöntem Arasındaki Fark"
              value={`${fmtTL(Math.abs(s.difference))} (${fmtPct(Math.abs(s.differenceRate))})`} tone="total" />
-        <Row label="Gelir Yöntemine Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
+        <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
         <div style={{ marginTop: 10 }}>
           <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>
             {VERDICT_TEXT[s.verdict]}
@@ -224,7 +237,7 @@ export function Result({ input, result, version }: {
       <div className="card">
         <div className="card-title">Yöntem ve Kaynak</div>
         <div style={{ fontSize: 12.5, color: 'var(--text-2)', lineHeight: 1.6 }}>
-          Değerleme yaklaşımı: <b>Artık Değer (Residual Land Value)</b> — Hasılat − Toplam Maliyet − Müteahhit Kârı.
+          Değerleme yaklaşımı: <b>Gelir Projeksiyonu</b> — Hasılat − Toplam Maliyet − Müteahhit Kârı.
           Tüm tutarlar KDV hariçtir. Birim maliyet kaynağı: {TEBLIG_KAYNAK}.
           {apt ? (
             <> Kat tablosu, imar hakları ve girilen kayıp/ortak mahal oranları üzerinden üretilmiş bir <b>tahmindir</b>;
@@ -241,7 +254,7 @@ export function Result({ input, result, version }: {
         <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
         <div>
           <b>{BRAND.preparedBy}</b><br />
-          {BRAND.authorLine} · {BRAND.appName} {version}
+          {BRAND.developerLine} · {BRAND.appName} {version}
         </div>
       </div>
     </>

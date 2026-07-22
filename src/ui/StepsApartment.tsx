@@ -173,13 +173,10 @@ export function Step3Apartment({ input, upd }: P) {
 
         <Field label="Normal Kat Sayısı"
                hint={taksKaks && derived != null
-                 ? `Hmax'tan otomatik: ${derived - 1} normal kat · kat ekleyip çıkarabilirsiniz`
-                 : undefined}>
-          <Seg value={String(c.normalFloorCount) as '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8'}
-               onChange={(v) => setApt({ normalCount: Number(v) })}
-               options={Array.from({ length: 8 }, (_, i) => ({
-                 value: String(i + 1) as '1', label: String(i + 1),
-               }))} />
+                 ? `Hmax'tan otomatik: ${derived - 1} normal kat · elle değiştirilebilir, üst sınır yoktur`
+                 : 'Üst sınır yoktur'}>
+          <Num value={c.normalFloorCount}
+               onChange={(v) => setApt({ normalCount: v > 0 ? Math.round(v) : null })} suffix="kat" />
         </Field>
         {taksKaks && a.normalCount != null && derived != null && a.normalCount !== derived - 1 && (
           <button type="button" className="link-btn" onClick={() => setApt({ normalCount: null })}>

@@ -44,7 +44,7 @@ export function floorsFromHmax(hmax: number | null): number | null {
   return Math.max(1, Math.floor((hmax - 0.5) / 3 + 1e-9));
 }
 
-const ORD = ['', '1.', '2.', '3.', '4.', '5.', '6.', '7.', '8.'];
+const ord = (i: number) => `${i}.`;
 
 export function computeApartment(
   parcel: Parcel, zoning: Zoning, apt: ApartmentInput,
@@ -72,10 +72,11 @@ export function computeApartment(
 
   /* ── Kat adedi ── */
   const derivedFloorsFromHmax = direct ? null : floorsFromHmax(zoning.hmax);
-  const normalFloorCount = Math.min(8, Math.max(1,
+  /* Kat sayısında üst sınır yoktur; alt sınır 1'dir. */
+  const normalFloorCount = Math.max(1,
     apt.normalCount != null
       ? Math.round(apt.normalCount)
-      : direct ? 3 : Math.max(1, (derivedFloorsFromHmax ?? 4) - 1)));
+      : direct ? 3 : Math.max(1, (derivedFloorsFromHmax ?? 4) - 1));
 
   const basementCount = Math.min(4, Math.max(0, Math.round(apt.basementCount)));
 
@@ -88,7 +89,7 @@ export function computeApartment(
       const area = R(Math.max(0, b.area ?? 0));
       const saleable = b.use === 'ortak' ? 0 : R(Math.max(0, b.saleable ?? 0));
       floors.push({
-        kind: 'bodrum', index: i, label: `${ORD[i]} Bodrum Kat`,
+        kind: 'bodrum', index: i, label: `${ord(i)} Bodrum Kat`,
         area, saleable, autoArea: b.area == null, autoSaleable: b.use === 'ortak' || b.saleable == null,
       });
     }
@@ -105,7 +106,7 @@ export function computeApartment(
       const a = apt.normalAreas[j - 1] ?? masterA ?? 0;
       const s = apt.normalSaleables[j - 1] ?? masterS ?? 0;
       floors.push({
-        kind: 'normal', index: j, label: `${ORD[j]} Normal Kat`,
+        kind: 'normal', index: j, label: `${ord(j)} Normal Kat`,
         area: R(Math.max(0, a)), saleable: R(Math.max(0, s)),
         autoArea: apt.normalAreas[j - 1] == null && j > 1,
         autoSaleable: apt.normalSaleables[j - 1] == null && j > 1,
@@ -131,7 +132,7 @@ export function computeApartment(
         : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
       pool -= saleable;
       floors.push({
-        kind: 'bodrum', index: i, label: `${ORD[i]} Bodrum Kat`,
+        kind: 'bodrum', index: i, label: `${ord(i)} Bodrum Kat`,
         area, saleable, autoArea: b.area == null, autoSaleable: b.use === 'ortak' || b.saleable == null,
       });
     }
@@ -193,7 +194,7 @@ export function computeApartment(
       const ovA = apt.normalAreas[j - 1];
       const area = ovA != null ? R(Math.max(0, ovA)) : R(saleable * (1 + cr));
       floors.push({
-        kind: 'normal', index: j, label: `${ORD[j]} Normal Kat`,
+        kind: 'normal', index: j, label: `${ord(j)} Normal Kat`,
         area, saleable, autoArea: ovA == null, autoSaleable: ovS == null,
       });
     }

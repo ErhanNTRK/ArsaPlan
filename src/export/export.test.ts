@@ -69,7 +69,7 @@ describe('Excel çıktısı', () => {
     const rapor = wb.getWorksheet('RAPOR')!;
     const values: string[] = [];
     rapor.eachRow((row) => row.eachCell((c) => values.push(String(c.value))));
-    expect(values.join(' ')).toContain('ARTIK ARSA DEĞERİ');
+    expect(values.join(' ')).toContain('ARSA DEĞERİ (GELİR PROJEKSİYONU)');
     expect(values.join(' ')).toContain('TOPLAM İNŞAAT ALANI');
     expect(values.join(' ')).toContain('Beykoz');
     const gorus = wb.getWorksheet('UZMAN GÖRÜŞÜ')!;
@@ -132,5 +132,14 @@ describe('3-8 katlı bina çıktıları', () => {
     await downloadPdf(aptInput, analyze(aptInput), 'test');
     expect(captured).not.toBeNull();
     expect((captured as any).blob.size).toBeGreaterThan(20000);
+  });
+
+  it('Uzman Notu PDF üretilir ve rapor PDF uzman bölümü içermez', async () => {
+    captured = null;
+    const { downloadAdvicePdf } = await import('./advicePdf');
+    await downloadAdvicePdf(aptInput, analyze(aptInput), 'test');
+    expect(captured).not.toBeNull();
+    expect((captured as any).blob.size).toBeGreaterThan(15000);
+    expect((captured as any).name).toContain('Uzman-Notu');
   });
 });

@@ -37,8 +37,7 @@ export function Step1({ input, setTop }: P) {
 /* ═══════════ ADIM 2 — PROJE TİPİ VE TAŞINMAZ ═══════════ */
 const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boolean }> = [
   { v: 'villa', label: 'Villa', desc: 'Müstakil / ikiz / sıralı', ready: true },
-  { v: 'apartman-3-8', label: '3-8 Katlı Bina', desc: 'Kat tablosu ile hesap', ready: true },
-  { v: 'blok-7-18', label: '7-18 Katlı Blok', desc: 'Yüksek yoğunluk', ready: false },
+  { v: 'apartman-3-8', label: 'Çok Katlı Bina', desc: 'Kat tablosu ile hesap', ready: true },
   { v: 'site', label: 'Site', desc: 'Parsel içinde çok bloklu', ready: false },
 ];
 

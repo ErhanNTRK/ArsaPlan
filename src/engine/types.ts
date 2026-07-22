@@ -13,7 +13,7 @@
  */
 
 export type AssetType = 'konut' | 'ticari' | 'karma';
-export type HousingType = 'villa' | 'apartman-3-8' | 'blok-7-18' | 'site';
+export type HousingType = 'villa' | 'apartman-3-8' | 'site';
 
 export interface Parcel {
   il: string; ilce: string; mahalle: string; ada: string; parsel: string;
@@ -298,11 +298,11 @@ export interface ShareResult {
   /** Müteahhide kalan hasılat */
   contractorValue: number;
   contractorNet: number;
-  /** Gelir (artık değer) yöntemine göre arsa değerine denk gelen pay */
+  /** Gelir projeksiyonuna göre arsa değerine denk gelen pay */
   balancedShare: number;
-  /** İki yöntem arasındaki fark (kat karşılığı − gelir yöntemi) */
+  /** İki yöntem arasındaki fark (kat karşılığı − gelir projeksiyonu) */
   difference: number;
-  /** Farkın gelir yöntemine oranı */
+  /** Farkın gelir projeksiyonuna oranı */
   differenceRate: number;
   verdict: 'kat-karsiligi-yuksek' | 'gelir-yontemi-yuksek' | 'yakin';
 }

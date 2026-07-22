@@ -86,17 +86,18 @@ describe('adım ekranları', () => {
 describe('sonuç ekranı', () => {
   it('tüm bölümleri ve uzman yorumlarını basar', () => {
     const html = renderToString(<Result input={input} result={analyze(input)} version="test" />);
-    expect(html).toContain('Artık Arsa Değeri');
+    expect(html).toContain('Arsa Değeri (Gelir Projeksiyonu)');
     expect(html).toContain('Yöntem Karşılaştırması');
     expect(html).toContain('Uzman Değerlendirmesi');
     expect(html).toContain('TOPLAM İNŞAAT ALANI');
     expect(html).toContain('Çatı Katı');
     expect(html).toContain('Bahçe');
-    expect(html).toContain('PDF İndir');
-    expect(html).toContain('Excel İndir');
+    expect(html).toContain('Rapor PDF');
+    expect(html).toContain('Uzman Notu PDF');
+    expect(html).toContain('Özet JPEG');
+    expect(html).toContain('Excel');
     expect(html).toContain('Dora Gayrimenkul Değerleme');
-    expect(html).toContain('Hasan Erhan Öntürk');
-    expect(html).toContain('erhan.onturk@doradegerleme.com.tr');
+    expect(html).toContain('Erhan Öntürk');   // Geliştirici satırında yer alır
   });
   it('kat karşılığı kapalıyken o bölüm basılmaz', () => {
     const k = { ...input, share: { enabled: false, ownerShare: 0.45 } };

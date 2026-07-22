@@ -11,6 +11,15 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.0.0 (2026.07.22)** — Kurumsal görsel dil yenilendi (lacivert + altın; künye,
+sonuç şeridi, zebra tablolar, büyütülmüş Dora logosu). "Artık Değer" ifadesi tüm
+uygulamada **Gelir Projeksiyonu** oldu. Rapor kimliği: "Bu rapor ArsaPlan ile
+hazırlanmıştır · Geliştirici: Dora Gayrimenkul Değerleme A.Ş. · Erhan Öntürk".
+Yeni çıktılar: **Özet JPEG** (tek sayfalık görsel — banka sistemine/Word'e uygun)
+ve **Uzman Notu PDF** (ayrı belge; ana rapor artık uzman değerlendirmesi içermez).
+Menü: "Çok Katlı Bina" adı, sınırsız normal kat sayısı, 7-18 Katlı Blok kaldırıldı,
+Site listenin sonuna alındı.
+
 **v4.2.0 (2026.07.22)** — Yeni proje tipi: **3-8 Katlı Bina**. İki hesap yöntemi:
 *TAKS/KAKS* (satılabilir alan hakkı bodrum ve zeminden düşülüp normal katlara ve
 emsale dahil çatı arası piyesine otomatik dağıtılır; Hmax'tan kat adedi türetilir;

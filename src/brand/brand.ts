@@ -1,11 +1,11 @@
 /** Kurumsal kimlik metinleri — tek kaynaktan yönetilir. */
 export const BRAND = {
   appName: 'ArsaPlan',
-  tagline: 'Arsa Değer Analizi · Proje Geliştirme (Artık Değer Yöntemi)',
+  tagline: 'Arsa Değer Analizi · Gelir Projeksiyonu Yöntemi',
   company: 'Dora Gayrimenkul Değerleme A.Ş.',
-  preparedBy: 'Dora Gayrimenkul Değerleme A.Ş. tarafından hazırlanmıştır',
+  /** Rapor kimliği: raporu kim hazırlarsa hazırlasın, programın sahibi bellidir. */
+  preparedBy: 'Bu rapor ArsaPlan ile hazırlanmıştır',
+  developerLine: 'Geliştirici: Dora Gayrimenkul Değerleme A.Ş. · Erhan Öntürk',
   author: 'Hasan Erhan Öntürk',
-  email: 'erhan.onturk@doradegerleme.com.tr',
-  authorLine: 'Düzenleyen: Hasan Erhan Öntürk · erhan.onturk@doradegerleme.com.tr',
-  version: 'v4.2.0 · 2026.07.22',
+  version: 'v5.0.0 · 2026.07.22',
 } as const;

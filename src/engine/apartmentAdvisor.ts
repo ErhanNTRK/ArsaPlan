@@ -119,7 +119,7 @@ export function buildApartmentAdvice(
 
   /* ── Artık değer ── */
   if (financial.residualLandValue <= 0) {
-    add('uyari', 'Artık arsa değeri negatif',
+    add('uyari', 'Arsa değeri negatif',
       'Mevcut varsayımlarla proje arsa bedelini karşılamıyor. Satış fiyatları, yapı sınıfı, kâr oranı veya finansman ' +
       'varsayımlarından en az biri gözden geçirilmelidir. Bu sonuç arsanın değersiz olduğu değil, bu proje kurgusunun ' +
       'fizibl olmadığı anlamına gelir.');
@@ -147,19 +147,19 @@ export function buildApartmentAdvice(
 
   /* ── Kat karşılığı karşılaştırması ── */
   if (shareEnabled && financial.revenue > 0) {
-    const t = `Kat karşılığı yöntemine göre arsa değeri ${tl(share.shareLandValue)}, gelir yöntemine göre ${tl(financial.residualLandValue)}.`;
+    const t = `Kat karşılığı yöntemine göre arsa değeri ${tl(share.shareLandValue)}, gelir projeksiyonuna göre ${tl(financial.residualLandValue)}.`;
     if (share.verdict === 'yakin') {
       add('olumlu', 'İki yöntem birbirini doğruluyor',
         `${t} Aradaki fark %5'in altında; girilen kat karşılığı oranı proje ekonomisiyle uyumlu.`);
     } else if (share.verdict === 'kat-karsiligi-yuksek') {
       add('bilgi', 'Kat karşılığı değeri daha yüksek',
         `${t} Fark ${tl(Math.abs(share.difference))} (${pct(Math.abs(share.differenceRate))}). ` +
-        `Gelir yöntemiyle aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi. ` +
+        `Gelir projeksiyonuyla aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi. ` +
         'Bu, arsa sahibi açısından daha avantajlı bir sözleşme demektir.');
     } else {
-      add('bilgi', 'Gelir yöntemine göre değer daha yüksek',
+      add('bilgi', 'Gelir projeksiyonuna göre değer daha yüksek',
         `${t} Fark ${tl(Math.abs(share.difference))} (${pct(Math.abs(share.differenceRate))}). ` +
-        `Gelir yöntemiyle aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi.`);
+        `Gelir projeksiyonuyla aynı sonuca ulaşmak için arsa payının ${pct(share.balancedShare, 1)} olması gerekirdi.`);
     }
   }
 

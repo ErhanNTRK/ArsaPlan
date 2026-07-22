@@ -176,7 +176,7 @@ export default function App() {
         )}
         {!isResult && (
           <div className="stamp">
-            {BRAND.preparedBy}<br />{BRAND.authorLine} · {BRAND.appName} {VERSION}
+            {BRAND.preparedBy}<br />{BRAND.developerLine} · {BRAND.appName} {VERSION}
           </div>
         )}
       </div>
