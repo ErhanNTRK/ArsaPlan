@@ -11,6 +11,21 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.2.0 (2026.07.23)** — Düzeltme turu. **İngilizce dil desteği:** üst bardaki
+🌐 düğmesiyle tüm ekranlar ve Rapor PDF/Excel/JPEG çıktıları İngilizce üretilir;
+sayı ve tarih biçimleri de dile uyar (1,372,611,800). Kullanıcı girdileri ve resmi
+kaynak adları çevrilmez; uzman değerlendirme metinleri iç belge olduğundan Türkçe
+kalır (EN modda karta not düşülür). **Döviz karşılığı:** USD/EUR kuru elle girilirse
+sonuç ekranı ve tüm çıktılarında arsa değeri + m² birimi döviz cinsinden, kur ve
+tarihiyle birlikte yazılır. **Özet JPEG** artık ayrı bir tasarım değil, Rapor
+PDF'inin 1. sayfasının birebir görüntüsüdür. **Taslağı Kaydet / Yükle:** analiz
+.json dosyası olarak indirilebilir ve geri yüklenebilir. **Örnekle doldur:** ilk
+kullanım için dolu örnek proje. **Alan doğrulama:** zorunlu alanlar boşken kendi
+yanında anında uyarı. **Adım sıfırlama:** her adımın başında "↺ Bu adımı sıfırla".
+Zemin kaybı ve ortak mahal payı alanları düz dille ve kullanıcının kendi
+sayılarıyla canlı örnek vererek açıklanır. Rapor PDF'inden "arsa payı/hasılat"
+ibaresi kaldırıldı. GitHub Actions CI eklendi.
+
 **v5.1.0 (2026.07.22)** — Üç yeni değerleme yolu eklendi. **Karma Kullanım:**
 proje tipi sorulmadan çok katlı kurguya geçilir; zemin kat ticari, bodrumlarda
 ortak/ticari/konut seçimi, asma kat desteği (varsayılan alan = zemin × %40,

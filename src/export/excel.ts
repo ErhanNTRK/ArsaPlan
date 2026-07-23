@@ -7,7 +7,9 @@ import ExcelJS from 'exceljs';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
+import { fxLines, fxMoney, fxRateNote } from './fx';
 import { DORA_LOGO_PNG } from '../brand/logo';
+import { LOC, t as tt } from '../i18n';
 
 const NAVY = 'FF0F2A47';
 const GOLD = 'FFB28D42';
@@ -55,7 +57,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     /* Kurumsal banner: lacivert blok + alt başlık + altın şerit */
     ws.mergeCells('A1:E2');
     const t = ws.getCell('A1');
-    t.value = `  ${title}`;
+    t.value = `  ${tt(title)}`;
     t.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
     t.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
     t.alignment = { vertical: 'middle' };
@@ -63,7 +65,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ws.getRow(2).height = 20;
     ws.mergeCells('A3:E3');
     const st = ws.getCell('A3');
-    st.value = `  Gelir Projeksiyonu Yöntemi · ${BRAND.company}`;
+    st.value = `  ${tt('Gelir Projeksiyonu Yöntemi')} · ${BRAND.company}`;
     st.font = { name: 'Arial', size: 9.5, color: { argb: 'FFC4D4E5' } };
     st.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
     st.alignment = { vertical: 'middle' };
@@ -79,7 +81,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   function section(ws: ExcelJS.Worksheet, row: number, text: string) {
     ws.mergeCells(`B${row}:D${row}`);
     const cell = ws.getCell(`B${row}`);
-    cell.value = text;
+    cell.value = tt(text);
     cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
     cell.alignment = { vertical: 'middle', indent: 1 };
@@ -93,13 +95,13 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       const zebra = (row - start) % 2 === 1;
       const bg = zebra ? FAINT : 'FFFFFFFF';
       const l = ws.getCell(`B${row}`);
-      l.value = label;
+      l.value = tt(label);
       l.font = { name: 'Arial', size: 10, bold: highlight, color: { argb: highlight ? NAVY : 'FF5A6774' } };
       l.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
       l.border = BOX;
       l.alignment = { indent: 1, vertical: 'middle' };
       const v = ws.getCell(`C${row}`);
-      v.value = value;
+      v.value = typeof value === 'string' ? tt(value) : value;
       v.font = { name: 'Arial', size: 10, bold: true, color: { argb: highlight ? 'FF1E6B41' : 'FF17202C' } };
       v.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: highlight ? GREEN : bg } };
       v.border = BOX;
@@ -107,7 +109,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       if (typeof value === 'number' && fmt) v.numFmt = fmt;
       const n = ws.getCell(`D${row}`);
       if (note) {
-        n.value = note;
+        n.value = tt(note);
         n.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
       }
       n.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
@@ -134,7 +136,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row++;
   ws1.mergeCells(`B${row}:D${row}`);
   const kk2 = ws1.getCell(`B${row}`);
-  kk2.value = `Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${p.area.toLocaleString('tr-TR')} m² · ${input.zoning.lejant.trim() || 'Lejant girilmedi'} · ${new Date().toLocaleDateString('tr-TR')}`;
+  kk2.value = tt(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${p.area.toLocaleString(LOC())} m²`) + ` · ${input.zoning.lejant.trim() || tt('Lejant girilmedi')} · ${new Date().toLocaleDateString(LOC())}`;
   kk2.font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
   kk2.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: FAINT } };
   kk2.border = { left: THIN, right: THIN, bottom: THIN };
@@ -145,7 +147,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   /* Sonuç bloğu — lacivert hero */
   ws1.mergeCells(`B${row}:B${row + 1}`);
   const hero = ws1.getCell(`B${row}`);
-  hero.value = 'ARSA DEĞERİ\n(GELİR PROJEKSİYONU)';
+  hero.value = tt('ARSA DEĞERİ (GELİR PROJEKSİYONU)').replace(' (', '\n(');
   hero.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFC4D4E5' } };
   hero.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   hero.alignment = { vertical: 'middle', indent: 1, wrapText: true };
@@ -161,7 +163,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row += 2;
   const hsub = ws1.getCell(`B${row}`);
   hsub.value = f.revenue > 0
-    ? `Arsa payı, hasılatın %${(f.landToRevenue * 100).toFixed(1).replace('.', ',')} kadarıdır`
+    ? tt('Arsa Değeri / Hasılat') + `: %${(f.landToRevenue * 100).toFixed(1).replace('.', ',')}`
     : '';
   hsub.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FFC4D4E5' } };
   hsub.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
@@ -195,7 +197,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     const th2 = ['YAPI', 'ALAN × BİRİM', 'MALİYET'];
     th2.forEach((h, i) => {
       const cell = ws1.getCell(row, 2 + i);
-      cell.value = h;
+      cell.value = tt(h);
       cell.font = { name: 'Arial', size: 8.5, bold: true, color: { argb: 'FFFFFFFF' } };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1F3F66' } };
       cell.alignment = i === 0 ? { indent: 1, vertical: 'middle' } : { horizontal: 'right', vertical: 'middle', indent: 1 };
@@ -207,8 +209,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       const zebra = row % 2 === 0;
       const bg = zebra ? FAINT : 'FFFFFFFF';
       const cells: Array<[number, string | number, boolean]> = [
-        [2, `${rw.type} (${rw.buildingClass}${rw.depreciation > 0 ? ` · yıpranma %${(rw.depreciation * 100).toFixed(0)}` : ''})`, false],
-        [3, `${Math.round(rw.area).toLocaleString('tr-TR')} m² × ${Math.round(rw.effectiveUnitCost).toLocaleString('tr-TR')} ₺/m²`, true],
+        [2, `${tt(rw.type)} (${rw.buildingClass}${rw.depreciation > 0 ? ` · ${tt('yıpranma')} %${(rw.depreciation * 100).toFixed(0)}` : ''})`, false],
+        [3, `${Math.round(rw.area).toLocaleString(LOC())} m² × ${Math.round(rw.effectiveUnitCost).toLocaleString(LOC())} ₺/m²`, true],
         [4, rw.cost, true],
       ];
       for (const [col, val, right] of cells) {
@@ -224,8 +226,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       row++;
     }
     const tot: Array<[number, string | number]> = [
-      [2, 'YAPI MALİYETLERİ'],
-      [3, `${Math.round(isletme.totalBuildingArea).toLocaleString('tr-TR')} m²`],
+      [2, tt('YAPI MALİYETLERİ')],
+      [3, `${Math.round(isletme.totalBuildingArea).toLocaleString(LOC())} m²`],
       [4, isletme.buildingsCost],
     ];
     for (const [col, val] of tot) {
@@ -253,6 +255,10 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Öngörülen Satış Değeri', isletme.salesTotal],
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', isletme.landValue],
       ['Arsa m² Birim Değeri', Math.round(isletme.landUnitValue)],
+      ...fxLines(input.fx, isletme.landValue, isletme.landUnitValue).map((l): Row => [
+        `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
+        `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`,
+      ]),
     ], TL);
     ws1.getCell(`C${row - 1}`).numFmt = TLM2;
     /* Bantlı toplamlar */
@@ -270,8 +276,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ws1.mergeCells(`B${row}:D${row}`);
     const ftr0 = ws1.getCell(`B${row}`);
     ftr0.value =
-      `${BRAND.preparedBy} · ${BRAND.developerLine}\n` +
-      `Yöntem: Gelir Projeksiyonu · Müteahhit kârı kesilmemiştir · Tutarlar KDV hariçtir · Birim maliyet kaynağı: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
+      `${tt(BRAND.preparedBy)} · ${tt(BRAND.developerLine)}\n` +
+      `${tt('Yöntem: Gelir Projeksiyonu')} · ${tt('Müteahhit kârı kesilmemiştir')} · ${tt('Tutarlar KDV hariçtir')} · ${tt('Birim maliyet kaynağı')}: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
     ftr0.alignment = { indent: 1, wrapText: true };
     ws1.getRow(row).height = 26;
     ftr0.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
@@ -284,7 +290,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Güncelleme Oranı (tüm satırlar)', input.isletme.inflationRate],
       ['Yapı Satırı Sayısı', isletme.rows.length],
       ...isletme.rows.map((rw, i): Row => [
-        `Yapı ${i + 1}`, `${rw.type} · ${rw.buildingClass} · ${Math.round(rw.area).toLocaleString('tr-TR')} m² · yıpranma %${(rw.depreciation * 100).toFixed(0)}${rw.overridden ? ' · birim elle sabit' : ''}`,
+        `Yapı ${i + 1}`, `${rw.type} · ${rw.buildingClass} · ${Math.round(rw.area).toLocaleString(LOC())} m² · yıpranma %${(rw.depreciation * 100).toFixed(0)}${rw.overridden ? ' · birim elle sabit' : ''}`,
       ]),
       ['Çevre Duvarı Birim Maliyeti', input.isletme.wallUnitCost],
       ['Peyzaj Birim Maliyeti', input.isletme.landscapeUnitCost],
@@ -444,10 +450,14 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Arsa m² Birim Değeri', Math.round(f.landUnitValue), TLM2, false],
       ['Arsa Değeri / Hasılat', f.landToRevenue, PCT, false],
       ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2), TLM2, false],
+      ...fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l): [string, number | string, string, boolean] => [
+        `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
+        `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, '', true,
+      ]),
     ];
     for (const [label, value, fmt, bold] of aptFin) {
       const l = ws1.getCell(`B${row}`);
-      l.value = label; l.font = { name: 'Arial', size: 10, bold }; l.alignment = { indent: 1 };
+      l.value = tt(label); l.font = { name: 'Arial', size: 10, bold }; l.alignment = { indent: 1 };
       const v = ws1.getCell(`C${row}`);
       v.value = value;
       v.font = { name: 'Arial', size: 10, bold };
@@ -483,6 +493,10 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Arsa m² Birim Değeri', Math.round(f.landUnitValue)],
     ['Arsa Değeri / Hasılat', f.landToRevenue],
     ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2)],
+    ...fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l): Row => [
+      `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
+      `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`,
+    ]),
   ], TL);
   ws1.getCell(`C${finStart + 1}`).numFmt = TLM2;
   ws1.getCell(`C${finStart + 2}`).numFmt = PCT;
@@ -527,8 +541,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
 
   ws1.mergeCells(`B${row}:D${row}`);
   ws1.getCell(`B${row}`).value =
-    `${BRAND.preparedBy} · ${BRAND.developerLine}\n` +
-    `Yöntem: Gelir Projeksiyonu · Tutarlar KDV hariçtir · Birim maliyet kaynağı: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
+    `${tt(BRAND.preparedBy)} · ${tt(BRAND.developerLine)}\n` +
+    `${tt('Yöntem: Gelir Projeksiyonu')} · ${tt('Tutarlar KDV hariçtir')} · ${tt('Birim maliyet kaynağı')}: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
   ws1.getCell(`B${row}`).alignment = { indent: 1, wrapText: true };
   ws1.getRow(row).height = 26;
   ws1.getCell(`B${row}`).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };

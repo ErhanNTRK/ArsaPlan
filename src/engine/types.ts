@@ -297,6 +297,12 @@ export interface ShareInput {
   ownerShare: number;
 }
 
+/** Döviz karşılığı gösterimi — kur elle girilir (rapor tarihine sabit beyan). */
+export interface FxInput {
+  usd: number | null;
+  eur: number | null;
+}
+
 export interface ProjectInput {
   assetType: AssetType;
   housingType: HousingType;
@@ -313,6 +319,8 @@ export interface ProjectInput {
   sales: SalesInput;
   residual: ResidualInput;
   share: ShareInput;
+  /** Opsiyonel: girilirse çıktılarında arsa değeri döviz cinsinden de yazılır. */
+  fx?: FxInput;
 }
 
 export interface CapacityResult {

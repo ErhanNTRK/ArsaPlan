@@ -4,6 +4,7 @@ import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSin
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
 import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
 import { Step3Isletme, Step4Isletme } from './StepsIsletme';
+import { LOC } from '../i18n';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
@@ -16,7 +17,7 @@ const ASSETS: Array<{ v: AssetType; label: string; desc: string }> = [
   { v: 'karma', label: 'Karma Kullanım', desc: 'Konut + ticaret lejantı · tek kurgu' },
 ];
 
-export function Step1({ input, setTop }: P) {
+export function Step1({ input, setTop, onSample }: P & { onSample?: () => void }) {
   return (
     <div className="card">
       <div className="card-title">Ne Değerleniyor?</div>
@@ -36,6 +37,16 @@ export function Step1({ input, setTop }: P) {
           Karma kullanımda proje tipi sorulmaz; doğrudan çok katlı bina kurgusuna geçilir.
           Zemin kat ticari kabul edilir, bodrumlarda kullanım (ortak / ticari / konut) seçilir
           ve asma kat eklenebilir.
+        </div>
+      )}
+      {onSample && (
+        <div style={{ marginTop: 14 }}>
+          <button type="button" className="link-btn" onClick={onSample}>
+            🎓 Örnek projeyle doldur
+          </button>
+          <span className="hint" style={{ marginLeft: 8 }}>
+            Sistemi ilk kez kullanıyorsanız dolu bir örnekle gezinin.
+          </span>
         </div>
       )}
     </div>
@@ -158,7 +169,7 @@ function Step3Villa({ input, upd }: P) {
         {taksKaks ? (
           <div className="grid-3">
             <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
-            <Field label="KAKS"><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+            <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
             <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
           </div>
         ) : (
@@ -351,7 +362,7 @@ export function Step4(props: P) {
         </Field>
         {sinif && <div className="hint" style={{ marginTop: -6, marginBottom: 10 }}>{sinif.examples}</div>}
         <div className="grid-2">
-          <Field label="Birim Maliyet" hint="Elle değiştirebilirsiniz">
+          <Field label="Birim Maliyet" hint="Elle değiştirebilirsiniz" error={!c.unitCost ? 'Zorunlu: birim maliyet giriniz veya yapı sınıfı seçiniz.' : null}>
             <Num value={c.unitCost} onChange={(n) => upd('cost', { unitCost: n })} suffix="₺/m²" />
           </Field>
           <Field label="Güncelleme Oranı" hint="Enflasyon / piyasa farkı">
@@ -394,13 +405,13 @@ export function Step4(props: P) {
       ) : (
         <div className="card">
           <div className="card-title">Satış</div>
-          <Field label="Satış Birim Değeri" hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
+          <Field label="Satış Birim Değeri" error={!input.sales.unitPrice ? 'Zorunlu: satış birim değeri giriniz.' : null} hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
             <Num value={input.sales.unitPrice} onChange={(n) => upd('sales', { unitPrice: n })} suffix="₺/m²" />
           </Field>
           {cap.totalArea > 0 && input.sales.unitPrice > 0 && (
             <div className="note-box">
               Toplam inşaat <b>{fmtM2(cap.totalArea)}</b> × birim fiyat =
-              {' '}<b>{(cap.totalArea * input.sales.unitPrice).toLocaleString('tr-TR')} ₺</b>
+              {' '}<b>{(cap.totalArea * input.sales.unitPrice).toLocaleString(LOC())} ₺</b>
             </div>
           )}
         </div>
@@ -441,6 +452,24 @@ export function Step5({ input, upd }: P) {
             </div>
           </>
         )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Döviz Karşılığı (opsiyonel)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          Kur girilirse raporlarda arsa değeri döviz cinsinden de yazılır. Kur, rapor
+          tarihine sabitlenmiş beyandır; boş bırakılırsa hiçbir şey değişmez.
+        </div>
+        <div className="grid-2">
+          <Field label="1 USD kaç ₺" hint="Örn. 47,20">
+            <Num value={input.fx?.usd ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { usd: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+          <Field label="1 EUR kaç ₺" hint="Örn. 51,10">
+            <Num value={input.fx?.eur ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { eur: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+        </div>
       </div>
     </div>
   );

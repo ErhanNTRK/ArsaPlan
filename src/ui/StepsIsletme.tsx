@@ -165,6 +165,23 @@ export function Step4Isletme({ input, upd }: P) {
           kat karşılığı karşılaştırması uygulanmaz.
         </div>
       </div>
+
+      <div className="card">
+        <div className="card-title">Döviz Karşılığı (opsiyonel)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          Kur girilirse raporlarda arsa değeri döviz cinsinden de yazılır; boş bırakılırsa hiçbir şey değişmez.
+        </div>
+        <div className="grid-2">
+          <Field label="1 USD kaç ₺" hint="Örn. 47,20">
+            <Num value={input.fx?.usd ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { usd: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+          <Field label="1 EUR kaç ₺" hint="Örn. 51,10">
+            <Num value={input.fx?.eur ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { eur: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+        </div>
+      </div>
     </div>
   );
 }

@@ -82,7 +82,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
           <>
             <div className="grid-3">
               <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
-              <Field label="KAKS"><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
               <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
             </div>
             <div className="mini-kpi">
@@ -173,10 +173,22 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
 
         {taksKaks && (
           <div className="grid-2">
-            <Field label="Zemin Kat Alan Kaybı" hint="Bina girişleri vb. · satılabilir = alan × (1 − oran)">
+            <Field label={'Zemin Kat Alan Kaybı \u24D8'}
+                   hint={(() => {
+                     const zf = c.floors.find((f) => f.kind === 'zemin');
+                     const base = 'Bina girişi, kapıcı dairesi, sığınak koridoru gibi satılamayan kısımların payı (genelde %10-20).';
+                     if (!zf || zf.area <= 0) return base;
+                     return `${base} Bu katta: ${fmtM2(zf.area)} kat alanının %${(a.zeminLossRate * 100).toFixed(0)}'ı düşer → satılabilir ${fmtM2(zf.saleable)}.`;
+                   })()}>
               <Pct value={a.zeminLossRate} onChange={(n) => setApt({ zeminLossRate: n })} />
             </Field>
-            <Field label="Normal Kat Ortak Mahal Payı" hint="Kat alanı = satılabilir × (1 + oran)">
+            <Field label={'Normal Kat Ortak Mahal Payı \u24D8'}
+                   hint={(() => {
+                     const nf = c.floors.find((f) => f.kind === 'normal');
+                     const base = 'Merdiven, asansör ve kat holü payı (genelde %15-25); satılabilir daire alanının üstüne eklenir.';
+                     if (!nf || nf.saleable <= 0) return base;
+                     return `${base} Bu projede: ${fmtM2(nf.saleable)} satılabilir alana %${(a.normalCommonRate * 100).toFixed(0)} eklenir → kat alanı ${fmtM2(nf.area)}.`;
+                   })()}>
               <Pct value={a.normalCommonRate} onChange={(n) => setApt({ normalCommonRate: n })} />
             </Field>
           </div>

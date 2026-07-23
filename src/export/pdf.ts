@@ -10,6 +10,8 @@ import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG, DORA_LOGO_W, DORA_LOGO_H } from '../brand/logo';
 import { triggerDownload } from './excel';
+import { fxLines, fxMoney, fxRateNote } from './fx';
+import { LOC, t } from '../i18n';
 
 /* ── Kurumsal palet ── */
 export const NAVY: [number, number, number] = [15, 42, 71];
@@ -27,11 +29,11 @@ const VERDICT_TEXT: Record<string, string> = {
   'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
   'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
 };
-export const tl = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺';
-export const tlm2 = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺/m²';
-export const m2 = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' m²';
+export const tl = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺';
+export const tlm2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺/m²';
+export const m2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' m²';
 export const pct = (v: number, d = 1) => '%' + (v * 100).toFixed(d).replace('.', ',');
-const num2 = (v: number) => v.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const num2 = (v: number) => v.toLocaleString(LOC(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export const M = 15, PW = 210, W = PW - 2 * M;
 
@@ -53,9 +55,9 @@ export function drawHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setFillColor(...GOLD);
   doc.rect(0, 34.9, PW, 1.1, 'F');
   doc.setFont('NTRK', 'bold'); doc.setFontSize(17); doc.setTextColor(255, 255, 255);
-  doc.text(title, M, 15);
+  doc.text(t(title), M, 15);
   doc.setFont('NTRK', 'normal'); doc.setFontSize(9.2); doc.setTextColor(196, 212, 229);
-  doc.text(subtitle, M, 22);
+  doc.text(t(subtitle), M, 22);
   doc.setFontSize(8); doc.setTextColor(160, 181, 205);
   doc.text(BRAND.company, M, 28.5);
   const lh = 13, lw = (DORA_LOGO_W / DORA_LOGO_H) * lh;
@@ -73,13 +75,14 @@ export function drawFooter(doc: jsPDF, version: string, extra = 'Yöntem: Gelir 
     doc.setDrawColor(...LINE);
     doc.line(M, 285, PW - M, 285);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.2); doc.setTextColor(140, 152, 165);
-    doc.text(`${BRAND.preparedBy} · ${BRAND.developerLine}`, M, 289.5);
+    doc.text(`${t(BRAND.preparedBy)} · ${t(BRAND.developerLine)}`, M, 289.5);
     doc.text(`${i} / ${pages}`, PW - M, 289.5, { align: 'right' });
-    doc.text(`${extra} · Birim maliyet: RG 3.2.2026 / 33157 · ${BRAND.appName} ${version}`, M, 293);
+    doc.text(`${t(extra)} · ${t('Birim maliyet kaynağı')}: RG 3.2.2026 / 33157 · ${BRAND.appName} ${version}`, M, 293);
   }
 }
 
-export async function downloadPdf(input: ProjectInput, r: AnalysisResult, version: string) {
+/** PDF belgesini üretir; indirme yapmaz (JPEG üretimi de bunu kullanır). */
+export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: string): Promise<{ doc: jsPDF; name: string }> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   await loadFonts(doc);
 
@@ -88,7 +91,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   const karma = apt != null && input.assetType !== 'konut';
   const p = input.parcel;
   const sinif = YAPI_SINIFLARI.find((x) => x.code === input.cost.buildingClass);
-  const tarih = new Date().toLocaleDateString('tr-TR');
+  const tarih = new Date().toLocaleDateString(LOC());
 
   function pageBreak(need = 14) {
     if (y + need > 280) { doc.addPage(); y = 18; zebra = false; }
@@ -103,14 +106,14 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(...INK);
     doc.text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`, M + 4, y + 5.6);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
-    doc.text(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2(p.area)} · ${input.zoning.lejant.trim() || 'Lejant girilmedi'}`, M + 4, y + 10.6);
+    doc.text(t(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2(p.area)}`) + ' · ' + (input.zoning.lejant.trim() || t('Lejant girilmedi')), M + 4, y + 10.6);
     doc.setFontSize(8.2);
-    doc.text(`Rapor Tarihi: ${tarih}`, PW - M - 4, y + 5.6, { align: 'right' });
+    doc.text(t(`Rapor Tarihi: ${tarih}`), PW - M - 4, y + 5.6, { align: 'right' });
     doc.text(
-      isletme ? 'Ticari İşletme'
+      t(isletme ? 'Ticari İşletme'
         : apt
           ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'} · ${apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'} Yöntemi`
-          : 'Villa Projesi',
+          : 'Villa Projesi'),
       PW - M - 4, y + 10.6, { align: 'right' },
     );
     y += 19;
@@ -124,17 +127,15 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFillColor(...GOLD);
     doc.rect(M, y + H - 1.2, W, 1.2, 'F');
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
-    doc.text('ARSA DEĞERİ (GELİR PROJEKSİYONU)', M + 5, y + 7);
+    doc.text(t('ARSA DEĞERİ (GELİR PROJEKSİYONU)'), M + 5, y + 7);
     doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
-    doc.text(tl(f.residualLandValue), M + 5, y + 17.5);
-    doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(168, 189, 212);
-    doc.text(f.revenue > 0 ? `Arsa payı, hasılatın ${pct(f.landToRevenue)} kadarıdır` : ' ', M + 5, y + 23);
+    doc.text(tl(f.residualLandValue), M + 5, y + 18.5);
     const cx = M + W * 0.56;
     doc.setDrawColor(58, 88, 124);
     doc.line(cx - 4, y + 4.5, cx - 4, y + H - 4.5);
     const stat = (label: string, val: string, sy: number) => {
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(168, 189, 212);
-      doc.text(label, cx, sy);
+      doc.text(t(label), cx, sy);
       doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
       doc.text(val, PW - M - 5, sy, { align: 'right' });
     };
@@ -152,7 +153,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFillColor(...GOLD);
     doc.rect(M, y - 3.4, 1.8, 5.4, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(9.6); doc.setTextColor(...NAVY);
-    doc.text(title, M + 4.6, y + 0.6);
+    doc.text(t(title), M + 4.6, y + 0.6);
     doc.setDrawColor(...LINE);
     doc.line(M, y + 3.2, PW - M, y + 3.2);
     y += 8.4;
@@ -168,8 +169,8 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
       doc.setFillColor(...NAVY);
       doc.rect(M, y - 4.4, W, h, 'F');
       doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
-      doc.text(label, M + 3, y);
-      doc.text(value, PW - M - 3, y, { align: 'right' });
+      doc.text(t(label), M + 3, y);
+      doc.text(t(value), PW - M - 3, y, { align: 'right' });
       zebra = false;
       y += h + 0.8;
       return;
@@ -178,10 +179,10 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     zebra = !zebra;
     doc.setFont('NTRK', o.bold ? 'bold' : 'normal'); doc.setFontSize(9.1);
     doc.setTextColor(...(o.bold ? NAVY : GRAY));
-    doc.text(label, M + 3, y);
+    doc.text(t(label), M + 3, y);
     doc.setFont('NTRK', 'bold');
     doc.setTextColor(...(o.color ?? INK));
-    doc.text(value, PW - M - 3, y, { align: 'right' });
+    doc.text(t(value), PW - M - 3, y, { align: 'right' });
     y += h;
   }
 
@@ -194,9 +195,9 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFillColor(...NAVY);
     doc.rect(M, y - 4.2, W, h, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(255, 255, 255);
-    doc.text('KAT BİLGİSİ', M + 3, y);
-    doc.text('KAT ALANI', C2, y, { align: 'right' });
-    doc.text('SATILABİLİR ALAN', C3, y, { align: 'right' });
+    doc.text(t('KAT BİLGİSİ'), M + 3, y);
+    doc.text(t('KAT ALANI'), C2, y, { align: 'right' });
+    doc.text(t('SATILABİLİR ALAN'), C3, y, { align: 'right' });
     y += h + 0.6;
     let z = true;
     for (const fl of apt.floors) {
@@ -205,12 +206,12 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
       z = !z;
       const ortak = fl.kind === 'bodrum' && input.apartment.basements[fl.index - 1]?.use === 'ortak';
       doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...INK);
-      doc.text(fl.label, M + 3, y);
+      doc.text(t(fl.label), M + 3, y);
       doc.setFont('NTRK', 'bold');
       doc.text(m2(fl.area), C2, y, { align: 'right' });
       if (ortak) {
         doc.setFont('NTRK', 'normal'); doc.setTextColor(...GRAY);
-        doc.text('ortak mahal', C3, y, { align: 'right' });
+        doc.text(t('ortak mahal'), C3, y, { align: 'right' });
       } else {
         doc.text(m2(fl.saleable), C3, y, { align: 'right' });
       }
@@ -220,7 +221,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFillColor(...NAVY);
     doc.rect(M, y - 4.2, W, h, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
-    doc.text('TOPLAM', M + 3, y);
+    doc.text(t('TOPLAM'), M + 3, y);
     doc.text(m2(apt.totalArea), C2, y, { align: 'right' });
     doc.text(m2(apt.saleableTotal), C3, y, { align: 'right' });
     y += h + 2;
@@ -246,17 +247,17 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     doc.setFillColor(...GOLD);
     doc.rect(M, y + H - 1.2, W, 1.2, 'F');
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
-    doc.text('ARSA DEĞERİ (GELİR PROJEKSİYONU)', M + 5, y + 7);
+    doc.text(t('ARSA DEĞERİ (GELİR PROJEKSİYONU)'), M + 5, y + 7);
     doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
     doc.text(tl(isletme.landValue), M + 5, y + 17.5);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(168, 189, 212);
-    doc.text('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)', M + 5, y + 23);
+    doc.text(t('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)'), M + 5, y + 23);
     const cx2 = M + W * 0.56;
     doc.setDrawColor(58, 88, 124);
     doc.line(cx2 - 4, y + 4.5, cx2 - 4, y + H - 4.5);
     const stat2 = (label: string, val: string, sy: number) => {
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(168, 189, 212);
-      doc.text(label, cx2, sy);
+      doc.text(t(label), cx2, sy);
       doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
       doc.text(val, PW - M - 5, sy, { align: 'right' });
     };
@@ -272,9 +273,9 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
       doc.setFillColor(...NAVY);
       doc.rect(M, y - 4.2, W, h, 'F');
       doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(255, 255, 255);
-      doc.text('YAPI', M + 3, y);
-      doc.text('ALAN × BİRİM MALİYET', C2, y, { align: 'right' });
-      doc.text('MALİYET', C3, y, { align: 'right' });
+      doc.text(t('YAPI'), M + 3, y);
+      doc.text(t('ALAN × BİRİM MALİYET'), C2, y, { align: 'right' });
+      doc.text(t('MALİYET'), C3, y, { align: 'right' });
       y += h + 0.6;
       let z = true;
       for (const rw of isletme.rows) {
@@ -282,7 +283,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
         if (z) { doc.setFillColor(...FAINT); doc.rect(M, y - 4.2, W, h, 'F'); }
         z = !z;
         doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...INK);
-        doc.text(`${rw.type} (${rw.buildingClass}${rw.depreciation > 0 ? ` · yıpranma ${pct(rw.depreciation, 0)}` : ''})`, M + 3, y);
+        doc.text(`${t(rw.type)} (${rw.buildingClass}${rw.depreciation > 0 ? ` · ${t('yıpranma')} ${pct(rw.depreciation, 0)}` : ''})`, M + 3, y);
         doc.setFont('NTRK', 'bold');
         doc.text(`${m2(rw.area)} × ${tlm2(rw.effectiveUnitCost)}`, C2, y, { align: 'right' });
         doc.text(tl(rw.cost), C3, y, { align: 'right' });
@@ -291,7 +292,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
       doc.setFillColor(...NAVY);
       doc.rect(M, y - 4.2, W, h, 'F');
       doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
-      doc.text('YAPI MALİYETLERİ', M + 3, y);
+      doc.text(t('YAPI MALİYETLERİ'), M + 3, y);
       doc.text(m2(isletme.totalBuildingArea), C2, y, { align: 'right' });
       doc.text(tl(isletme.buildingsCost), C3, y, { align: 'right' });
       y += h + 2;
@@ -320,13 +321,16 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
     row('Öngörülen Satış Değeri', tl(isletme.salesTotal), { bold: true, color: GREEN });
     row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(isletme.landValue), { band: true });
     row('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), { bold: true });
+    for (const l of fxLines(input.fx, isletme.landValue, isletme.landUnitValue)) {
+      row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
+          `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
+    }
     y += 4;
 
     drawFooter(doc, version, 'Ticari İşletme · Müteahhit kârı kesilmez · Tutarlar KDV hariçtir');
     const name0 = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.pdf`
       .replace(/-+\./, '.');
-    triggerDownload(doc.output('blob'), name0);
-    return;
+    return { doc, name: name0 };
   }
 
   hero();
@@ -338,7 +342,7 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('Hesap Yöntemi', input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan');
   if (input.zoning.mode === 'taks-kaks') {
     row('TAKS / KAKS', `${input.zoning.taks != null ? num2(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? num2(input.zoning.kaks) : '—'}`);
-    if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString('tr-TR')} m`);
+    if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
   }
   y += 4;
 
@@ -396,6 +400,10 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValue), { band: true });
   row('Arsa m² Birim Değeri', tlm2(f.landUnitValue), { bold: true });
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
+  for (const l of fxLines(input.fx, f.residualLandValue, f.landUnitValue)) {
+    row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
+        `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
+  }
   y += 4;
 
   if (input.share.enabled) {
@@ -419,5 +427,10 @@ export async function downloadPdf(input: ProjectInput, r: AnalysisResult, versio
 
   const name = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.pdf`
     .replace(/-+\./, '.');
+  return { doc, name };
+}
+
+export async function downloadPdf(input: ProjectInput, r: AnalysisResult, version: string) {
+  const { doc, name } = await buildPdf(input, r, version);
   triggerDownload(doc.output('blob'), name);
 }

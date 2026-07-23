@@ -154,3 +154,26 @@ describe('Tur 2 — dışa aktarma', () => {
     expect((captured as any).blob.size).toBeGreaterThan(8000);
   });
 });
+
+describe('İngilizce ve döviz', () => {
+  it('EN modda PDF İngilizce üretilir; TR moda dönüş bozulmaz', async () => {
+    const { setLang } = await import('../i18n');
+    const { buildPdf } = await import('./pdf');
+    const fxInput = { ...karmaInput, fx: { usd: 47.2, eur: 51.1 } };
+    setLang('en');
+    const { doc } = await buildPdf(fxInput, analyze(fxInput), 'test');
+    setLang('tr');
+    expect(doc.output('arraybuffer').byteLength).toBeGreaterThan(30000);
+    const { doc: docTr } = await buildPdf(fxInput, analyze(fxInput), 'test');
+    expect(docTr.getNumberOfPages()).toBeGreaterThan(0);
+  });
+  it('fxLines doğru hesaplar ve boş kur hiçbir satır üretmez', async () => {
+    const { fxLines } = await import('./fx');
+    expect(fxLines(undefined, 1000, 10)).toHaveLength(0);
+    expect(fxLines({ usd: null, eur: null }, 1000, 10)).toHaveLength(0);
+    const l = fxLines({ usd: 50, eur: null }, 1000000, 10000);
+    expect(l).toHaveLength(1);
+    expect(l[0].value).toBe(20000);
+    expect(l[0].unitValue).toBe(200);
+  });
+});

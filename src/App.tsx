@@ -5,6 +5,7 @@ import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
 import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/Steps';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
+import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
 
 const VERSION = BRAND.version;
 const DRAFT_KEY = 'arsaplan-taslak-v7';
@@ -90,36 +91,43 @@ const STEPS_ISLETME = [
   { title: 'Satış Değeri', desc: 'Öngörülen toplam satış değeri.' },
 ];
 
+/** Ham taslak nesnesini güvenli biçimde varsayılanlarla birleştirir (eksik alan toleransı). */
+function mergeDraft(d: any): ProjectInput {
+  const D = DEFAULT_INPUT;
+  return {
+      ...D, ...d,
+      parcel: { ...D.parcel, ...(d.parcel ?? {}) },
+      zoning: { ...D.zoning, ...(d.zoning ?? {}) },
+      emsal: { ...D.emsal, ...(d.emsal ?? {}) },
+      villa: { ...D.villa, ...(d.villa ?? {}) },
+      apartment: {
+        ...D.apartment, ...(d.apartment ?? {}),
+        basements: (d.apartment?.basements ?? D.apartment.basements)
+          .map((b: any, i: number) => ({ ...D.apartment.basements[i], ...b })),
+      },
+      isletme: {
+        ...D.isletme, ...(d.isletme ?? {}),
+        buildings: d.isletme?.buildings ?? [],
+        otherCosts: d.isletme?.otherCosts ?? [],
+      },
+      cost: { ...D.cost, ...(d.cost ?? {}) },
+      site: { ...D.site, ...(d.site ?? {}) },
+      sales: {
+        ...D.sales, ...(d.sales ?? {}),
+        apt: { ...D.sales.apt, ...(d.sales?.apt ?? {}) },
+      },
+      residual: { ...D.residual, ...(d.residual ?? {}) },
+      fx: { ...D.fx!, ...(d.fx ?? {}) },
+      share: { ...D.share, ...(d.share ?? {}) },
+    };
+}
+
 function loadDraft(): ProjectInput {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) return DEFAULT_INPUT;
-    const d = JSON.parse(raw) as Partial<ProjectInput>;
-    return {
-      ...DEFAULT_INPUT, ...d,
-      parcel: { ...DEFAULT_INPUT.parcel, ...(d.parcel ?? {}) },
-      zoning: { ...DEFAULT_INPUT.zoning, ...(d.zoning ?? {}) },
-      emsal: { ...DEFAULT_INPUT.emsal, ...(d.emsal ?? {}) },
-      villa: { ...DEFAULT_INPUT.villa, ...(d.villa ?? {}) },
-      apartment: {
-        ...DEFAULT_INPUT.apartment, ...(d.apartment ?? {}),
-        basements: (d.apartment?.basements ?? DEFAULT_INPUT.apartment.basements)
-          .map((b, i) => ({ ...DEFAULT_INPUT.apartment.basements[i], ...b })),
-      },
-      isletme: {
-        ...DEFAULT_INPUT.isletme, ...(d.isletme ?? {}),
-        buildings: d.isletme?.buildings ?? [],
-        otherCosts: d.isletme?.otherCosts ?? [],
-      },
-      cost: { ...DEFAULT_INPUT.cost, ...(d.cost ?? {}) },
-      site: { ...DEFAULT_INPUT.site, ...(d.site ?? {}) },
-      sales: {
-        ...DEFAULT_INPUT.sales, ...(d.sales ?? {}),
-        apt: { ...DEFAULT_INPUT.sales.apt, ...(d.sales?.apt ?? {}) },
-      },
-      residual: { ...DEFAULT_INPUT.residual, ...(d.residual ?? {}) },
-      share: { ...DEFAULT_INPUT.share, ...(d.share ?? {}) },
-    };
+    const d = JSON.parse(raw);
+    return mergeDraft(d);
   } catch {
     return DEFAULT_INPUT;
   }
@@ -138,7 +146,135 @@ export default function App() {
     setInput((prev) => ({ ...prev, [key]: { ...(prev[key] as object), ...(patch as object) } }));
   const setTop: SetTop = (key, value) => setInput((prev) => ({ ...prev, [key]: value }));
 
+  const [lang, setLangState] = useState<Lang>(getLang());
+  function switchLang(l: Lang) {
+    setLang(l);
+    setLangState(l);
+  }
+  useEffect(() => {
+    const root = document.getElementById('arsaplan-root');
+    if (root && lang === 'en') startDomTranslation(root);
+    else stopDomTranslation();
+    return () => stopDomTranslation();
+  }, [lang, step]);
+
   const isIsletme = input.assetType === 'ticari' && input.ticariMode === 'isletme';
+
+  /** Örnek proje: eğitim amaçlı dolu bir karma analiz. */
+  function fillSample() {
+    if (!window.confirm('Örnek proje yüklenecek ve mevcut girişlerin üzerine yazılacak. Devam edilsin mi?')) return;
+    const sample = mergeDraft({
+      assetType: 'karma', housingType: 'apartman-3-8', ticariMode: 'apartman',
+      parcel: { il: 'İstanbul', ilce: 'Zeytinburnu', mahalle: 'Örnek', ada: '1954', parsel: '7', area: 1000, netArea: 1000 },
+      zoning: { mode: 'taks-kaks', lejant: 'Konut + Ticaret Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5, directFootprint: 0, directEmsalArea: 0, planNotes: 'Örnek plan notu: çekme mesafeleri korunacaktır.' },
+      apartment: {
+        basementCount: 2,
+        basements: [
+          { use: 'ticari', area: null, lossRate: 0.10, saleable: null },
+          { use: 'ortak', area: null, lossRate: 0.10, saleable: null },
+        ],
+        zeminLossRate: 0.15, normalCommonRate: 0.10,
+        hasPiyes: true, piyesInEmsal: true, piyesRate: 0.30,
+        asmaCount: 1, asmaInEmsal: true, asmaRate: 0.40,
+        hasExtraSaleable: true, extraMode: 'oran', extraRate: 0.20,
+      },
+      cost: { buildingClass: 'IV-A', unitCost: 30000, inflationRate: 0, extrasRate: 0.05 },
+      sales: { unitPrice: 0, apt: { bodrum: 60000, bodrumTicari: 120000, zemin: 150000, asma: 130000, normal: 100000, piyes: 90000 } },
+      residual: { profitRate: 0.25, financeRateOfCost: 0 },
+      share: { enabled: true, ownerShare: 0.45 },
+    });
+    setInput(sample);
+    setStep(1);
+    window.scrollTo({ top: 0 });
+  }
+
+  /** Taslağı .json dosyası olarak indirir (tarayıcı verisi silinse bile analiz korunur). */
+  function exportDraft() {
+    const payload = JSON.stringify({ app: 'ArsaPlan', draftKey: DRAFT_KEY, savedAt: new Date().toISOString(), input }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const t = input.parcel.ilce || input.parcel.il || 'taslak';
+    a.download = `ArsaPlan-Taslak-${t.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  /** Dosyadan taslak yükler; eksik alanlar varsayılanla tamamlanır. */
+  function importDraft(file: File) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const d = JSON.parse(String(reader.result));
+        const raw = d && typeof d === 'object' && 'input' in d ? d.input : d;
+        setInput(mergeDraft(raw));
+        setStep(1);
+        window.scrollTo({ top: 0 });
+      } catch {
+        window.alert('Dosya okunamadı: geçerli bir ArsaPlan taslağı değil.');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  /** Yalnızca görünen adımın alanlarını varsayılana döndürür; diğer adımlar korunur. */
+  function resetStep() {
+    if (!window.confirm('Bu adımdaki tüm girişler varsayılana dönecek. Emin misiniz?')) return;
+    const D = DEFAULT_INPUT;
+    setInput((prev) => {
+      const next = { ...prev };
+      const karma = prev.assetType === 'karma' ||
+        (prev.assetType === 'ticari' && prev.ticariMode === 'apartman');
+      const isletme = prev.assetType === 'ticari' && prev.ticariMode === 'isletme';
+      switch (step) {
+        case 1:
+          next.assetType = D.assetType;
+          next.housingType = D.housingType;
+          next.ticariMode = D.ticariMode;
+          break;
+        case 2:
+          next.parcel = { ...D.parcel };
+          if (prev.assetType === 'konut') next.housingType = D.housingType;
+          if (prev.assetType === 'ticari') next.ticariMode = D.ticariMode;
+          break;
+        case 3:
+          if (isletme) {
+            next.isletme = { ...D.isletme, buildings: [], otherCosts: [], salesTotal: prev.isletme.salesTotal };
+          } else {
+            next.zoning = { ...D.zoning };
+            if (karma || prev.housingType === 'apartman-3-8') {
+              next.apartment = {
+                ...D.apartment,
+                basements: D.apartment.basements.map((b) => ({ ...b })),
+                normalAreas: [...D.apartment.normalAreas],
+                normalSaleables: [...D.apartment.normalSaleables],
+                asmaAreas: [...D.apartment.asmaAreas],
+                asmaSaleables: [...D.apartment.asmaSaleables],
+              };
+            } else {
+              next.emsal = { ...D.emsal };
+              next.villa = { ...D.villa };
+            }
+          }
+          break;
+        case 4:
+          if (isletme) {
+            next.isletme = { ...prev.isletme, salesTotal: D.isletme.salesTotal };
+          } else {
+            next.cost = { ...D.cost };
+            next.site = { ...D.site };
+            next.sales = { ...D.sales, apt: { ...D.sales.apt } };
+          }
+          break;
+        case 5:
+          next.residual = { ...D.residual };
+          next.share = { ...D.share };
+          break;
+      }
+      return next;
+    });
+    window.scrollTo({ top: 0 });
+  }
   const STEPS = input.assetType === 'karma' ? STEPS_KARMA
     : input.assetType === 'ticari' ? (isIsletme ? STEPS_ISLETME : STEPS_TICARI_APT)
     : STEPS_KONUT;
@@ -192,12 +328,26 @@ export default function App() {
   const P = { input, upd, setTop };
 
   return (
-    <div className="app">
+    <div className="app" id="arsaplan-root" key={lang}>
       <div className="topbar">
         <div className="topbar-inner">
           <div>
             <h1>{BRAND.appName}</h1>
             <p>{BRAND.tagline}</p>
+          </div>
+          <div className="topbar-actions no-print">
+            <button type="button" className="link-btn topbar-link lang-toggle"
+                    title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
+                    onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
+              {lang === 'tr' ? '🌐 English' : '🌐 Türkçe'}
+            </button>
+            <button type="button" className="link-btn topbar-link" onClick={exportDraft}
+                    title="Analiz girişlerini .json dosyası olarak kaydeder">💾 Taslağı Kaydet</button>
+            <label className="link-btn topbar-link" title="Kaydedilmiş .json taslağını geri yükler">
+              📂 Taslak Yükle
+              <input type="file" accept="application/json,.json" style={{ display: 'none' }}
+                     onChange={(e) => { const f = e.target.files?.[0]; if (f) importDraft(f); e.target.value = ''; }} />
+            </label>
           </div>
           <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
         </div>
@@ -215,10 +365,13 @@ export default function App() {
             <div className="step-eyebrow">Adım {step}</div>
             <div className="step-title">{meta.title}</div>
             <div className="step-desc">{meta.desc}</div>
+            <button type="button" className="link-btn step-reset" onClick={resetStep}>
+              ↺ Bu adımı sıfırla
+            </button>
           </div>
         )}
 
-        {step === 1 && <Step1 {...P} />}
+        {step === 1 && <Step1 {...P} onSample={fillSample} />}
         {step === 2 && <Step2 {...P} />}
         {step === 3 && <Step3 {...P} />}
         {step === 4 && <Step4 {...P} />}

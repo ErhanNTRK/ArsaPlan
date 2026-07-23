@@ -7,6 +7,7 @@
 import { jsPDF } from 'jspdf';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { triggerDownload } from './excel';
+import { LOC } from '../i18n';
 import {
   loadFonts, drawHeader, drawFooter,
   NAVY, GRAY, INK, LINE, FAINT, GOLD, GREEN, RED, M, PW, W, tl,
@@ -25,7 +26,7 @@ export async function downloadAdvicePdf(input: ProjectInput, r: AnalysisResult, 
   await loadFonts(doc);
 
   const p = input.parcel;
-  const tarih = new Date().toLocaleDateString('tr-TR');
+  const tarih = new Date().toLocaleDateString(LOC());
   let y = 41;
 
   function pageBreak(need = 14) {

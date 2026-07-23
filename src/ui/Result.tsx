@@ -3,6 +3,8 @@ import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
+import { fxLines, fxMoney } from '../export/fx';
+import { LOC, getLang } from '../i18n';
 
 const VERDICT_TEXT: Record<string, string> = {
   'yakin': 'İki yöntem birbirine yakın',
@@ -90,6 +92,11 @@ export function Result({ input, result, version }: {
             <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
             <div className="kpi-value" style={isletme.landValue < 0 ? { color: '#ff9c94' } : undefined}>{fmtTL(isletme.landValue)}</div>
             <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(isletme.landUnitValue)}</b> (tapu alanı üzerinden)</div>
+            {fxLines(input.fx, isletme.landValue, isletme.landUnitValue).map((l) => (
+              <div className="kpi-sub" key={l.code}>
+                {l.code}: <b>{fxMoney(l.symbol, l.value)}</b> · {fxMoney(l.symbol, l.unitValue)}/m² · kur {l.rate.toLocaleString(LOC())}
+              </div>
+            ))}
           </div>
           <div className="kpi"><div className="kpi-label">Toplam Maliyet</div><div className="kpi-value">{fmtTL(isletme.totalCost)}</div></div>
           <div className="kpi"><div className="kpi-label">Öngörülen Satış Değeri</div><div className="kpi-value">{fmtTL(isletme.salesTotal)}</div></div>
@@ -178,6 +185,11 @@ export function Result({ input, result, version }: {
           <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
           <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValue)}</div>
           <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
+          {fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l) => (
+            <div className="kpi-sub" key={l.code}>
+              {l.code}: <b>{fxMoney(l.symbol, l.value)}</b> · {fxMoney(l.symbol, l.unitValue)}/m² · kur {l.rate.toLocaleString(LOC())}
+            </div>
+          ))}
         </div>
         {apt ? (
           <div className="kpi"><div className="kpi-label">Kat Adedi</div>
@@ -204,7 +216,7 @@ export function Result({ input, result, version }: {
         {apt.mode === 'taks-kaks' && (
           <>
             <Row label="TAKS / KAKS" value={`${input.zoning.taks != null ? fmtNum(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? fmtNum(input.zoning.kaks) : '—'}`} />
-            {input.zoning.hmax != null && <Row label="Hmax" value={`${input.zoning.hmax.toLocaleString('tr-TR')} m`} />}
+            {input.zoning.hmax != null && <Row label="Hmax" value={`${input.zoning.hmax.toLocaleString(LOC())} m`} />}
             <Row label="Taban Oturumu Limiti" value={fmtM2(apt.footprintArea)} />
             {apt.extraSaleableArea > 0 && <Row label="İlave Satılabilir Alan (emsal dışı)" value={fmtM2(apt.extraSaleableArea)} />}
           </>
@@ -326,6 +338,11 @@ export function Result({ input, result, version }: {
 
       <div className="card">
         <div className="card-title">Uzman Değerlendirmesi</div>
+        {getLang() === 'en' && (
+          <div className="hint" style={{ marginBottom: 8 }}>
+            Expert notes are generated in Turkish; they are internal to the appraiser and are not part of the client-facing report.
+          </div>
+        )}
         {advice.map((a, i) => (
           <div key={i} className={`advice ${a.level}`}>
             <div className="advice-title">{a.title}</div>

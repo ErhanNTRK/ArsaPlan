@@ -1,22 +1,25 @@
 import type { ReactNode } from 'react';
+import { LOC } from '../i18n';
 
 export const fmtTL = (v: number) =>
-  isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ₺' : '–';
+  isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' ₺' : '–';
 export const fmtTLm2 = (v: number) =>
-  isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ₺/m²' : '–';
+  isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' ₺/m²' : '–';
 export const fmtM2 = (v: number) =>
-  isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' m²' : '–';
+  isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' m²' : '–';
 export const fmtPct = (v: number, d = 1) =>
   isFinite(v) ? '%' + (v * 100).toFixed(d).replace('.', ',') : '–';
 export const fmtNum = (v: number, d = 2) =>
-  isFinite(v) ? v.toLocaleString('tr-TR', { maximumFractionDigits: d }) : '–';
+  isFinite(v) ? v.toLocaleString(LOC(), { maximumFractionDigits: d }) : '–';
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+export function Field({ label, hint, error, children }:
+  { label: string; hint?: string; error?: string | null; children: ReactNode }) {
   return (
-    <div className="field">
+    <div className={error ? 'field field-error' : 'field'}>
       <label className="label">{label}</label>
       {children}
-      {hint && <div className="hint">{hint}</div>}
+      {error ? <div className="field-error-msg">⚠ {error}</div>
+             : hint && <div className="hint">{hint}</div>}
     </div>
   );
 }
