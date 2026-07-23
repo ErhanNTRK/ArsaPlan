@@ -17,7 +17,7 @@ const DEFAULT_INPUT: ProjectInput = {
   parcel: { il: 'İstanbul', ilce: '', mahalle: '', ada: '', parsel: '', area: 0, netArea: 0 },
   zoning: {
     mode: 'taks-kaks', lejant: '', taks: null, kaks: null, hmax: null,
-    directFootprint: 0, directEmsalArea: 0, planNotes: '',
+    directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: '',
   },
   emsal: {
     hasExtra: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
@@ -166,7 +166,7 @@ export default function App() {
     const sample = mergeDraft({
       assetType: 'karma', housingType: 'apartman-3-8', ticariMode: 'apartman',
       parcel: { il: 'İstanbul', ilce: 'Zeytinburnu', mahalle: 'Örnek', ada: '1954', parsel: '7', area: 1000, netArea: 1000 },
-      zoning: { mode: 'taks-kaks', lejant: 'Konut + Ticaret Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5, directFootprint: 0, directEmsalArea: 0, planNotes: 'Örnek plan notu: çekme mesafeleri korunacaktır.' },
+      zoning: { mode: 'taks-kaks', lejant: 'Konut + Ticaret Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5, directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: 'Örnek plan notu: çekme mesafeleri korunacaktır.' },
       apartment: {
         basementCount: 2,
         basements: [

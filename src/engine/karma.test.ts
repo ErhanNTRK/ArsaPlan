@@ -23,7 +23,7 @@ const parcel: Parcel = {
 };
 const zoningTK: Zoning = {
   mode: 'taks-kaks', lejant: 'Konut + Ticaret Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5,
-  directFootprint: 0, directEmsalArea: 0, planNotes: '',
+  directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: '',
 };
 
 const APT_KARMA: ApartmentInput = {
@@ -246,5 +246,31 @@ describe('Ticari İşletme — Salih\'in ahır örneği ve kurallar', () => {
   it('maliyet satışı aşarsa uyarı üretir', () => {
     const r = computeIsletme(parcel, { ...base, salesTotal: 1000000 });
     expect(r.warnings.some((w) => w.includes('negatif'))).toBe(true);
+  });
+});
+
+describe('Çekme Mesafesi yöntemi (motor normalize)', () => {
+  it('kare KML + ön5/yan3/arka3 → zemin oturumu 1088 m², emsal havuzu KAKS×parsele sadık', () => {
+    const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }];
+    const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1600, netArea: 1600,
+      kml: { name: 't', points: sq, polygonArea: 1600, deedArea: 1600, setback: 0 } };
+    const zoning = { mode: 'cekme' as const, lejant: '', taks: null, kaks: 1.5, hmax: null,
+      directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3,
+      cekmeFrontEdge: 0, planNotes: '' };
+    const c = computeApartment(parcel, zoning, APT_KARMA, 'karma');
+    const zemin = c.floors.find((f) => f.kind === 'zemin')!;
+    expect(zemin.area).toBeCloseTo(1088, 0);
+    expect(c.emsalArea).toBeCloseTo(2400, 0);            // 1600 × 1.5
+  });
+
+  it('ön cephe seçilmemişse uyarı üretir ve oturum hesaplanmaz', () => {
+    const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }];
+    const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1600, netArea: 1600,
+      kml: { name: 't', points: sq, polygonArea: 1600, deedArea: 1600, setback: 0 } };
+    const zoning = { mode: 'cekme' as const, lejant: '', taks: null, kaks: 1.5, hmax: null,
+      directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3,
+      cekmeFrontEdge: null, planNotes: '' };
+    const c = computeApartment(parcel, zoning, APT_KARMA, 'karma');
+    expect(c.warnings.some((w) => w.includes('ön cephe') || w.includes('KML'))).toBe(true);
   });
 });

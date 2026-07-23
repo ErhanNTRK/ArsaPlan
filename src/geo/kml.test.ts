@@ -1,6 +1,6 @@
 /** KML geometrisi — gerçek TKGM örneğiyle (Bahçelievler 611/9, tapu 1.830,40 m²) */
 import { describe, it, expect } from 'vitest';
-import { parseKml, inwardOffset, polygonArea } from './kml';
+import { parseKml, inwardOffset, polygonArea, classifyEdges, setbackFootprint } from './kml';
 
 const SAMPLE = `<?xml version="1.0" encoding="utf-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
@@ -71,5 +71,30 @@ describe('inwardOffset', () => {
     const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
     expect(inwardOffset(sq, 0)).toBeNull();
     expect(inwardOffset(sq, -3)).toBeNull();
+  });
+});
+
+describe('classifyEdges + setbackFootprint', () => {
+  const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }]; // CCW kare
+
+  it('ön seçilince karşı kenar arka, komşular yan olur', () => {
+    const cls = classifyEdges(sq, 0);              // alt kenar ön (dış normal güney)
+    expect(cls).toEqual(['front', 'side', 'rear', 'side']);
+  });
+
+  it('kare golden: ön 5 · yan 3 · arka 3 → (40−6)×(40−8) = 1088 m²', () => {
+    const fp = setbackFootprint(sq, 0, { front: 5, side: 3, rear: 3 })!;
+    expect(fp).not.toBeNull();
+    expect(fp.area).toBeCloseTo(1088, 6);
+  });
+
+  it('gerçek parselde ön/yan/arka oturum tek-tip 5 m ile tutarlı aralıktadır', () => {
+    const k = parseKml(SAMPLE)!;
+    const fp = setbackFootprint(k.points, 0, { front: 5, side: 3, rear: 3 })!;
+    expect(fp).not.toBeNull();
+    const uni5 = polygonArea(inwardOffset(k.points, 5)!);
+    const uni3 = polygonArea(inwardOffset(k.points, 3)!);
+    expect(fp.area).toBeGreaterThan(uni5);
+    expect(fp.area).toBeLessThan(uni3);
   });
 });

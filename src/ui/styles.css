@@ -94,9 +94,15 @@ body {
 .sketch-legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; font-size: 12.5px; color: var(--muted); }
 .sketch-legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
 .sw-parcel { background: rgba(15,42,71,0.10); border: 2px solid var(--navy); }
+.sw-taks { background: rgba(15,42,71,0.12); border: 2px dashed #41618A; }
+.sketch-hint-strong { color: var(--navy); font-weight: 700; }
 .sw-inner { background: rgba(178,141,66,0.30); border: 2px dashed var(--gold); }
 .sketch-invalid { color: var(--red); font-weight: 600; }
 .static-value { padding: 9px 11px; background: #F6F4EF; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+
+.step-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.step-cols > .col-full { grid-column: 1 / -1; }
+@media (max-width: 860px) { .step-cols { grid-template-columns: 1fr; } }
 
 .field-error .num-input, .field-error input, .field-error select {
   border-color: var(--red) !important;

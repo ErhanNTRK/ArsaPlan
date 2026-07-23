@@ -11,6 +11,22 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.4.0 (2026.07.23)** — Çekme Mesafesi yöntemi + yerleşim düzeni (Tur 3, dilim 2).
+**Adım düzeni:** Taşınmaz adımı iki sütun — solda proje tipi, sağda KML yükleme
+(künye artık otomatik doldurulur), altta taşınmaz bilgileri. İmar adımı iki sütun —
+solda imar durumu, sağda parsel krokisi; TAKS girildiğinde oturum, parsel şekli
+içinde temsili olarak gösterilir. **Üçüncü hesap yöntemi "Çekme Mesafesi":** ön /
+yan / arka bahçe mesafeleri girilir, ön cephe krokide kenara tıklanarak seçilir
+(kalan kenarlar açıya göre otomatik sınıflanır ve renklenir: ön altın, yan lacivert,
+arka gri), bina oturumu kenar-bazlı içeri ötelemeyle hesaplanır ve zemin + bodrum
+kat alanları bu oturumdan otomatik türetilir. Motor çekirdeği değişmedi: 'cekme'
+modu tek noktada efektif TAKS'a çevrilir; mevcut iki yöntem birebir aynı davranır
+(117/117 test). **Rapor görselleri:** Değerleme adımında "PDF'te parsel krokisi ve
+yapı kesiti" seçeneği (varsayılan evet). Evet ise PDF'e kroki (çekme modunda kenar
+sınıfları ve mesafelerle) ve YAPI KESİTİ (TEMSİLİ) bölümü çizilir: bodrumlar zemin
+çizgisi altında, asma kat zemin uzantısı, piyes çatı trapezi, her katın yanında
+etiket ve m². Kesit şematiktir; mimari proje yerine geçmez.
+
 **v5.3.0 (2026.07.23)** — KML / Parsel Krokisi (Tur 3, dilim 1). Taşınmaz adımına
 "Parsel Krokisi — KML (opsiyonel)" kartı: TKGM Parsel Sorgu .kml dosyası yüklenir,
 künye (il/ilçe/mahalle/ada/parsel/alan) onayla doldurulur, parsel poligonu yerel

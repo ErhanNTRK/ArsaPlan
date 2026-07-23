@@ -1,5 +1,5 @@
 import type { ProjectInput, AssetType, HousingType } from '../engine';
-import { computeCapacity, computeApartment } from '../engine';
+import { computeCapacity, normalizeZoning, computeApartment } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
 import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
@@ -7,6 +7,7 @@ import { Step3Isletme, Step4Isletme } from './StepsIsletme';
 import { LOC } from '../i18n';
 import { parseKml, inwardOffset, polygonArea } from '../geo/kml';
 import { ParcelSketch } from './ParcelSketch';
+import { ZoningKmlCard } from './ZoningKmlCard';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
@@ -65,7 +66,7 @@ const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boole
 export function Step2({ input, upd, setTop }: P) {
   const p = input.parcel;
   return (
-    <div className="cols">
+    <div className="cols step-cols">
       {input.assetType === 'konut' && (
       <div className="card">
         <div className="card-title">Konut Proje Tipi</div>
@@ -100,6 +101,55 @@ export function Step2({ input, upd, setTop }: P) {
       )}
 
       <div className="card">
+        <div className="card-title">Parsel Krokisi — KML (opsiyonel)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          TKGM Parsel Sorgu'dan indirilen .kml dosyasını yükleyin: taşınmaz bilgileri
+          otomatik doldurulur ve parsel şekli çizilir. Dosya cihazınızda işlenir,
+          hiçbir yere gönderilmez.
+        </div>
+        <label className="link-btn" style={{ display: 'inline-block' }}>
+          📐 KML Dosyası Yükle
+          <input type="file" accept=".kml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
+                 onChange={(e) => {
+                   const f = e.target.files?.[0];
+                   e.target.value = '';
+                   if (!f) return;
+                   const rd = new FileReader();
+                   rd.onload = () => {
+                     const k = parseKml(String(rd.result));
+                     if (!k) { window.alert('KML okunamadı: dosyada parsel poligonu bulunamadı.'); return; }
+                     upd('parcel', {
+                       kml: { name: k.name, points: k.points, polygonArea: k.polygonArea, deedArea: k.deedArea, setback: 0 },
+                       il: k.il || p.il, ilce: k.ilce || p.ilce, mahalle: k.mahalle || p.mahalle,
+                       ada: k.ada || p.ada, parsel: k.parsel || p.parsel,
+                       ...(k.deedArea > 0 ? { area: k.deedArea } : {}),
+                     });
+                     upd('zoning', { cekmeFrontEdge: null });
+                   };
+                   rd.readAsText(f);
+                 }} />
+        </label>
+        {p.kml && p.kml.points.length >= 3 && (
+          <>
+            <div className="static-value" style={{ marginTop: 10 }}>
+              {(() => {
+                const dev = p.area > 0 ? Math.abs(p.kml!.polygonArea - p.area) / p.area * 100 : 0;
+                return p.area > 0
+                  ? `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · tapu ${p.area.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · sapma %${dev.toFixed(2).replace('.', ',')}`
+                  : `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`;
+              })()}
+            </div>
+            <ParcelSketch kml={p.kml} width={360} />
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="link-btn" onClick={() => { upd('parcel', { kml: null }); upd('zoning', { cekmeFrontEdge: null }); }}>
+                ✕ KML'yi kaldır
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="card col-full">
         <div className="card-title">Taşınmaz Bilgileri</div>
         <Field label="İl">
           <Sel value={p.il} onChange={(v) => upd('parcel', { il: v })}
@@ -127,68 +177,7 @@ export function Step2({ input, upd, setTop }: P) {
         )}
       </div>
 
-      <div className="card">
-        <div className="card-title">Parsel Krokisi — KML (opsiyonel)</div>
-        <div className="hint" style={{ marginBottom: 10 }}>
-          TKGM Parsel Sorgu'dan indirilen .kml dosyasını yükleyin: künye bilgileri
-          doldurulur, parsel şekli çizilir ve tapu alanı poligonla karşılaştırılır.
-          Dosya cihazınızda işlenir, hiçbir yere gönderilmez.
-        </div>
-        <label className="link-btn" style={{ display: 'inline-block' }}>
-          📐 KML Dosyası Yükle
-          <input type="file" accept=".kml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
-                 onChange={(e) => {
-                   const f = e.target.files?.[0];
-                   e.target.value = '';
-                   if (!f) return;
-                   const rd = new FileReader();
-                   rd.onload = () => {
-                     const k = parseKml(String(rd.result));
-                     if (!k) { window.alert('KML okunamadı: dosyada parsel poligonu bulunamadı.'); return; }
-                     const patch: Record<string, unknown> = {
-                       kml: { name: k.name, points: k.points, polygonArea: k.polygonArea, deedArea: k.deedArea, setback: p.kml?.setback ?? 0 },
-                     };
-                     const fill = window.confirm('Künye bilgileri (il, ilçe, mahalle, ada, parsel, alan) KML\'den doldurulsun mu? Mevcut girişlerin üzerine yazılır.');
-                     if (fill) {
-                       Object.assign(patch, {
-                         il: k.il || p.il, ilce: k.ilce || p.ilce, mahalle: k.mahalle || p.mahalle,
-                         ada: k.ada || p.ada, parsel: k.parsel || p.parsel,
-                       });
-                       if (k.deedArea > 0) Object.assign(patch, { area: k.deedArea });
-                     }
-                     upd('parcel', patch);
-                   };
-                   rd.readAsText(f);
-                 }} />
-        </label>
-        {p.kml && p.kml.points.length >= 3 && (
-          <>
-            <div className="grid-2" style={{ marginTop: 12 }}>
-              <Field label="Çekme Mesafesi (tüm kenarlar)"
-                     hint="Şimdilik tek tip; kenar bazlı (ön/yan/arka) ayrım sonraki turda.">
-                <Num value={p.kml.setback} step="0.5" suffix="m"
-                     onChange={(v) => upd('parcel', { kml: { ...p.kml!, setback: v } })} />
-              </Field>
-              <Field label="Alan Karşılaştırması">
-                <div className="static-value">
-                  {(() => {
-                    const dev = p.area > 0 ? Math.abs(p.kml!.polygonArea - p.area) / p.area * 100 : 0;
-                    return p.area > 0
-                      ? `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · tapu ${p.area.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · sapma %${dev.toFixed(2).replace('.', ',')}`
-                      : `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`;
-                  })()}
-                </div>
-              </Field>
-            </div>
-            <ParcelSketch kml={p.kml} />
-            <div style={{ marginTop: 8 }}>
-              <button type="button" className="link-btn" onClick={() => upd('parcel', { kml: null })}>
-                ✕ KML'yi kaldır
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+
     </div>
   );
 }
@@ -209,12 +198,13 @@ function Step3Villa({ input, upd }: P) {
   const z = input.zoning;
   const e = input.emsal;
   const v = input.villa;
-  const c = computeCapacity(input.parcel, z, e, v);
+  const zN = normalizeZoning(input.parcel, z);
+  const c = computeCapacity(input.parcel, zN, e, v);
   const taksKaks = z.mode === 'taks-kaks';
   const lejantOther = z.lejant === ' ' || (z.lejant !== '' && !LEJANTLAR.includes(z.lejant));
 
   return (
-    <div className="cols">
+    <div className="cols step-cols">
       <div className="card">
         <div className="card-title">1 · İmar Durumu</div>
         <Field label="Plan Lejantı">
@@ -229,8 +219,28 @@ function Step3Villa({ input, upd }: P) {
         )}
         <Field label="Hesap Yöntemi">
           <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
-               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan alan' }]} />
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan alan' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
         </Field>
+        {z.mode === 'cekme' && (
+          <>
+            <div className="hint" style={{ marginBottom: 8 }}>
+              Bina oturumu, KML parsel şekli ve bahçe mesafelerinden hesaplanır;
+              KAKS emsal havuzu için yine gereklidir. Ön cephe sağdaki krokiden seçilir.
+            </div>
+            <div className="grid-3">
+              <Field label="Ön Bahçe"><Num value={z.cekmeFront} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeFront: v })} /></Field>
+              <Field label="Yan Bahçe"><Num value={z.cekmeSide} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeSide: v })} /></Field>
+              <Field label="Arka Bahçe"><Num value={z.cekmeRear} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeRear: v })} /></Field>
+            </div>
+            <div className="grid-2">
+              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+              <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
+            </div>
+            {(!input.parcel.kml || input.parcel.kml.points.length < 3) && (
+              <div className="warn-box">⚠ Çekme Mesafesi yöntemi için Taşınmaz adımında KML dosyası yüklenmelidir.</div>
+            )}
+          </>
+        )}
         {taksKaks ? (
           <div className="grid-3">
             <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
@@ -271,6 +281,8 @@ function Step3Villa({ input, upd }: P) {
           <div><span>Emsale dahil alan</span><b>{fmtM2(c.emsalArea)}</b></div>
         </div>
       </div>
+
+      <ZoningKmlCard input={input} upd={upd} />
 
       <div className="card">
         <div className="card-title">2 · Emsal Dışı Satılabilir Alan</div>
@@ -509,7 +521,7 @@ export function Step4(props: P) {
 }
 
 /* ═══════════ ADIM 5 — DEĞERLEME ═══════════ */
-export function Step5({ input, upd }: P) {
+export function Step5({ input, upd, setTop }: P) {
   const r = input.residual;
   return (
     <div className="cols">
@@ -540,6 +552,16 @@ export function Step5({ input, upd }: P) {
             </div>
           </>
         )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Rapor Görselleri</div>
+        <Field label="PDF'te parsel krokisi ve yapı kesiti"
+               hint="Kroki için KML gerekir; kesit, kat kurgusunun temsili çizimidir (mimari proje değildir).">
+          <Seg value={input.reportVisuals === false ? 'hayir' : 'evet'}
+               onChange={(v) => setTop('reportVisuals', v === 'evet')}
+               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+        </Field>
       </div>
 
       <div className="card">

@@ -101,9 +101,11 @@ export function parseKml(text: string): KmlParcel | null {
  * kenar sayısı korunamıyor, alan büyüyor/negatifleşiyor veya çekme
  * parseli tüketiyorsa (d çok büyük).
  */
-export function inwardOffset(pts: { x: number; y: number }[], d: number): { x: number; y: number }[] | null {
-  if (d <= 0 || pts.length < 3) return null;
+export function inwardOffset(pts: { x: number; y: number }[], d: number | number[]): { x: number; y: number }[] | null {
   const n = pts.length;
+  if (n < 3) return null;
+  const dist = (i: number) => (Array.isArray(d) ? d[i] ?? 0 : d);
+  if (Array.isArray(d) ? d.every((v) => v <= 0) : d <= 0) return null;
   // CCW poligonda iç taraf, kenar yönünün SOLU'dur; sol normal = (-dy, dx)
   const lines: { p: { x: number; y: number }; dir: { x: number; y: number } }[] = [];
   for (let i = 0; i < n; i++) {
@@ -112,7 +114,8 @@ export function inwardOffset(pts: { x: number; y: number }[], d: number): { x: n
     const len = Math.hypot(dx, dy);
     if (len < 1e-9) return null;
     const nx = -dy / len, ny = dx / len;               // iç normal
-    lines.push({ p: { x: a.x + nx * d, y: a.y + ny * d }, dir: { x: dx / len, y: dy / len } });
+    const di = dist(i);
+    lines.push({ p: { x: a.x + nx * di, y: a.y + ny * di }, dir: { x: dx / len, y: dy / len } });
   }
   const out: { x: number; y: number }[] = [];
   for (let i = 0; i < n; i++) {
@@ -130,8 +133,10 @@ export function inwardOffset(pts: { x: number; y: number }[], d: number): { x: n
   const a0 = polygonArea(pts), a1 = polygonArea(out);
   if (!Number.isFinite(a1) || a1 <= 0 || a1 >= a0) return null;
   // Kaba kendini-kesme koruması: ofset köşeleri orijinal poligonun çok dışına taşmasın
+  const dmax = Array.isArray(d) ? Math.max(...d) : d;
+  const dmin = Array.isArray(d) ? Math.min(...d.filter((v) => v > 0), dmax) : d;
   const minD = offsetMinDistanceToPolygon(out, pts);
-  if (minD < d * 0.5) return null;
+  if (minD < Math.min(dmin, dmax) * 0.5) return null;
   return out;
 }
 
@@ -148,4 +153,43 @@ function offsetMinDistanceToPolygon(inner: { x: number; y: number }[], outer: { 
     }
   }
   return min;
+}
+
+export type EdgeClass = 'front' | 'side' | 'rear';
+
+/**
+ * Ön cephe kenarı seçildiğinde kalan kenarları dış normal açısına göre sınıflar:
+ * ön normaliyle aynı yöne bakanlar (≥ +60°'den dar) ön, ters bakanlar arka,
+ * aradakiler yan. Otomatik bir ÖNERİDİR; köşe pahları yola bakıyorsa ön sayılır.
+ */
+export function classifyEdges(pts: { x: number; y: number }[], frontIdx: number): EdgeClass[] {
+  const n = pts.length;
+  const normal = (i: number) => {
+    const a = pts[i], b = pts[(i + 1) % n];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    return { x: dy / len, y: -dx / len };            // CCW poligonda DIŞ normal
+  };
+  const nf = normal(((frontIdx % n) + n) % n);
+  return pts.map((_, i) => {
+    if (i === ((frontIdx % n) + n) % n) return 'front';
+    const ne = normal(i);
+    const dot = ne.x * nf.x + ne.y * nf.y;
+    if (dot > 0.5) return 'front';
+    if (dot < -0.5) return 'rear';
+    return 'side';
+  });
+}
+
+/** Kenar sınıflarına göre çekme sonrası oturum poligonu ve alanı. */
+export function setbackFootprint(
+  pts: { x: number; y: number }[],
+  frontIdx: number,
+  d: { front: number; side: number; rear: number },
+): { polygon: { x: number; y: number }[]; area: number; classes: EdgeClass[] } | null {
+  const classes = classifyEdges(pts, frontIdx);
+  const dists = classes.map((c) => (c === 'front' ? d.front : c === 'rear' ? d.rear : d.side));
+  const poly = inwardOffset(pts, dists);
+  if (!poly) return null;
+  return { polygon: poly, area: polygonArea(poly), classes };
 }

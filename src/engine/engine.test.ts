@@ -13,7 +13,7 @@ const base: ProjectInput = {
   isletme: { buildings: [], inflationRate: 0, wallUnitCost: 0, landscapeUnitCost: 0, infraUnitCost: 0, otherCosts: [], salesTotal: 0 },
   parcel: { il: 'İstanbul', ilce: 'Beykoz', mahalle: 'Merkez', ada: '101', parsel: '5', area: 1000, netArea: 1000 },
   zoning: { mode: 'taks-kaks', lejant: 'Konut Alanı', taks: 0.40, kaks: 0.80, hmax: 9.5,
-            directFootprint: 0, directEmsalArea: 0, planNotes: '' },
+            directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: '' },
   emsal: { hasExtra: false, extraMode: 'oran', extraRate: 0.10, extraArea: 0,
            hasAttic: false, atticMode: 'oran', atticRate: 0.50, atticArea: 0, atticInEmsal: false,
            hasBasement: false, basementMode: 'oran', basementRate: 1.0, basementArea: 0, basementInEmsal: false },

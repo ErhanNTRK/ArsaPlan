@@ -36,7 +36,7 @@ export interface Parcel {
 }
 
 /** 'taks-kaks' → katsayılardan hesaplanır · 'dogrudan' → alanlar elle girilir */
-export type ZoningMode = 'taks-kaks' | 'dogrudan';
+export type ZoningMode = 'taks-kaks' | 'dogrudan' | 'cekme';
 
 export interface Zoning {
   mode: ZoningMode;
@@ -48,6 +48,11 @@ export interface Zoning {
   directFootprint: number;
   /** 'dogrudan' modda emsale dahil toplam inşaat alanı (m²) */
   directEmsalArea: number;
+  /** 'cekme' modu: bahçe mesafeleri (m) ve KML ön cephe kenar indeksi */
+  cekmeFront: number;
+  cekmeSide: number;
+  cekmeRear: number;
+  cekmeFrontEdge: number | null;
   planNotes: string;
 }
 
@@ -333,6 +338,8 @@ export interface ProjectInput {
   share: ShareInput;
   /** Opsiyonel: girilirse çıktılarında arsa değeri döviz cinsinden de yazılır. */
   fx?: FxInput;
+  /** Rapor PDF'inde kroki ve yapı kesiti çizilsin mi (varsayılan: evet) */
+  reportVisuals?: boolean;
 }
 
 export interface CapacityResult {

@@ -14,6 +14,7 @@ import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL } from './fields';
 import type { Upd, SetTop } from './Steps';
 import { LOC } from '../i18n';
 import { inwardOffset, polygonArea } from '../geo/kml';
+import { ZoningKmlCard } from './ZoningKmlCard';
 
 interface P { input: ProjectInput; upd: Upd; setTop: SetTop; karma?: boolean; }
 
@@ -45,9 +46,9 @@ function patchFloor(
 }
 
 /** Otomatik değere dönüş bağlantısı gösterilsin mi? */
-function canReset(mode: 'taks-kaks' | 'dogrudan', f: AptFloor, auto: boolean): boolean {
+function canReset(mode: 'taks-kaks' | 'dogrudan' | 'cekme', f: AptFloor, auto: boolean): boolean {
   if (auto) return false;
-  if (mode === 'taks-kaks') return true;
+  if (mode === 'taks-kaks' || mode === 'cekme') return true;
   /* doğrudan modda: kopyalanan normal satırlar + öneriden türeyen asma satırları */
   return (f.kind === 'normal' && f.index > 1) || f.kind === 'asma';
 }
@@ -62,7 +63,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
   const setApt = (patch: Partial<ApartmentInput>) => upd('apartment', patch);
 
   return (
-    <div className="cols">
+    <div className="cols step-cols">
       {/* ── 1 · İMAR DURUMU ── */}
       <div className="card">
         <div className="card-title">1 · İmar Durumu</div>
@@ -78,8 +79,32 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         )}
         <Field label="Hesap Yöntemi">
           <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
-               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan Alan' }]} />
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan Alan' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
         </Field>
+        {z.mode === 'cekme' && (
+          <>
+            <div className="hint" style={{ marginBottom: 8 }}>
+              Bina oturumu KML parsel şekli ve bahçe mesafelerinden hesaplanır; zemin ve
+              bodrum kat alanları bu oturumdan türetilir. KAKS emsal havuzu için yine
+              gereklidir. Ön cephe sağdaki krokiden seçilir.
+            </div>
+            <div className="grid-3">
+              <Field label="Ön Bahçe"><Num value={z.cekmeFront} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeFront: v })} /></Field>
+              <Field label="Yan Bahçe"><Num value={z.cekmeSide} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeSide: v })} /></Field>
+              <Field label="Arka Bahçe"><Num value={z.cekmeRear} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeRear: v })} /></Field>
+            </div>
+            <div className="grid-2">
+              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+              <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
+            </div>
+            {(!input.parcel.kml || input.parcel.kml.points.length < 3) && (
+              <div className="warn-box">⚠ Çekme Mesafesi yöntemi için Taşınmaz adımında KML dosyası yüklenmelidir.</div>
+            )}
+            {input.parcel.kml && z.cekmeFrontEdge == null && (
+              <div className="note-box">👆 Sağdaki krokide ön cepheye tıklayın.</div>
+            )}
+          </>
+        )}
         {taksKaks ? (
           <>
             <div className="grid-3">
@@ -128,6 +153,8 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
           </div>
         )}
       </div>
+
+      <ZoningKmlCard input={input} upd={upd} />
 
       {/* ── 2 · İLAVE SATILABİLİR ALAN (yalnızca TAKS/KAKS) ── */}
       {taksKaks && (

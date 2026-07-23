@@ -14,6 +14,7 @@ export { computeIsletme, ISLETME_KATALOG } from './isletme';
 export { computeFinancial, computeShare } from './financial';
 export { buildAdvice } from './advisor';
 export { buildApartmentAdvice } from './apartmentAdvisor';
+import { setbackFootprint } from '../geo/kml';
 
 /** Karma Kullanım ve Ticari Apartman aynı motorda 'karma' varyantıyla çalışır. */
 export function isMixedUse(input: ProjectInput): boolean {
@@ -21,12 +22,27 @@ export function isMixedUse(input: ProjectInput): boolean {
     (input.assetType === 'ticari' && input.ticariMode === 'apartman');
 }
 
+/** 'cekme' modunu efektif TAKS'a çevirir (villa yolu için; apartman motoru kendi içinde yapar). */
+export function normalizeZoning(parcel: ProjectInput['parcel'], zoning: ProjectInput['zoning']): ProjectInput['zoning'] {
+  if (zoning.mode !== 'cekme') return zoning;
+  const base = parcel.netArea || parcel.area;
+  const k = parcel.kml;
+  let taksEff: number | null = null;
+  if (k && k.points.length >= 3 && zoning.cekmeFrontEdge != null && base > 0) {
+    const fp = setbackFootprint(k.points, zoning.cekmeFrontEdge,
+      { front: zoning.cekmeFront, side: zoning.cekmeSide, rear: zoning.cekmeRear });
+    if (fp) taksEff = fp.area / base;
+  }
+  return { ...zoning, mode: 'taks-kaks', taks: taksEff };
+}
+
 export function analyze(input: ProjectInput): AnalysisResult {
   if (input.assetType === 'ticari' && input.ticariMode === 'isletme') return analyzeIsletme(input);
   if (isMixedUse(input)) return analyzeApartment(input, 'karma');
   if (input.housingType === 'apartman-3-8') return analyzeApartment(input, 'konut');
 
-  const capacity = computeCapacity(input.parcel, input.zoning, input.emsal, input.villa);
+  const zoning = normalizeZoning(input.parcel, input.zoning);
+  const capacity = computeCapacity(input.parcel, zoning, input.emsal, input.villa);
   const financial = computeFinancial(input.parcel, capacity, input.cost, input.site, input.sales, input.residual);
   const share = computeShare(capacity, financial, input.share);
   const advice = buildAdvice(

@@ -18,7 +18,7 @@ const parcel: Parcel = {
 };
 const zoningTK: Zoning = {
   mode: 'taks-kaks', lejant: 'Konut Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5,
-  directFootprint: 0, directEmsalArea: 0, planNotes: '',
+  directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: '',
 };
 
 const APT_TK: ApartmentInput = {

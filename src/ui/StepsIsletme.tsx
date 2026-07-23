@@ -6,7 +6,7 @@
 import type { ProjectInput, IsletmeBuilding, IsletmeInput } from '../engine';
 import { computeIsletme, ISLETME_KATALOG } from '../engine';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
-import { Field, Txt, Num, Pct, Sel, fmtM2, fmtTL, fmtTLm2 } from './fields';
+import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL, fmtTLm2 } from './fields';
 import type { Upd, SetTop } from './Steps';
 
 interface P { input: ProjectInput; upd: Upd; setTop: SetTop; }
@@ -143,7 +143,7 @@ export function Step3Isletme({ input, upd }: P) {
   );
 }
 
-export function Step4Isletme({ input, upd }: P) {
+export function Step4Isletme({ input, upd, setTop }: P) {
   const inp = input.isletme;
   const r = computeIsletme(input.parcel, inp);
   return (
@@ -164,6 +164,16 @@ export function Step4Isletme({ input, upd }: P) {
           Bu senaryoda proje mülk sahibince yapılır; müteahhit kârı kesilmez ve
           kat karşılığı karşılaştırması uygulanmaz.
         </div>
+      </div>
+
+      <div className="card">
+        <div className="card-title">Rapor Görselleri</div>
+        <Field label="PDF'te parsel krokisi"
+               hint="Kroki için Taşınmaz adımında KML yüklenmiş olmalıdır.">
+          <Seg value={input.reportVisuals === false ? 'hayir' : 'evet'}
+               onChange={(v: string) => setTop('reportVisuals', v === 'evet')}
+               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+        </Field>
       </div>
 
       <div className="card">

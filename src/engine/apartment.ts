@@ -31,6 +31,7 @@
  *
  * engine klasörü saf TypeScript'tir: React bilmez, DOM'a dokunmaz.
  */
+import { setbackFootprint } from '../geo/kml';
 import type {
   Parcel, Zoning, ApartmentInput, ApartmentCapacity, AptFloor, AptFloorKind,
 } from './types';
@@ -52,6 +53,25 @@ export function computeApartment(
   variant: 'konut' | 'karma' = 'konut',
 ): ApartmentCapacity {
   const warnings: string[] = [];
+
+  /* ── 'cekme' modu normalize ──
+     KML poligonu + ön/yan/arka mesafelerden oturum hesaplanır ve efektif TAKS'a
+     çevrilir; motorun geri kalanı hiç değişmeden taks-kaks yolunda çalışır. */
+  if (zoning.mode === 'cekme') {
+    const base = parcel.netArea || parcel.area;
+    const k = parcel.kml;
+    let taksEff: number | null = null;
+    if (k && k.points.length >= 3 && zoning.cekmeFrontEdge != null && base > 0) {
+      const fp = setbackFootprint(k.points, zoning.cekmeFrontEdge,
+        { front: zoning.cekmeFront, side: zoning.cekmeSide, rear: zoning.cekmeRear });
+      if (fp) taksEff = fp.area / base;
+      else warnings.push('Çekme mesafeleri bu parsel şekline uygulanamadı; oturum hesaplanamıyor.');
+    } else {
+      warnings.push('Çekme yöntemi için KML poligonu ve ön cephe seçimi gereklidir.');
+    }
+    zoning = { ...zoning, mode: 'taks-kaks', taks: taksEff };
+  }
+
   const direct = zoning.mode === 'dogrudan';
 
   /* ── İmar hakkı ── */

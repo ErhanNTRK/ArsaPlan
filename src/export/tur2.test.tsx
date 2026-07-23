@@ -24,7 +24,7 @@ beforeAll(() => {
 const BASE = {
   parcel: { il: 'İstanbul', ilce: 'Zeytinburnu', mahalle: 'Merkez', ada: '1954', parsel: '2', area: 1000, netArea: 1000 },
   zoning: { mode: 'taks-kaks' as const, lejant: 'Konut + Ticaret Alanı', taks: 0.30, kaks: 2.70, hmax: 27.5,
-            directFootprint: 0, directEmsalArea: 0, planNotes: '' },
+            directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3, cekmeFrontEdge: null, planNotes: '' },
   emsal: { hasExtra: false, extraMode: 'oran' as const, extraRate: 0.10, extraArea: 0,
            hasAttic: false, atticMode: 'oran' as const, atticRate: 0.50, atticArea: 0, atticInEmsal: false,
            hasBasement: false, basementMode: 'oran' as const, basementRate: 1.0, basementArea: 0, basementInEmsal: false },
