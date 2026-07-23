@@ -11,6 +11,17 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.3.0 (2026.07.23)** — KML / Parsel Krokisi (Tur 3, dilim 1). Taşınmaz adımına
+"Parsel Krokisi — KML (opsiyonel)" kartı: TKGM Parsel Sorgu .kml dosyası yüklenir,
+künye (il/ilçe/mahalle/ada/parsel/alan) onayla doldurulur, parsel poligonu yerel
+metre düzlemine izdüşürülüp ekranda kurumsal dille çizilir (kuzey oku + ölçek
+çubuğu). Poligon alanı tapu alanıyla karşılaştırılır (örnek parselde sapma %0,17).
+Tek tip çekme mesafesi girilirse poligon içeri ötelenerek çekme sonrası oturabilir
+alan hesaplanır; TAKS/KAKS yolunda TAKS oturumuyla çapraz kontrol uyarısı verilir
+(bilgi amaçlı — hesap motoru değişmedi). Rapor PDF'ine "PARSEL KROKİSİ" bölümü
+eklendi. Tüm işlem cihazda, çevrimdışı; dosya hiçbir yere gönderilmez. Kenar bazlı
+(ön/yan/arka) çekme ayrımı sonraki dilimde.
+
 **v5.2.0 (2026.07.23)** — Düzeltme turu. **İngilizce dil desteği:** üst bardaki
 🌐 düğmesiyle tüm ekranlar ve Rapor PDF/Excel/JPEG çıktıları İngilizce üretilir;
 sayı ve tarih biçimleri de dile uyar (1,372,611,800). Kullanıcı girdileri ve resmi

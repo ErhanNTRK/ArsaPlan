@@ -15,12 +15,24 @@
 export type AssetType = 'konut' | 'ticari' | 'karma';
 export type HousingType = 'villa' | 'apartman-3-8' | 'site';
 
+/** KML'den okunan parsel geometrisi — yalnız kroki ve çapraz kontrol içindir. */
+export interface ParcelKml {
+  name: string;
+  points: { x: number; y: number }[];
+  polygonArea: number;
+  deedArea: number;
+  /** Tek tip çekme mesafesi (m); 0 = hesaplanmaz */
+  setback: number;
+}
+
 export interface Parcel {
   il: string; ilce: string; mahalle: string; ada: string; parsel: string;
   /** Tapu alanı (m²) */
   area: number;
   /** Terk/DOP sonrası net parsel alanı (m²) */
   netArea: number;
+  /** Opsiyonel: TKGM KML poligonu */
+  kml?: ParcelKml | null;
 }
 
 /** 'taks-kaks' → katsayılardan hesaplanır · 'dogrudan' → alanlar elle girilir */

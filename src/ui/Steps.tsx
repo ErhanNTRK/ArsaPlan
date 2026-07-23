@@ -5,6 +5,8 @@ import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields
 import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
 import { Step3Isletme, Step4Isletme } from './StepsIsletme';
 import { LOC } from '../i18n';
+import { parseKml, inwardOffset, polygonArea } from '../geo/kml';
+import { ParcelSketch } from './ParcelSketch';
 
 export type Upd = <K extends keyof ProjectInput>(key: K, patch: Partial<ProjectInput[K]>) => void;
 export type SetTop = <K extends keyof ProjectInput>(key: K, value: ProjectInput[K]) => void;
@@ -124,6 +126,69 @@ export function Step2({ input, upd, setTop }: P) {
           </div>
         )}
       </div>
+
+      <div className="card">
+        <div className="card-title">Parsel Krokisi — KML (opsiyonel)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          TKGM Parsel Sorgu'dan indirilen .kml dosyasını yükleyin: künye bilgileri
+          doldurulur, parsel şekli çizilir ve tapu alanı poligonla karşılaştırılır.
+          Dosya cihazınızda işlenir, hiçbir yere gönderilmez.
+        </div>
+        <label className="link-btn" style={{ display: 'inline-block' }}>
+          📐 KML Dosyası Yükle
+          <input type="file" accept=".kml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
+                 onChange={(e) => {
+                   const f = e.target.files?.[0];
+                   e.target.value = '';
+                   if (!f) return;
+                   const rd = new FileReader();
+                   rd.onload = () => {
+                     const k = parseKml(String(rd.result));
+                     if (!k) { window.alert('KML okunamadı: dosyada parsel poligonu bulunamadı.'); return; }
+                     const patch: Record<string, unknown> = {
+                       kml: { name: k.name, points: k.points, polygonArea: k.polygonArea, deedArea: k.deedArea, setback: p.kml?.setback ?? 0 },
+                     };
+                     const fill = window.confirm('Künye bilgileri (il, ilçe, mahalle, ada, parsel, alan) KML\'den doldurulsun mu? Mevcut girişlerin üzerine yazılır.');
+                     if (fill) {
+                       Object.assign(patch, {
+                         il: k.il || p.il, ilce: k.ilce || p.ilce, mahalle: k.mahalle || p.mahalle,
+                         ada: k.ada || p.ada, parsel: k.parsel || p.parsel,
+                       });
+                       if (k.deedArea > 0) Object.assign(patch, { area: k.deedArea });
+                     }
+                     upd('parcel', patch);
+                   };
+                   rd.readAsText(f);
+                 }} />
+        </label>
+        {p.kml && p.kml.points.length >= 3 && (
+          <>
+            <div className="grid-2" style={{ marginTop: 12 }}>
+              <Field label="Çekme Mesafesi (tüm kenarlar)"
+                     hint="Şimdilik tek tip; kenar bazlı (ön/yan/arka) ayrım sonraki turda.">
+                <Num value={p.kml.setback} step="0.5" suffix="m"
+                     onChange={(v) => upd('parcel', { kml: { ...p.kml!, setback: v } })} />
+              </Field>
+              <Field label="Alan Karşılaştırması">
+                <div className="static-value">
+                  {(() => {
+                    const dev = p.area > 0 ? Math.abs(p.kml!.polygonArea - p.area) / p.area * 100 : 0;
+                    return p.area > 0
+                      ? `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · tapu ${p.area.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m² · sapma %${dev.toFixed(2).replace('.', ',')}`
+                      : `Poligon ${p.kml!.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`;
+                  })()}
+                </div>
+              </Field>
+            </div>
+            <ParcelSketch kml={p.kml} />
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="link-btn" onClick={() => upd('parcel', { kml: null })}>
+                ✕ KML'yi kaldır
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -170,6 +235,29 @@ function Step3Villa({ input, upd }: P) {
           <div className="grid-3">
             <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
             <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+            {(() => {
+              const k = input.parcel.kml;
+              if (!k || k.setback <= 0 || z.mode !== 'taks-kaks' || !z.taks) return null;
+              const inner = inwardOffset(k.points, k.setback);
+              if (!inner) return null;
+              const base = (input.parcel.netArea || input.parcel.area);
+              const taksFoot = base * z.taks;
+              const setFoot = polygonArea(inner);
+              if (setFoot >= taksFoot) return (
+                <div className="note-box" style={{ marginTop: 10 }}>
+                  Çekme kontrolü: çekme sonrası oturum <b>{setFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b> ≥
+                  TAKS oturumu <b>{taksFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b> — belirleyici olan TAKS'tır.
+                </div>
+              );
+              return (
+                <div className="warn-box" style={{ marginTop: 10 }}>
+                  ⚠ Çekme kontrolü: çekme sonrası oturabilir alan <b>{setFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b>,
+                  TAKS oturumundan (<b>{taksFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b>) küçük.
+                  Fiili taban oturumu çekme mesafeleriyle sınırlı olabilir; kat alanlarını buna göre gözden geçirin.
+                  (Bilgi amaçlıdır; hesap motoru TAKS değerini kullanır.)
+                </div>
+              );
+            })()}
             <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
           </div>
         ) : (

@@ -11,6 +11,7 @@ import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG, DORA_LOGO_W, DORA_LOGO_H } from '../brand/logo';
 import { triggerDownload } from './excel';
 import { fxLines, fxMoney, fxRateNote } from './fx';
+import { inwardOffset, polygonArea } from '../geo/kml';
 import { LOC, t } from '../i18n';
 
 /* ── Kurumsal palet ── */
@@ -187,6 +188,57 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   }
 
   /* ── Kat tablosu ── */
+  /** PARSEL KROKİSİ — KML poligonu + çekme sonrası oturum (varsa) */
+  function parcelSketch() {
+    const k = p.kml;
+    if (!k || k.points.length < 3) return;
+    const xs = k.points.map((q) => q.x), ys = k.points.map((q) => q.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+    const BW = W - 8;                                  // kutu iç genişliği
+    const BH = Math.min(78, Math.max(45, BW * (spanY / spanX)));
+    if (y + BH + 22 > 275) { doc.addPage(); y = 18; }
+    section('PARSEL KROKİSİ');
+    const bx = M + 4, by = y + 2;
+    const sc = Math.min((BW - 12) / spanX, (BH - 12) / spanY);
+    const SX = (x: number) => bx + 6 + (x - minX) * sc + (BW - 12 - spanX * sc) / 2;
+    const SY = (yy: number) => by + BH - 6 - (yy - minY) * sc - (BH - 12 - spanY * sc) / 2;
+    // çerçeve
+    doc.setDrawColor(...LINE); doc.setFillColor(253, 252, 250);
+    doc.roundedRect(M, by - 2, W, BH + 4, 1.5, 1.5, 'FD');
+    // parsel
+    const draw = (ps: { x: number; y: number }[], fill: [number, number, number], stroke: [number, number, number], dash: boolean) => {
+      doc.setFillColor(...fill); doc.setDrawColor(...stroke); doc.setLineWidth(0.5);
+      if (dash) doc.setLineDashPattern([1.6, 1.1], 0);
+      const segs = ps.map((q, i) => {
+        const nx = SX(ps[(i + 1) % ps.length].x) - SX(q.x);
+        const ny = SY(ps[(i + 1) % ps.length].y) - SY(q.y);
+        return [nx, ny] as [number, number];
+      });
+      doc.lines(segs, SX(ps[0].x), SY(ps[0].y), [1, 1], 'FD', true);
+      if (dash) doc.setLineDashPattern([], 0);
+      doc.setLineWidth(0.2);
+    };
+    draw(k.points, [237, 240, 245], NAVY, false);
+    const inner = k.setback > 0 ? inwardOffset(k.points, k.setback) : null;
+    if (inner) draw(inner, [243, 235, 219], GOLD, true);
+    // kuzey oku
+    const nx0 = M + W - 7, ny0 = by + 6;
+    doc.setFillColor(...NAVY);
+    doc.triangle(nx0, ny0 - 3.2, nx0 + 1.9, ny0 + 2.6, nx0 - 1.9, ny0 + 2.6, 'F');
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
+    doc.text('K', nx0, ny0 + 6.4, { align: 'center' });
+    // lejant satırı
+    y = by + BH + 6;
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+    const parts = [`${t('Parsel sınırı')}: ${k.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`];
+    if (inner) parts.push(`${t('Çekme sonrası oturum')} (${k.setback.toLocaleString(LOC())} m): ${polygonArea(inner).toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`);
+    if (p.area > 0) parts.push(`${t('Tapu alanına sapma')}: %${(Math.abs(k.polygonArea - p.area) / p.area * 100).toFixed(2).replace('.', LOC() === 'tr-TR' ? ',' : '.')}`);
+    doc.text(parts.join('  ·  '), M + 3, y);
+    y += 7;
+  }
+
   function floorTable() {
     if (!apt) return;
     const h = 6.4;
@@ -345,6 +397,8 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
   }
   y += 4;
+
+  parcelSketch();
 
   if (apt) {
     section('KAT TABLOSU');

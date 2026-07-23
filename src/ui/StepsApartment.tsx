@@ -12,6 +12,8 @@ import { computeApartment, floorsFromHmax } from '../engine';
 import { LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL } from './fields';
 import type { Upd, SetTop } from './Steps';
+import { LOC } from '../i18n';
+import { inwardOffset, polygonArea } from '../geo/kml';
 
 interface P { input: ProjectInput; upd: Upd; setTop: SetTop; karma?: boolean; }
 
@@ -83,6 +85,29 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             <div className="grid-3">
               <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
               <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+            {(() => {
+              const k = input.parcel.kml;
+              if (!k || k.setback <= 0 || z.mode !== 'taks-kaks' || !z.taks) return null;
+              const inner = inwardOffset(k.points, k.setback);
+              if (!inner) return null;
+              const base = (input.parcel.netArea || input.parcel.area);
+              const taksFoot = base * z.taks;
+              const setFoot = polygonArea(inner);
+              if (setFoot >= taksFoot) return (
+                <div className="note-box" style={{ marginTop: 10 }}>
+                  Çekme kontrolü: çekme sonrası oturum <b>{setFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b> ≥
+                  TAKS oturumu <b>{taksFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b> — belirleyici olan TAKS'tır.
+                </div>
+              );
+              return (
+                <div className="warn-box" style={{ marginTop: 10 }}>
+                  ⚠ Çekme kontrolü: çekme sonrası oturabilir alan <b>{setFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b>,
+                  TAKS oturumundan (<b>{taksFoot.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b>) küçük.
+                  Fiili taban oturumu çekme mesafeleriyle sınırlı olabilir; kat alanlarını buna göre gözden geçirin.
+                  (Bilgi amaçlıdır; hesap motoru TAKS değerini kullanır.)
+                </div>
+              );
+            })()}
               <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
             </div>
             <div className="mini-kpi">
