@@ -31,7 +31,7 @@
  *
  * engine klasörü saf TypeScript'tir: React bilmez, DOM'a dokunmaz.
  */
-import { setbackFootprint } from '../geo/kml';
+import { setbackFootprint, outwardOffset, classifyEdges, polygonArea } from '../geo/kml';
 import type {
   Parcel, Zoning, ApartmentInput, ApartmentCapacity, AptFloor, AptFloorKind,
 } from './types';
@@ -47,6 +47,122 @@ export function floorsFromHmax(hmax: number | null): number | null {
 
 const ord = (i: number) => `${i}.`;
 
+function computeCekme(
+  parcel: Parcel, zoning: Zoning, apt: ApartmentInput,
+  variant: 'konut' | 'karma', warnings: string[],
+): ApartmentCapacity {
+  const k = parcel.kml;
+  let footprintArea = 0;
+  let fpPoly: { x: number; y: number }[] | null = null;
+  if (k && k.points.length >= 3 && zoning.cekmeFrontEdge != null) {
+    const fp = setbackFootprint(k.points, zoning.cekmeFrontEdge,
+      { front: zoning.cekmeFront, side: zoning.cekmeSide, rear: zoning.cekmeRear });
+    if (fp) { footprintArea = fp.area; fpPoly = fp.polygon; }
+    else warnings.push('Çekme mesafeleri bu parsel şekline uygulanamadı; oturum hesaplanamıyor.');
+  } else {
+    warnings.push('Çekme yöntemi için KML poligonu ve ön cephe seçimi gereklidir.');
+  }
+
+  /* Çıkmalar → normal kat alanı (oturum poligonunun cephelere göre dışa ötelenmesi) */
+  const cOn = Math.max(0, apt.cikmaOn ?? 0);
+  const cArka = Math.max(0, apt.cikmaArka ?? 0);
+  const cYan = Math.max(0, apt.cikmaYan ?? 0);
+  let normalBaseArea = footprintArea;
+  if (fpPoly && k && zoning.cekmeFrontEdge != null && (cOn > 0 || cArka > 0 || cYan > 0)) {
+    const classes = classifyEdges(k.points, zoning.cekmeFrontEdge);
+    // Oturum poligonu kenar sırası orijinal poligonla aynıdır (hat kesişimi korur)
+    const dists = classes.map((c) => (c === 'front' ? cOn : c === 'rear' ? cArka : cYan));
+    const grown = outwardOffset(fpPoly, dists);
+    if (grown) normalBaseArea = polygonArea(grown);
+    else warnings.push('Çıkma mesafeleri geometriye uygulanamadı; normal kat alanı oturuma eşit alındı.');
+  }
+
+  const lossNormal = Math.max(0, apt.cekmeNormalLossRate ?? 0.07);
+  const lossPiyes = Math.max(0, apt.cekmePiyesLossRate ?? 0.07);
+
+  /* Kat sayısı: Hmax'tan (zemin dahil) → normal = kat − 1; elle aşılırsa uyarı */
+  const hmaxFloors = floorsFromHmax(zoning.hmax);
+  const suggestedNormals = hmaxFloors != null ? Math.max(0, hmaxFloors - 1) : 3;
+  const normalCount = Math.max(0, Math.min(40, apt.normalCount ?? suggestedNormals));
+  if (hmaxFloors != null && normalCount > suggestedNormals) {
+    warnings.push(`Hmax ${zoning.hmax!.toLocaleString('tr-TR')} m için önerilen üst kat sayısı ${suggestedNormals}; girilen ${normalCount} kat Hmax ile uyumsuz olabilir.`);
+  }
+
+  const basementCount = Math.max(0, Math.min(4, apt.basementCount));
+  const floors: AptFloor[] = [];
+
+  /* Bodrumlar */
+  for (let i = basementCount; i >= 1; i--) {
+    const b = apt.basements[i - 1] ?? { use: 'konut', area: null, lossRate: 0.07, saleable: null };
+    const area = R(Math.max(0, b.area ?? footprintArea));
+    const saleable = b.use === 'ortak' ? 0
+      : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
+    floors.push({
+      kind: 'bodrum', index: i,
+      label: `${ord(i)} Bodrum Kat` + (variant === 'karma' && b.use !== 'ortak' ? ` (${b.use})` : ''),
+      area, saleable, autoArea: b.area == null, autoSaleable: b.use === 'ortak' || b.saleable == null,
+    });
+  }
+
+  /* Zemin */
+  const zArea = R(Math.max(0, apt.zeminArea ?? footprintArea));
+  const zSaleable = R(Math.max(0, apt.zeminSaleable ?? zArea * (1 - Math.max(0, apt.zeminLossRate))));
+  floors.push({
+    kind: 'zemin', index: 0,
+    label: variant === 'karma' ? 'Zemin Kat (ticari)' : 'Zemin Kat',
+    area: zArea, saleable: zSaleable,
+    autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
+  });
+
+  /* Normal katlar — çıkmalı alanla başlar */
+  for (let j = 1; j <= normalCount; j++) {
+    const area = R(Math.max(0, apt.normalAreas[j - 1] ?? normalBaseArea));
+    const saleable = R(Math.max(0, apt.normalSaleables[j - 1] ?? area * (1 - lossNormal)));
+    floors.push({
+      kind: 'normal', index: j, label: `${ord(j)} Normal Kat`,
+      area, saleable,
+      autoArea: apt.normalAreas[j - 1] == null, autoSaleable: apt.normalSaleables[j - 1] == null,
+    });
+  }
+
+  /* Çatı katı */
+  if (apt.hasPiyes) {
+    const pArea = R(Math.max(0, apt.piyesArea ?? normalBaseArea * Math.max(0, apt.piyesRate)));
+    const pSaleable = R(Math.max(0, apt.piyesSaleable ?? pArea * (1 - lossPiyes)));
+    floors.push({
+      kind: 'piyes', index: 0, label: 'Çatı Arası Piyesi',
+      area: pArea, saleable: pSaleable,
+      autoArea: apt.piyesArea == null, autoSaleable: apt.piyesSaleable == null,
+    });
+  }
+
+  const totalArea = R(floors.reduce((s, f) => s + f.area, 0));
+  const saleableTotal = R(floors.reduce((s, f) => s + f.saleable, 0));
+  const byKind = (fn: (f: AptFloor) => number) => {
+    const o: Record<AptFloorKind, number> = { bodrum: 0, zemin: 0, asma: 0, normal: 0, piyes: 0 };
+    for (const f of floors) o[f.kind] = R(o[f.kind] + fn(f));
+    return o;
+  };
+
+  const bodrumSaleableByUse = { konut: 0, ticari: 0 };
+  for (let i = 1; i <= basementCount; i++) {
+    const b = apt.basements[i - 1];
+    const fl = floors.find((f) => f.kind === 'bodrum' && f.index === i);
+    if (b && fl && b.use !== 'ortak') bodrumSaleableByUse[b.use] = R(bodrumSaleableByUse[b.use] + fl.saleable);
+  }
+
+  return {
+    mode: 'cekme', footprintArea: R(footprintArea), emsalArea: 0,
+    extraSaleableArea: 0, saleablePool: 0, poolRemainder: 0,
+    floors, totalArea, saleableTotal,
+    saleableByKind: byKind((f) => f.saleable), areaByKind: byKind((f) => f.area),
+    bodrumSaleableByUse, normalFloorCount: normalCount,
+    derivedFloorsFromHmax: hmaxFloors,
+    gardenArea: Math.max(0, parcel.netArea - footprintArea),
+    warnings,
+  };
+}
+
 export function computeApartment(
   parcel: Parcel, zoning: Zoning, apt: ApartmentInput,
   /** 'karma' → zemin ticari etiketi, bodrum kullanım etiketleri, asma kat aktif */
@@ -54,22 +170,13 @@ export function computeApartment(
 ): ApartmentCapacity {
   const warnings: string[] = [];
 
-  /* ── 'cekme' modu normalize ──
-     KML poligonu + ön/yan/arka mesafelerden oturum hesaplanır ve efektif TAKS'a
-     çevrilir; motorun geri kalanı hiç değişmeden taks-kaks yolunda çalışır. */
+  /* ═══════════ ÇEKME MESAFESİ — havuzsuz, oturum tabanlı kurgu ═══════════
+     Belediye imar durumu mantığı: bitişik nizam + Hmax + ön/yan/arka bahçe.
+     Emsal (KAKS) havuzu YOKTUR. Oturum çekmeden hesaplanır; zemin ve bodrumlar
+     oturumla başlar, normal katlar çıkmalı alanla başlar, kat sayısı Hmax'tan
+     türetilir. Her hücre elle değiştirilebilir; satılabilir = alan × (1 − oran). */
   if (zoning.mode === 'cekme') {
-    const base = parcel.netArea || parcel.area;
-    const k = parcel.kml;
-    let taksEff: number | null = null;
-    if (k && k.points.length >= 3 && zoning.cekmeFrontEdge != null && base > 0) {
-      const fp = setbackFootprint(k.points, zoning.cekmeFrontEdge,
-        { front: zoning.cekmeFront, side: zoning.cekmeSide, rear: zoning.cekmeRear });
-      if (fp) taksEff = fp.area / base;
-      else warnings.push('Çekme mesafeleri bu parsel şekline uygulanamadı; oturum hesaplanamıyor.');
-    } else {
-      warnings.push('Çekme yöntemi için KML poligonu ve ön cephe seçimi gereklidir.');
-    }
-    zoning = { ...zoning, mode: 'taks-kaks', taks: taksEff };
+    return computeCekme(parcel, zoning, apt, variant, warnings);
   }
 
   const direct = zoning.mode === 'dogrudan';

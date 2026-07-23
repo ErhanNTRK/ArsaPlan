@@ -11,7 +11,7 @@ import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG, DORA_LOGO_W, DORA_LOGO_H } from '../brand/logo';
 import { triggerDownload } from './excel';
 import { fxLines, fxMoney, fxRateNote } from './fx';
-import { inwardOffset, polygonArea, setbackFootprint } from '../geo/kml';
+import { inwardOffset, setbackFootprint } from '../geo/kml';
 import { LOC, t } from '../i18n';
 
 /* ── Kurumsal palet ── */
@@ -223,17 +223,12 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     draw(k.points, [237, 240, 245], NAVY, false);
     const zc = input.zoning;
     let inner: { x: number; y: number }[] | null = null;
-    let innerNote = '';
     if (zc.mode === 'cekme' && zc.cekmeFrontEdge != null) {
       const fp = setbackFootprint(k.points, zc.cekmeFrontEdge,
         { front: zc.cekmeFront, side: zc.cekmeSide, rear: zc.cekmeRear });
-      if (fp) {
-        inner = fp.polygon;
-        innerNote = `${t('Çekme sonrası oturum')} (${t('ön')} ${zc.cekmeFront.toLocaleString(LOC())} · ${t('yan')} ${zc.cekmeSide.toLocaleString(LOC())} · ${t('arka')} ${zc.cekmeRear.toLocaleString(LOC())} m): ${fp.area.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`;
-      }
+      if (fp) inner = fp.polygon;
     } else if (k.setback > 0) {
       inner = inwardOffset(k.points, k.setback);
-      if (inner) innerNote = `${t('Çekme sonrası oturum')} (${k.setback.toLocaleString(LOC())} m): ${polygonArea(inner).toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`;
     }
     if (inner) draw(inner, [243, 235, 219], GOLD, true);
     // kuzey oku
@@ -245,9 +240,10 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     // lejant satırı
     y = by + BH + 6;
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
-    const parts = [`${t('Parsel sınırı')}: ${k.polygonArea.toLocaleString(LOC(), { maximumFractionDigits: 1 })} m²`];
-    if (innerNote) parts.push(innerNote);
-    if (p.area > 0) parts.push(`${t('Tapu alanına sapma')}: %${(Math.abs(k.polygonArea - p.area) / p.area * 100).toFixed(2).replace('.', LOC() === 'tr-TR' ? ',' : '.')}`);
+    const parts = [`${t('Parsel Alanı')}: ${p.area.toLocaleString(LOC(), { maximumFractionDigits: 2 })} m²`];
+    if (input.zoning.mode === 'cekme') {
+      parts.push(`${t('Çekme')}: ${t('ön')} ${input.zoning.cekmeFront.toLocaleString(LOC())} · ${t('yan')} ${input.zoning.cekmeSide.toLocaleString(LOC())} · ${t('arka')} ${input.zoning.cekmeRear.toLocaleString(LOC())} m`);
+    }
     doc.text(parts.join('  ·  '), M + 3, y);
     y += 7;
   }
@@ -289,12 +285,15 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       : kind === 'zemin' || kind === 'asma' ? [243, 235, 219]
       : kind === 'piyes' ? [237, 240, 245]
       : [231, 237, 244];
+    const maxA = Math.max(...rows.map((r) => r.area), 1);
+    const propW = (a: number) => a > 0 ? Math.max(BW2 * 0.22, BW2 * (a / maxA)) : BW2;
     doc.setLineWidth(0.35); doc.setDrawColor(...NAVY);
-    // zemin üstü (ters sırayla çiz: piyes en üstte)
+    // zemin üstü (ters sırayla çiz: piyes en üstte) — genişlik kat alanıyla orantılı
     above.forEach((r, i) => {
       const yy = groundY - (i + 1) * FH;
-      const wdt = r.kind === 'asma' ? BW2 * 0.62 : BW2;
-      const xx = r.kind === 'asma' ? bx + (BW2 - wdt) : bx;
+      const base = propW(r.area);
+      const wdt = r.kind === 'asma' ? base * 0.62 : base;
+      const xx = bx + (BW2 - wdt) / 2 + (r.kind === 'asma' ? (BW2 - wdt) / 2 * 0.5 : 0);
       doc.setFillColor(...fill(r.kind));
       if (r.kind === 'piyes') {
         // çatı trapezi
@@ -314,15 +313,13 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     // bodrumlar (zemin altı, taralı görünüm için gri)
     below.forEach((r, i) => {
       const yy = groundY + i * FH;
+      const wdt = propW(r.area);
       doc.setFillColor(...fill('bodrum'));
-      doc.rect(bx, yy, BW2, FH, 'FD');
+      doc.rect(bx + (BW2 - wdt) / 2, yy, wdt, FH, 'FD');
       doc.setFont('NTRK', 'normal'); doc.setFontSize(6.9); doc.setTextColor(...GRAY);
       doc.text(`${t(r.label)}${r.area > 0 ? ` · ${Math.round(r.area).toLocaleString(LOC())} m²` : ''}`, bx + BW2 + 6, yy + FH - 1.4);
     });
-    y = groundY + below.length * FH + 6;
-    doc.setFont('NTRK', 'normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
-    doc.text(t('Temsili şematik kesittir; mimari proje yerine geçmez.'), M + 3, y);
-    y += 7;
+    y = groundY + below.length * FH + 8;
   }
 
   function floorTable() {
@@ -480,7 +477,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   row('Hesap Yöntemi', input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan');
   if (input.zoning.mode === 'cekme') {
     row('Bahçe Mesafeleri (ön/yan/arka)', `${input.zoning.cekmeFront.toLocaleString(LOC())} / ${input.zoning.cekmeSide.toLocaleString(LOC())} / ${input.zoning.cekmeRear.toLocaleString(LOC())} m`);
-    if (input.zoning.kaks != null) row('KAKS', num2(input.zoning.kaks));
+    if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
   }
   if (input.zoning.mode === 'taks-kaks') {
     row('TAKS / KAKS', `${input.zoning.taks != null ? num2(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? num2(input.zoning.kaks) : '—'}`);

@@ -274,6 +274,9 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 .floor-cell { display: flex; align-items: center; gap: 4px; }
 .floor-cell input { padding: 8px 26px 8px 8px; font-size: 14px; }
 .floor-cell .suffix { font-size: 11px; }
+.rate-mini { display: inline-block; width: 74px; margin-right: 6px; }
+.rate-mini input { padding: 6px 6px; font-size: 12.5px; }
+
 .floor-fixed { font-size: 12.5px; color: var(--text-3); }
 .cell-reset {
   border: none; background: none; color: var(--navy, #0F2A47); cursor: pointer;

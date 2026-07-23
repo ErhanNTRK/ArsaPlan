@@ -58,6 +58,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
   const a = input.apartment;
   const c = computeApartment(input.parcel, z, a, karma ? 'karma' : 'konut');
   const taksKaks = z.mode === 'taks-kaks';
+  const cekmeMode = z.mode === 'cekme';
   const lejantOther = z.lejant === ' ' || (z.lejant !== '' && !LEJANTLAR.includes(z.lejant));
   const derived = floorsFromHmax(z.hmax);
   const setApt = (patch: Partial<ApartmentInput>) => upd('apartment', patch);
@@ -78,24 +79,50 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
           </Field>
         )}
         <Field label="Hesap Yöntemi">
-          <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
+          <Seg value={z.mode}
+               onChange={(m) => {
+                 upd('zoning', { mode: m });
+                 if (m === 'cekme') {
+                   setApt({ ...a, zeminLossRate: 0.10,
+                            basements: a.basements.map((b) => ({ ...b, lossRate: 0.07 })) });
+                 }
+               }}
                options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan Alan' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
         </Field>
         {z.mode === 'cekme' && (
           <>
             <div className="hint" style={{ marginBottom: 8 }}>
-              Bina oturumu KML parsel şekli ve bahçe mesafelerinden hesaplanır; zemin ve
-              bodrum kat alanları bu oturumdan türetilir. KAKS emsal havuzu için yine
-              gereklidir. Ön cephe sağdaki krokiden seçilir.
+              Belediye imar durumu kurgusu: oturum, KML parsel şekli ve bahçe
+              mesafelerinden hesaplanıp <b>zemin kata yazılır</b>; bodrumlar da bu alanla
+              başlar. Kat sayısı Hmax'tan türetilir; kat tablosunda her hücre elle
+              değiştirilebilir. Emsal (KAKS) bu yöntemde kullanılmaz. Ön cephe sağdaki
+              krokiden seçilir.
+            </div>
+            <div className="grid-2">
+              <Field label="Hmax" hint="Kat sayısı buradan türetilir; elle kat eklenirse uyarı verilir.">
+                <Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" />
+              </Field>
+              <span />
             </div>
             <div className="grid-3">
               <Field label="Ön Bahçe"><Num value={z.cekmeFront} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeFront: v })} /></Field>
               <Field label="Yan Bahçe"><Num value={z.cekmeSide} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeSide: v })} /></Field>
               <Field label="Arka Bahçe"><Num value={z.cekmeRear} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeRear: v })} /></Field>
             </div>
-            <div className="grid-2">
-              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
-              <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
+            <div className="grid-3">
+              <Field label="Çıkma — Ön" hint="0 = çıkma yok">
+                <Num value={a.cikmaOn ?? 0} step="0.1" suffix="m" onChange={(v) => setApt({ ...a, cikmaOn: v })} />
+              </Field>
+              <Field label="Çıkma — Arka" hint="0 = çıkma yok">
+                <Num value={a.cikmaArka ?? 0} step="0.1" suffix="m" onChange={(v) => setApt({ ...a, cikmaArka: v })} />
+              </Field>
+              <Field label="Çıkma — Yan" hint="Her iki yana uygulanır">
+                <Num value={a.cikmaYan ?? 0} step="0.1" suffix="m" onChange={(v) => setApt({ ...a, cikmaYan: v })} />
+              </Field>
+            </div>
+            <div className="hint">
+              Çıkmalar yalnızca <b>normal kat</b> alanını büyütür: oturum poligonu ilgili
+              cephelerden dışa ötelenir (örn. 12×10 oturum, ön 1 + arka 1 + yan 1 → 14×12).
             </div>
             {(!input.parcel.kml || input.parcel.kml.points.length < 3) && (
               <div className="warn-box">⚠ Çekme Mesafesi yöntemi için Taşınmaz adımında KML dosyası yüklenmelidir.</div>
@@ -247,19 +274,19 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         )}
 
         <Field label="Normal Kat Sayısı"
-               hint={taksKaks && derived != null
-                 ? `Hmax'tan otomatik: ${derived - 1} normal kat · elle değiştirilebilir, üst sınır yoktur`
+               hint={(taksKaks || cekmeMode) && derived != null
+                 ? `Hmax'tan otomatik: ${derived - 1} normal kat · elle değiştirilebilir${cekmeMode ? '; Hmax aşılırsa uyarı verilir' : ', üst sınır yoktur'}`
                  : 'Üst sınır yoktur'}>
           <Num value={c.normalFloorCount}
                onChange={(v) => setApt({ normalCount: v > 0 ? Math.round(v) : null })} suffix="kat" />
         </Field>
-        {taksKaks && a.normalCount != null && derived != null && a.normalCount !== derived - 1 && (
+        {(taksKaks || cekmeMode) && a.normalCount != null && derived != null && a.normalCount !== derived - 1 && (
           <button type="button" className="link-btn" onClick={() => setApt({ normalCount: null })}>
             Hmax türetimine dön ({derived - 1} normal kat)
           </button>
         )}
 
-        {karma && (
+        {karma && !cekmeMode && (
           <>
             <Field label="Asma Kat var mı?"
                    hint="Zemin katın ticari uzantısı · genelde 1 adet olur">
@@ -311,7 +338,13 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
       {/* ── KAT TABLOSU ── */}
       <div className="card">
         <div className="card-title">{taksKaks ? '4' : '3'} · Kat Tablosu</div>
-        {taksKaks ? (
+        {cekmeMode ? (
+          <div className="hint" style={{ marginBottom: 10 }}>
+            Zemin ve bodrumlar çekme oturumuyla, normal katlar çıkmalı alanla başlar.
+            Yüzde kutusu kayıp oranıdır (satılabilir = alan × (1 − oran)); alan ve
+            satılabilir hücreleri ayrıca elle yazılabilir, ↺ otomatiğe döndürür.
+          </div>
+        ) : taksKaks ? (
           <div className="hint" style={{ marginBottom: 10 }}>
             Değerler imar haklarından otomatik türetilmiştir; her hücre elle değiştirilebilir.
             Elle girilenler sabit kalır, kalan alan otomatik satırlara dağıtılır.
@@ -343,6 +376,21 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                     <span className="floor-fixed">0 m² · ortak mahal</span>
                   ) : (
                     <>
+                      {cekmeMode && (
+                        <span className="rate-mini" title="Kayıp oranı · satılabilir = alan × (1 − oran)">
+                          <Pct value={
+                            f.kind === 'zemin' ? a.zeminLossRate
+                            : f.kind === 'bodrum' ? (a.basements[f.index - 1]?.lossRate ?? 0.07)
+                            : f.kind === 'piyes' ? (a.cekmePiyesLossRate ?? 0.07)
+                            : (a.cekmeNormalLossRate ?? 0.07)}
+                               onChange={(n) => {
+                                 if (f.kind === 'zemin') setApt({ zeminLossRate: n, zeminSaleable: null });
+                                 else if (f.kind === 'bodrum') setApt({ basements: a.basements.map((b, i) => i === f.index - 1 ? { ...b, lossRate: n, saleable: null } : b) });
+                                 else if (f.kind === 'piyes') setApt({ cekmePiyesLossRate: n, piyesSaleable: null });
+                                 else setApt({ cekmeNormalLossRate: n, normalSaleables: a.normalSaleables.map(() => null) });
+                               }} />
+                        </span>
+                      )}
                       <Num value={f.saleable}
                            onChange={(n) => setApt(patchFloor(a, f, 'saleable', n))} suffix="m²" />
                       {canReset(z.mode, f, f.autoSaleable) && (

@@ -57,7 +57,7 @@ export function Pct({ value, onChange }: { value: number; onChange: (v: number) 
         type="number"
         inputMode="decimal"
         step="0.5"
-        value={value === 0 ? '' : String(Math.round(value * 1000) / 10)}
+        value={String(Math.round(value * 1000) / 10)}
         onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value) / 100)}
       />
       <span className="suffix">%</span>

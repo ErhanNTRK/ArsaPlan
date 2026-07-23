@@ -11,6 +11,22 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.5.0 (2026.07.23)** — Çekme yöntemi yeniden kurgusu + kesit/kroki düzeltmeleri.
+**Çekme Mesafesi artık havuzsuz, belediye imar durumu mantığında:** KAKS bu yöntemden
+kaldırıldı; Hmax + ön/yan/arka bahçe girilir, oturum çekmeden hesaplanıp zemine
+yazılır, bodrumlar aynı alanla başlar, kat sayısı Hmax'tan türetilir (elle
+aşılırsa uyarı). **Çıkmalar:** ön/arka/yan çıkma mesafeleri (varsayılan 0) yalnız
+normal kat alanını büyütür — oturum poligonu ilgili cephelerden dışa ötelenir
+(12×10 + ön1 + arka1 + yan1 → 14×12 kuralı birebir). **Kat tablosunda satır bazlı
+kayıp oranı kutuları:** zemin %10, normal %7, bodrum %7, çatı katı %7 varsayılan;
+hepsi elle değiştirilebilir, satılabilir = alan × (1 − oran), alan/satılabilir
+hücreleri ayrıca elle yazılabilir. Villa yolunda çekme seçeneği kaldırıldı (kat
+tablolu yollara özgüdür). **Yapı kesiti** kat genişlikleri artık alanla orantılı
+çizilir; "mimari proje yerine geçmez" notu kaldırıldı. **Kroki lejantı** sadeleşti:
+yalnız "Parsel Alanı: [tapu]" ve çekme modunda mesafeler. **Sıfır oranlar geçerli:**
+%0 kayıpla tüm alan satılabilir; yüzde kutuları 0'ı açıkça gösterir. Motorun
+TAKS/KAKS ve Doğrudan Alan yolları hiç değişmedi (121/121 test).
+
 **v5.4.0 (2026.07.23)** — Çekme Mesafesi yöntemi + yerleşim düzeni (Tur 3, dilim 2).
 **Adım düzeni:** Taşınmaz adımı iki sütun — solda proje tipi, sağda KML yükleme
 (künye artık otomatik doldurulur), altta taşınmaz bilgileri. İmar adımı iki sütun —

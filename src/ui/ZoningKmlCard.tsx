@@ -48,8 +48,7 @@ export function ZoningKmlCard({ input, upd }: {
             if (!fp) return null;
             return (
               <div className="note-box" style={{ marginTop: 10 }}>
-                Çekme sonrası bina oturumu: <b>{fp.area.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b>
-                {' '}(efektif TAKS {(fp.area / base).toFixed(2).replace('.', LOC() === 'tr-TR' ? ',' : '.')}) ·
+                Çekme sonrası bina oturumu: <b>{fp.area.toLocaleString(LOC(), { maximumFractionDigits: 0 })} m²</b> ·
                 zemin ve bodrum kat alanları bu oturumdan türetilir.
               </div>
             );

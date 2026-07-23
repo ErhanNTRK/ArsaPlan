@@ -219,28 +219,9 @@ function Step3Villa({ input, upd }: P) {
         )}
         <Field label="Hesap Yöntemi">
           <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
-               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan alan' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan alan' }]} />
         </Field>
-        {z.mode === 'cekme' && (
-          <>
-            <div className="hint" style={{ marginBottom: 8 }}>
-              Bina oturumu, KML parsel şekli ve bahçe mesafelerinden hesaplanır;
-              KAKS emsal havuzu için yine gereklidir. Ön cephe sağdaki krokiden seçilir.
-            </div>
-            <div className="grid-3">
-              <Field label="Ön Bahçe"><Num value={z.cekmeFront} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeFront: v })} /></Field>
-              <Field label="Yan Bahçe"><Num value={z.cekmeSide} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeSide: v })} /></Field>
-              <Field label="Arka Bahçe"><Num value={z.cekmeRear} step="0.5" suffix="m" onChange={(v) => upd('zoning', { cekmeRear: v })} /></Field>
-            </div>
-            <div className="grid-2">
-              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
-              <Field label="Hmax"><Num value={z.hmax ?? 0} onChange={(val) => upd('zoning', { hmax: val || null })} suffix="m" /></Field>
-            </div>
-            {(!input.parcel.kml || input.parcel.kml.points.length < 3) && (
-              <div className="warn-box">⚠ Çekme Mesafesi yöntemi için Taşınmaz adımında KML dosyası yüklenmelidir.</div>
-            )}
-          </>
-        )}
+
         {taksKaks ? (
           <div className="grid-3">
             <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>

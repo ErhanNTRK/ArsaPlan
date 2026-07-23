@@ -249,28 +249,72 @@ describe('Ticari İşletme — Salih\'in ahır örneği ve kurallar', () => {
   });
 });
 
-describe('Çekme Mesafesi yöntemi (motor normalize)', () => {
-  it('kare KML + ön5/yan3/arka3 → zemin oturumu 1088 m², emsal havuzu KAKS×parsele sadık', () => {
-    const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }];
-    const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1600, netArea: 1600,
-      kml: { name: 't', points: sq, polygonArea: 1600, deedArea: 1600, setback: 0 } };
-    const zoning = { mode: 'cekme' as const, lejant: '', taks: null, kaks: 1.5, hmax: null,
-      directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3,
-      cekmeFrontEdge: 0, planNotes: '' };
-    const c = computeApartment(parcel, zoning, APT_KARMA, 'karma');
+describe('Çekme Mesafesi yöntemi (havuzsuz, oturum tabanlı)', () => {
+  const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }];
+  const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1600, netArea: 1600,
+    kml: { name: 't', points: sq, polygonArea: 1600, deedArea: 1600, setback: 0 } };
+  const zoningCekme = { mode: 'cekme' as const, lejant: '', taks: null, kaks: null, hmax: 12.5,
+    directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3,
+    cekmeFrontEdge: 0, planNotes: '' };
+  const APT_CEKME: ApartmentInput = {
+    ...APT_KARMA,
+    basementCount: 1,
+    basements: [{ use: 'konut', area: null, lossRate: 0.07, saleable: null },
+                { use: 'ortak', area: null, lossRate: 0.07, saleable: null }],
+    zeminLossRate: 0.10, hasPiyes: false, asmaCount: 0, normalCount: null,
+    cikmaOn: 0, cikmaArka: 0, cikmaYan: 0,
+  };
+
+  it('golden: oturum 1088 zemine ve bodruma yazılır; KAKS havuzu yoktur', () => {
+    const c = computeApartment(parcel, zoningCekme, APT_CEKME, 'konut');
+    expect(c.footprintArea).toBeCloseTo(1088, 0);
+    expect(c.emsalArea).toBe(0);
+    expect(c.saleablePool).toBe(0);
     const zemin = c.floors.find((f) => f.kind === 'zemin')!;
+    const bodrum = c.floors.find((f) => f.kind === 'bodrum')!;
     expect(zemin.area).toBeCloseTo(1088, 0);
-    expect(c.emsalArea).toBeCloseTo(2400, 0);            // 1600 × 1.5
+    expect(bodrum.area).toBeCloseTo(1088, 0);
+    expect(zemin.saleable).toBeCloseTo(1088 * 0.90, 0);   // %10 kayıp
+    expect(bodrum.saleable).toBeCloseTo(1088 * 0.93, 0);  // %7 kayıp
   });
 
-  it('ön cephe seçilmemişse uyarı üretir ve oturum hesaplanmaz', () => {
-    const sq = [{ x: 0, y: 0 }, { x: 40, y: 0 }, { x: 40, y: 40 }, { x: 0, y: 40 }];
-    const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1600, netArea: 1600,
-      kml: { name: 't', points: sq, polygonArea: 1600, deedArea: 1600, setback: 0 } };
-    const zoning = { mode: 'cekme' as const, lejant: '', taks: null, kaks: 1.5, hmax: null,
-      directFootprint: 0, directEmsalArea: 0, cekmeFront: 5, cekmeSide: 3, cekmeRear: 3,
-      cekmeFrontEdge: null, planNotes: '' };
-    const c = computeApartment(parcel, zoning, APT_KARMA, 'karma');
+  it('golden: Hmax 12,50 → zemin + 3 normal kat; normal alan = oturum, satılabilir %93', () => {
+    const c = computeApartment(parcel, zoningCekme, APT_CEKME, 'konut');
+    expect(c.derivedFloorsFromHmax).toBe(4);
+    expect(c.normalFloorCount).toBe(3);
+    const n1 = c.floors.find((f) => f.kind === 'normal' && f.index === 1)!;
+    expect(n1.area).toBeCloseTo(1088, 0);
+    expect(n1.saleable).toBeCloseTo(1088 * 0.93, 0);
+  });
+
+  it("golden: çıkmalar ön1/arka1/yan1 → normal kat (34+2)×(32+2)=1224; Salih'in 12×10→14×12 kuralı", () => {
+    const c = computeApartment(parcel, zoningCekme, { ...APT_CEKME, cikmaOn: 1, cikmaArka: 1, cikmaYan: 1 }, 'konut');
+    const n1 = c.floors.find((f) => f.kind === 'normal' && f.index === 1)!;
+    expect(n1.area).toBeCloseTo(1224, 0);
+    expect(n1.saleable).toBeCloseTo(1224 * 0.93, 0);
+    const zemin = c.floors.find((f) => f.kind === 'zemin')!;
+    expect(zemin.area).toBeCloseTo(1088, 0);              // zemin çıkmadan etkilenmez
+  });
+
+  it('Hmax aşımı elle kat eklenirse uyarı üretir; hesap yine yapılır', () => {
+    const c = computeApartment(parcel, zoningCekme, { ...APT_CEKME, normalCount: 6 }, 'konut');
+    expect(c.normalFloorCount).toBe(6);
+    expect(c.warnings.some((w) => w.includes('Hmax') && w.includes('uyumsuz'))).toBe(true);
+  });
+
+  it('sıfır kayıp oranları geçerlidir: her şey satılabilir', () => {
+    const c = computeApartment(parcel, zoningCekme,
+      { ...APT_CEKME, zeminLossRate: 0, cekmeNormalLossRate: 0,
+        basements: [{ use: 'konut', area: null, lossRate: 0, saleable: null }] }, 'konut');
+    const zemin = c.floors.find((f) => f.kind === 'zemin')!;
+    const bodrum = c.floors.find((f) => f.kind === 'bodrum')!;
+    expect(zemin.saleable).toBeCloseTo(zemin.area, 6);
+    expect(bodrum.saleable).toBeCloseTo(bodrum.area, 6);
+  });
+
+  it('ön cephe seçilmemişse uyarı üretir ve oturum 0 kalır', () => {
+    const c = computeApartment(parcel, { ...zoningCekme, cekmeFrontEdge: null }, APT_CEKME, 'konut');
+    expect(c.footprintArea).toBe(0);
     expect(c.warnings.some((w) => w.includes('ön cephe') || w.includes('KML'))).toBe(true);
   });
 });

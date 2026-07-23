@@ -193,3 +193,31 @@ export function setbackFootprint(
   if (!poly) return null;
   return { polygon: poly, area: polygonArea(poly), classes };
 }
+
+/** Poligonu kenar-bazlı DIŞA öteler (çıkmalar). Geçersizse null. */
+export function outwardOffset(pts: { x: number; y: number }[], d: number[]): { x: number; y: number }[] | null {
+  const n = pts.length;
+  if (n < 3 || d.every((v) => (v ?? 0) <= 0)) return null;
+  const lines: { p: { x: number; y: number }; dir: { x: number; y: number } }[] = [];
+  for (let i = 0; i < n; i++) {
+    const a = pts[i], b = pts[(i + 1) % n];
+    const dx = b.x - a.x, dy = b.y - a.y;
+    const len = Math.hypot(dx, dy);
+    if (len < 1e-9) return null;
+    const nx = dy / len, ny = -dx / len;             // CCW poligonda DIŞ normal
+    const di = Math.max(0, d[i] ?? 0);
+    lines.push({ p: { x: a.x + nx * di, y: a.y + ny * di }, dir: { x: dx / len, y: dy / len } });
+  }
+  const out: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const L1 = lines[(i - 1 + n) % n], L2 = lines[i];
+    const cross = L1.dir.x * L2.dir.y - L1.dir.y * L2.dir.x;
+    if (Math.abs(cross) < 1e-9) { out.push(L2.p); continue; }
+    const wx = L2.p.x - L1.p.x, wy = L2.p.y - L1.p.y;
+    const s = (wx * L2.dir.y - wy * L2.dir.x) / cross;
+    out.push({ x: L1.p.x + L1.dir.x * s, y: L1.p.y + L1.dir.y * s });
+  }
+  const a0 = polygonArea(pts), a1 = polygonArea(out);
+  if (!Number.isFinite(a1) || a1 <= a0) return null;
+  return out;
+}

@@ -150,6 +150,17 @@ export interface ApartmentInput {
   asmaAreas: (number | null)[];
   asmaSaleables: (number | null)[];
 
+  /* ── Çekme Mesafesi yöntemi (opsiyonel alanlar) ──
+   *  Çıkmalar cepheye göre dışa öteleme mesafesidir (m); normal kat alanını büyütür.
+   *  Kayıp oranları satılabilir = alan × (1 − oran) formülüyle uygulanır. */
+  cikmaOn?: number;
+  cikmaArka?: number;
+  cikmaYan?: number;
+  /** Normal kat kayıp oranı (varsayılan 0.07) */
+  cekmeNormalLossRate?: number;
+  /** Çatı katı kayıp oranı (varsayılan 0.07) */
+  cekmePiyesLossRate?: number;
+
   /** TAKS/KAKS: emsale dahil olmayan ama satılabilir ilave alan (Tip İmar Yön.) */
   hasExtraSaleable: boolean;
   extraMode: CalcMode;
