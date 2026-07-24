@@ -3,9 +3,11 @@ import type { ProjectInput } from './engine';
 import { analyze } from './engine';
 import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
 import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/Steps';
+import { Choice } from './ui/fields';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
+import HotelApp from './hotel/HotelApp';
 
 const VERSION = BRAND.version;
 const DRAFT_KEY = 'arsaplan-taslak-v7';
@@ -133,7 +135,8 @@ function loadDraft(): ProjectInput {
   }
 }
 
-export default function App() {
+/** ArsaPlan'ın mevcut "Arsa Gelir Projeksiyon Yöntemi" akışı — hiçbir satırı değiştirilmemiştir. */
+function ArsaApp() {
   const [step, setStep] = useState(1);
   const [input, setInput] = useState<ProjectInput>(loadDraft);
 
@@ -336,6 +339,9 @@ export default function App() {
             <p>{BRAND.tagline}</p>
           </div>
           <div className="topbar-actions no-print">
+            <button type="button" className="link-btn topbar-link"
+                    onClick={() => { try { localStorage.removeItem('arsaplan-mod-secimi'); } catch { /* kota */ } window.location.reload(); }}
+                    title="Yöntem seçim ekranına dön">← Başlangıç</button>
             <button type="button" className="link-btn topbar-link lang-toggle"
                     title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
                     onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
@@ -407,4 +413,70 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BAŞLANGIÇ EKRANI — İki yöntem arasında seçim
+   "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
+   "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
+   ═══════════════════════════════════════════════════════════════ */
+type AppMode = 'landing' | 'arsa' | 'otel';
+const MODE_KEY = 'arsaplan-mod-secimi';
+
+function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
+  return (
+    <div className="app">
+      <div className="topbar">
+        <div className="topbar-inner">
+          <div>
+            <h1>{BRAND.appName}</h1>
+            <p>{BRAND.tagline}</p>
+          </div>
+          <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+        </div>
+      </div>
+      <div className="step">
+        <div className="step-head">
+          <div className="step-eyebrow">Başlangıç</div>
+          <div className="step-title">Ne Hesaplamak İstiyorsunuz?</div>
+          <div className="step-desc">Aşağıdaki iki yöntemden birini seçerek analize başlayın.</div>
+        </div>
+        <div className="card">
+          <div className="card-title">Otel Gelir Hesabı</div>
+          <div className="choice-grid">
+            <Choice on={false} name="Otel Gelir Hesabı"
+                    desc="Gelir İndirgeme Yaklaşımı · Oda, yardımcı gelir ve ticari kira gelirleri üzerinden kapitalizasyon"
+                    onClick={() => onSelect('otel')} />
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-title">Arsa Gelir Projeksiyon Yöntemi</div>
+          <div className="choice-grid">
+            <Choice on={false} name="Arsa Gelir Projeksiyon Yöntemi"
+                    desc="Konut / Ticari / Karma Kullanım · Kat karşılığı ve gelir projeksiyonu karşılaştırması"
+                    onClick={() => onSelect('arsa')} />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  const [mode, setMode] = useState<AppMode>(() => {
+    try { return (localStorage.getItem(MODE_KEY) as AppMode) || 'landing'; } catch { return 'landing'; }
+  });
+
+  const choose = (m: Exclude<AppMode, 'landing'>) => {
+    try { localStorage.setItem(MODE_KEY, m); } catch { /* kota */ }
+    setMode(m);
+  };
+  const back = () => {
+    try { localStorage.removeItem(MODE_KEY); } catch { /* kota */ }
+    setMode('landing');
+  };
+
+  if (mode === 'otel') return <HotelApp onBack={back} />;
+  if (mode === 'arsa') return <ArsaApp />;
+  return <Landing onSelect={choose} />;
 }

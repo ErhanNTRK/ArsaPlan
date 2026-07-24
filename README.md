@@ -11,6 +11,17 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.6.0 (2026.07.24)** — Otel Gelir Hesabı modülü. Başlangıçta yöntem seçimi:
+"Arsa Gelir Projeksiyon Yöntemi" (mevcut akış, ArsaApp adıyla değişmeden) veya
+"Otel Gelir Hesabı". Otel modülü tamamen bağımsızdır (src/hotel/): oda gelirleri
+(dinamik oda tipi satırları, Adet × ADR × Doluluk × Gün), yardımcı işletme
+gelirleri, ticari alan kira gelirleri (aylık/yıllık), tek oranlı işletme gideri,
+NOI ve direkt kapitalizasyon değeri, 5/10/15/20 yıllık projeksiyon tablosu,
+otomatik değerlendirme metni, sabit özet paneli, engellemeyen uyarılar,
+localStorage taslak ve kurumsal tasarımla PDF raporu (oda dağılımı, ticari kira,
+projeksiyon tabloları). Motor saf TypeScript'tir ve 10 golden testle korunur;
+mevcut arsa akışının motoruna ve testlerine dokunulmamıştır (131/131).
+
 **v5.5.0 (2026.07.23)** — Çekme yöntemi yeniden kurgusu + kesit/kroki düzeltmeleri.
 **Çekme Mesafesi artık havuzsuz, belediye imar durumu mantığında:** KAKS bu yöntemden
 kaldırıldı; Hmax + ön/yan/arka bahçe girilir, oturum çekmeden hesaplanıp zemine
