@@ -25,11 +25,6 @@ export const GOLD: [number, number, number] = [178, 141, 66];
 export const GREEN: [number, number, number] = [30, 107, 65];
 export const RED: [number, number, number] = [180, 35, 24];
 
-const VERDICT_TEXT: Record<string, string> = {
-  'yakin': 'İki yöntem birbirine yakın',
-  'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
-  'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
-};
 export const tl = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺';
 export const tlm2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺/m²';
 export const m2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' m²';
@@ -113,7 +108,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.text(
       t(isletme ? 'Ticari İşletme'
         : apt
-          ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'} · ${input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Doğrudan Alan'} Yöntemi`
+          ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'} · ${input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : apt.mode === 'taks-kaks' ? 'TAKS/KAKS' : 'Alan Bilgisi Girilerek'} Yöntemi`
           : 'Villa Projesi'),
       PW - M - 4, y + 10.6, { align: 'right' },
     );
@@ -248,12 +243,13 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     y += 7;
   }
 
-  /** YAPI KESİTİ (TEMSİLİ) — kat kurgusunun şematik çizimi. Mimari proje değildir. */
+  /** YAPI KESİTİ — kat genişlikleri alanla orantılı; pencere dizileri, bodrum
+   *  taraması ve zemin çizgisiyle mimari kesit diline yaklaşan şematik çizim. */
   function buildingSection() {
     if (input.reportVisuals === false) return;
-    const FH = 4.6;                                   // kat yüksekliği (mm)
+    const FH = 5.2;
     type Row = { label: string; kind: string; area: number };
-    let rows: Row[] = [];
+    const rows: Row[] = [];
     let basements = 0;
     if (apt) {
       for (const fl of apt.floors) {
@@ -270,56 +266,91 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     } else return;
     if (!rows.length) return;
 
-    const H = rows.length * FH + 16;
-    if (y + H + 14 > 275) { doc.addPage(); y = 18; }
-    section('YAPI KESİTİ (TEMSİLİ)');
-    const BW2 = 58;                                   // bina genişliği (mm)
-    const bx = M + 12;
-    const groundY = y + 3 + (rows.length - basements) * FH;   // zemin çizgisi
-    // katları yukarıdan aşağı: en üst kat listenin sonu
     const above = rows.filter((r) => r.kind !== 'bodrum');
     const below = rows.filter((r) => r.kind === 'bodrum');
-    const fill = (kind: string): [number, number, number] =>
-      kind === 'bodrum' ? [225, 228, 233]
-      : kind === 'ortak' ? [225, 228, 233]
-      : kind === 'zemin' || kind === 'asma' ? [243, 235, 219]
-      : kind === 'piyes' ? [237, 240, 245]
-      : [231, 237, 244];
+    const H = rows.length * FH + 22;
+    if (y + H + 14 > 275) { doc.addPage(); y = 18; }
+    section('YAPI KESİTİ (TEMSİLİ)');
+
+    const BW2 = 62;
+    const bx = M + 10;                              // bina sol referansı (merkezleme BW2 içinde)
+    const cxm = bx + BW2 / 2;                       // bina ekseni
+    const groundY = y + 5 + above.length * FH;
     const maxA = Math.max(...rows.map((r) => r.area), 1);
-    const propW = (a: number) => a > 0 ? Math.max(BW2 * 0.22, BW2 * (a / maxA)) : BW2;
-    doc.setLineWidth(0.35); doc.setDrawColor(...NAVY);
-    // zemin üstü (ters sırayla çiz: piyes en üstte) — genişlik kat alanıyla orantılı
+    const propW = (a: number) => (a > 0 ? Math.max(BW2 * 0.24, BW2 * (a / maxA)) : BW2);
+
+    /* Zemin (toprak) çizgisi + tarama */
+    doc.setDrawColor(...INK); doc.setLineWidth(0.55);
+    doc.line(M + 2, groundY, M + W - 26, groundY);
+    doc.setLineWidth(0.25); doc.setDrawColor(...GRAY);
+    for (let gx = M + 2; gx < M + W - 26; gx += 3.2) doc.line(gx, groundY, gx - 1.6, groundY + 1.8);
+
+    const drawWindows = (x: number, yy: number, wdt: number, commercial: boolean) => {
+      const wh = FH * 0.42, wy = yy + (FH - wh) / 2;
+      if (commercial) {                              // vitrin: geniş tek cam
+        doc.setFillColor(255, 255, 255); doc.setDrawColor(...NAVY); doc.setLineWidth(0.22);
+        doc.rect(x + wdt * 0.10, wy, wdt * 0.80, wh, 'FD');
+        doc.line(x + wdt * 0.5, wy, x + wdt * 0.5, wy + wh);
+        return;
+      }
+      const n = Math.max(2, Math.min(6, Math.round(wdt / 11)));
+      const ww = 2.6, gap = (wdt - n * ww) / (n + 1);
+      doc.setFillColor(255, 255, 255); doc.setDrawColor(...NAVY); doc.setLineWidth(0.2);
+      for (let i = 0; i < n; i++) doc.rect(x + gap + i * (ww + gap), wy, ww, wh, 'FD');
+    };
+
+    /* Zemin üstü katlar — merkezli basamaklı silüet */
+    doc.setLineWidth(0.35);
     above.forEach((r, i) => {
       const yy = groundY - (i + 1) * FH;
-      const base = propW(r.area);
-      const wdt = r.kind === 'asma' ? base * 0.62 : base;
-      const xx = bx + (BW2 - wdt) / 2 + (r.kind === 'asma' ? (BW2 - wdt) / 2 * 0.5 : 0);
-      doc.setFillColor(...fill(r.kind));
-      if (r.kind === 'piyes') {
-        // çatı trapezi
+      let wdt = propW(r.area);
+      let x = cxm - wdt / 2;
+      const commercial = r.kind === 'zemin' || r.kind === 'asma';
+      if (r.kind === 'asma') { wdt *= 0.6; x = cxm - propW(r.area) / 2; }  // asma: zemine sola yaslı uzantı
+      doc.setDrawColor(...NAVY);
+      if (r.kind === 'piyes') {                      // çatı: saçaklı üçgen-trapez
+        const pw = Math.max(propW(r.area), BW2 * 0.5);
+        const px = cxm - pw / 2, eave = 2.2;
+        doc.setFillColor(226, 232, 240);
+        doc.lines([[pw + 2 * eave, 0], [-(eave + pw * 0.18), -FH + 0.6], [-(pw * 0.64), 0], [-(eave + pw * 0.18), FH - 0.6]],
+                  px - eave, yy + FH, [1, 1], 'FD', true);
+        doc.setLineWidth(0.5);
+        doc.line(px - eave - 1.5, yy + FH, px + pw + eave + 1.5, yy + FH);   // saçak çizgisi
         doc.setLineWidth(0.35);
-        const p1 = [xx, yy + FH], p2 = [xx + wdt, yy + FH], p3 = [xx + wdt * 0.82, yy + 0.8], p4 = [xx + wdt * 0.18, yy + 0.8];
-        doc.lines([[p2[0]-p1[0],0],[p3[0]-p2[0],p3[1]-p2[1]],[p4[0]-p3[0],0],[p1[0]-p4[0],p1[1]-p4[1]]], p1[0], p1[1], [1,1], 'FD', true);
       } else {
-        doc.rect(xx, yy, wdt, FH, 'FD');
+        doc.setFillColor(...(commercial ? [244, 236, 221] as [number, number, number] : [235, 240, 246] as [number, number, number]));
+        doc.rect(x, yy, wdt, FH, 'FD');
+        drawWindows(x, yy, wdt, commercial);
       }
       doc.setFont('NTRK', 'normal'); doc.setFontSize(6.9); doc.setTextColor(...INK);
-      doc.text(`${t(r.label)}${r.area > 0 ? ` · ${Math.round(r.area).toLocaleString(LOC())} m²` : ''}`, bx + BW2 + 6, yy + FH - 1.4);
+      doc.text(`${t(r.label)}${r.area > 0 ? ` · ${Math.round(r.area).toLocaleString(LOC())} m²` : ''}`, bx + BW2 + 10, yy + FH - 1.6);
+      doc.setFontSize(6); doc.setTextColor(...GRAY);
+      doc.text(`+${((i) * 3).toFixed(2).replace('.', LOC() === 'tr-TR' ? ',' : '.')}`, bx - 6, yy + FH - 1.6, { align: 'right' });
     });
-    // zemin çizgisi
-    doc.setDrawColor(...GOLD); doc.setLineWidth(0.7);
-    doc.line(bx - 8, groundY, bx + BW2 + 4, groundY);
-    doc.setLineWidth(0.35); doc.setDrawColor(...NAVY);
-    // bodrumlar (zemin altı, taralı görünüm için gri)
+
+    /* Bodrumlar — zemin altında, kesik konturlu + çapraz taramalı */
     below.forEach((r, i) => {
       const yy = groundY + i * FH;
       const wdt = propW(r.area);
-      doc.setFillColor(...fill('bodrum'));
-      doc.rect(bx + (BW2 - wdt) / 2, yy, wdt, FH, 'FD');
+      const x = cxm - wdt / 2;
+      doc.setFillColor(240, 241, 244); doc.setDrawColor(...GRAY);
+      doc.setLineDashPattern([1.4, 1], 0);
+      doc.rect(x, yy, wdt, FH, 'FD');
+      doc.setLineDashPattern([], 0);
+      doc.setLineWidth(0.15);
+      for (let hx = x + 3; hx < x + wdt; hx += 4.5) doc.line(hx, yy + FH, Math.min(hx + FH, x + wdt), yy + Math.max(0, FH - (x + wdt - hx)));
+      doc.setLineWidth(0.35);
       doc.setFont('NTRK', 'normal'); doc.setFontSize(6.9); doc.setTextColor(...GRAY);
-      doc.text(`${t(r.label)}${r.area > 0 ? ` · ${Math.round(r.area).toLocaleString(LOC())} m²` : ''}`, bx + BW2 + 6, yy + FH - 1.4);
+      doc.text(`${t(r.label)}${r.area > 0 ? ` · ${Math.round(r.area).toLocaleString(LOC())} m²` : ''}`, bx + BW2 + 10, yy + FH - 1.6);
+      doc.setFontSize(6);
+      doc.text(`−${((i + 1) * 3).toFixed(2).replace('.', LOC() === 'tr-TR' ? ',' : '.')}`, bx - 6, yy + FH - 1.6, { align: 'right' });
     });
-    y = groundY + below.length * FH + 8;
+
+    /* ±0,00 kot etiketi */
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(6.2); doc.setTextColor(...INK);
+    doc.text('±0,00', M + W - 24, groundY - 1);
+
+    y = groundY + below.length * FH + 9;
   }
 
   function floorTable() {
@@ -357,8 +388,9 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.rect(M, y - 4.2, W, h, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
     doc.text(t('TOPLAM'), M + 3, y);
-    doc.text(m2(apt.totalArea), C2, y, { align: 'right' });
-    doc.text(m2(apt.saleableTotal), C3, y, { align: 'right' });
+    doc.text(m2(apt.totalArea), C2 - 22, y, { align: 'right' });
+    doc.text(m2(apt.saleableTotal), C3 - 24, y, { align: 'right' });
+    doc.text(m2(Math.max(0, apt.totalArea - apt.saleableTotal)), C3, y, { align: 'right' });
     y += h + 2;
     zebra = false;
   }
@@ -386,7 +418,9 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
     doc.text(tl(isletme.landValue), M + 5, y + 17.5);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(168, 189, 212);
-    doc.text(t('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)'), M + 5, y + 23);
+    doc.text(isletme.profit > 0
+      ? `${t('Müteahhit Kârı')}: ${tl(isletme.profit)} (${pct(isletme.profitRate)})`
+      : t('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)'), M + 5, y + 23);
     const cx2 = M + W * 0.56;
     doc.setDrawColor(58, 88, 124);
     doc.line(cx2 - 4, y + 4.5, cx2 - 4, y + H - 4.5);
@@ -454,6 +488,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (isletme.extrasTotal > 0) row('İlave Maliyetler', tl(isletme.extrasTotal));
     row('TOPLAM MALİYET', tl(isletme.totalCost), { band: true });
     row('Öngörülen Satış Değeri', tl(isletme.salesTotal), { bold: true, color: GREEN });
+    if (isletme.profit > 0) row(`Müteahhit Kârı (${pct(isletme.profitRate)})`, tl(isletme.profit), { color: RED });
     row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(isletme.landValue), { band: true });
     row('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), { bold: true });
     for (const l of fxLines(input.fx, isletme.landValue, isletme.landUnitValue)) {
@@ -474,7 +509,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   row('Parsel Alanı (tapu)', m2(p.area));
   row('Net Parsel Alanı', m2(p.netArea));
   row('Plan Lejantı', input.zoning.lejant.trim() || '—');
-  row('Hesap Yöntemi', input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan');
+  row('Hesap Yöntemi', input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Alan Bilgisi Girilerek');
   if (input.zoning.mode === 'cekme') {
     row('Bahçe Mesafeleri (ön/yan/arka)', `${input.zoning.cekmeFront.toLocaleString(LOC())} / ${input.zoning.cekmeSide.toLocaleString(LOC())} / ${input.zoning.cekmeRear.toLocaleString(LOC())} m`);
     if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
@@ -556,7 +591,6 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValue), { bold: true });
     row('İki Yöntem Arasındaki Fark', `${tl(Math.abs(s.difference))} (${pct(Math.abs(s.differenceRate))})`);
     row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare));
-    row('Değerlendirme', VERDICT_TEXT[s.verdict], { band: true });
     y += 4;
   }
 

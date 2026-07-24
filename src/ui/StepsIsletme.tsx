@@ -36,53 +36,51 @@ export function Step3Isletme({ input, upd }: P) {
     <div className="cols">
       <div className="card">
         <div className="card-title">1 · Yapılar</div>
-        <Field label="Yapı Ekle" hint="Katalogdan seçin; satır olarak eklenir. Aynı türden birden fazla eklenebilir.">
-          <Sel value="" onChange={(v) => v && addBuilding(v)}
-               options={[{ value: '', label: 'Yapı türü seçiniz…' }, ...TYPE_OPTIONS.map(({ value, label }) => ({ value, label }))]} />
-        </Field>
-        <Field label="Güncelleme Oranı" hint="Tebliğ birim maliyetlerine uygulanır · tüm satırlara ortak">
-          <Pct value={inp.inflationRate} onChange={(n) => set({ inflationRate: n })} />
-        </Field>
+        <div className="grid-2">
+          <Field label="Yapı Ekle" hint="Katalogdan seçin; aynı türden birden fazla eklenebilir.">
+            <Sel value="" onChange={(v) => v && addBuilding(v)}
+                 options={[{ value: '', label: 'Yapı türü seçiniz…' }, ...TYPE_OPTIONS.map(({ value, label }) => ({ value, label }))]} />
+          </Field>
+          <Field label="Güncelleme Oranı" hint="Tebliğ birim maliyetlerine uygulanır · tüm satırlara ortak">
+            <Pct value={inp.inflationRate} onChange={(n) => set({ inflationRate: n })} />
+          </Field>
+        </div>
 
         {inp.buildings.map((b, i) => {
           const row = r.rows[i];
-          const sinif = YAPI_SINIFLARI.find((x) => x.code === b.buildingClass);
           return (
-            <div className="isletme-row" key={i}>
-              <div className="isletme-row-head">
-                <b>{b.type}</b>
-                <button type="button" className="link-btn" onClick={() =>
-                  set({ buildings: inp.buildings.filter((_, k) => k !== i) })}>Satırı sil</button>
-              </div>
-              <Field label="Yapı Sınıfı (2026 Tebliği)">
+            <div className="b-row" key={i}>
+              <div className="b-cell b-type" title={b.type}>{b.type}</div>
+              <div className="b-cell">
                 <Sel value={b.buildingClass}
                      onChange={(code) => setB(i, { buildingClass: code, unitCostOverride: null })}
-                     options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: `${x.label} — ${fmtTLm2(x.unitCost)}` }))} />
-              </Field>
-              {sinif && <div className="hint" style={{ marginTop: -6, marginBottom: 8 }}>{sinif.examples}</div>}
-              <div className="grid-3">
-                <Field label="Alan">
-                  <Num value={b.area} onChange={(n) => setB(i, { area: n })} suffix="m²" />
-                </Field>
-                <Field label="Yıpranma" hint="Mevcut yapıysa">
-                  <Pct value={b.depreciation} onChange={(n) => setB(i, { depreciation: n, unitCostOverride: null })} />
-                </Field>
-                <Field label="Birim Maliyet" hint={row.overridden ? 'Elle sabitlendi' : 'Otomatik'}>
-                  <Num value={row.effectiveUnitCost}
-                       onChange={(n) => setB(i, { unitCostOverride: n })} suffix="₺/m²" />
-                </Field>
+                     options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: x.code }))} />
               </div>
-              {row.overridden && (
-                <button type="button" className="link-btn" onClick={() => setB(i, { unitCostOverride: null })}>
-                  Otomatik hesaba dön ({fmtTLm2(row.baseUnitCost * (1 + inp.inflationRate) * (1 - row.depreciation))})
-                </button>
-              )}
-              <div className="note-box" style={{ marginTop: 8 }}>
-                {fmtM2(row.area)} × {fmtTLm2(row.effectiveUnitCost)} = <b>{fmtTL(row.cost)}</b>
+              <div className="b-cell">
+                <Num value={b.area} onChange={(n) => setB(i, { area: n })} suffix="m²" />
               </div>
+              <div className="b-cell">
+                <Pct value={b.depreciation} onChange={(n) => setB(i, { depreciation: n, unitCostOverride: null })} />
+              </div>
+              <div className="b-cell">
+                <Num value={row.effectiveUnitCost}
+                     onChange={(n) => setB(i, { unitCostOverride: n })} suffix="₺/m²" />
+                {row.overridden && (
+                  <button type="button" className="cell-reset" title="Otomatik hesaba dön"
+                          onClick={() => setB(i, { unitCostOverride: null })}>↺</button>
+                )}
+              </div>
+              <div className="b-cell b-cost">{fmtTL(row.cost)}</div>
+              <button type="button" className="b-del" title="Satırı sil"
+                      onClick={() => set({ buildings: inp.buildings.filter((_, k) => k !== i) })}>✕</button>
             </div>
           );
         })}
+        {inp.buildings.length > 0 && (
+          <div className="b-row b-head-note hint">
+            Kolonlar: Yapı · Sınıf · Alan · Yıpranma · Birim Maliyet (↺ otomatiğe döner) · Maliyet
+          </div>
+        )}
         {inp.buildings.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 10 }}>
             <div><span>Toplam yapı alanı</span><b>{fmtM2(r.totalBuildingArea)}</b></div>
@@ -94,16 +92,23 @@ export function Step3Isletme({ input, upd }: P) {
       <div className="card">
         <div className="card-title">2 · İlave Maliyetler (tercihe bağlı)</div>
         <div className="hint" style={{ marginBottom: 10 }}>
-          Parsel alanı ({fmtM2(input.parcel.area)}) üzerinden hesaplanır; 0 bırakılan kalem hesaba girmez.
+          Peyzaj ve altyapı, parsel alanı ({fmtM2(input.parcel.area)}) üzerinden; çevre duvarı,
+          girdiğiniz uzunluk üzerinden hesaplanır. 0 bırakılan satır hesaba girmez.
         </div>
-        <div className="grid-3">
-          <Field label="Çevre Duvarı"><Num value={inp.wallUnitCost} onChange={(n) => set({ wallUnitCost: n })} suffix="₺/m²" /></Field>
+        <div className="grid-2">
+          <Field label="Çevre Duvarı — Parsel Uzunluğu"><Num value={inp.wallLength ?? 0} onChange={(n) => set({ wallLength: n })} suffix="m" /></Field>
+          <Field label="Çevre Duvarı — Birim Maliyet"
+                 hint={(inp.wallLength ?? 0) > 0 && inp.wallUnitCost > 0 ? `Duvar maliyeti: ${fmtTL((inp.wallLength ?? 0) * inp.wallUnitCost)}` : undefined}>
+            <Num value={inp.wallUnitCost} onChange={(n) => set({ wallUnitCost: n })} suffix="₺/m" />
+          </Field>
+        </div>
+        <div className="grid-2">
           <Field label="Peyzaj / Çevre Düz."><Num value={inp.landscapeUnitCost} onChange={(n) => set({ landscapeUnitCost: n })} suffix="₺/m²" /></Field>
           <Field label="Altyapı"><Num value={inp.infraUnitCost} onChange={(n) => set({ infraUnitCost: n })} suffix="₺/m²" /></Field>
         </div>
         {inp.otherCosts.map((oc, i) => (
           <div className="grid-2" key={i}>
-            <Field label={`Diğer Kalem ${i + 1}`}>
+            <Field label={`Diğer Maliyet ${i + 1}`}>
               <Txt value={oc.name} placeholder="Örn. trafo, arıtma, tabela"
                    onChange={(v) => set({ otherCosts: inp.otherCosts.map((x, k) => k === i ? { ...x, name: v } : x) })} />
             </Field>
@@ -115,12 +120,12 @@ export function Step3Isletme({ input, upd }: P) {
         ))}
         <button type="button" className="link-btn"
                 onClick={() => set({ otherCosts: [...inp.otherCosts, { name: '', amount: 0 }] })}>
-          + Serbest kalem ekle
+          + Maliyet ekle
         </button>
         {inp.otherCosts.length > 0 && (
           <button type="button" className="link-btn" style={{ marginLeft: 12 }}
                   onClick={() => set({ otherCosts: inp.otherCosts.slice(0, -1) })}>
-            Son kalemi sil
+            Son maliyeti sil
           </button>
         )}
         {r.extrasTotal > 0 && (
@@ -153,16 +158,20 @@ export function Step4Isletme({ input, upd, setTop }: P) {
         <Field label="Taşınmazın Toplam Satış Değeri" hint="Tek toplam tutar, KDV hariç">
           <Num value={inp.salesTotal} onChange={(n) => upd('isletme', { salesTotal: n })} suffix="₺" />
         </Field>
+        <Field label="Müteahhit Kârı" hint="Varsayılan 0 — amaç arsa + yapı değeridir; gerekirse oran girin.">
+          <Pct value={inp.profitRate ?? 0} onChange={(n) => upd('isletme', { profitRate: n })} />
+        </Field>
         {inp.salesTotal > 0 && (
           <div className="note-box">
-            Satış {fmtTL(r.salesTotal)} − maliyet {fmtTL(r.totalCost)} =
+            Satış {fmtTL(r.salesTotal)} − maliyet {fmtTL(r.totalCost)}
+            {r.profit > 0 && <> − kâr {fmtTL(r.profit)}</>} =
             {' '}<b>{fmtTL(r.landValue)}</b> arsa değeri
             {input.parcel.area > 0 && <> · {fmtTLm2(r.landUnitValue)}</>}
           </div>
         )}
         <div className="hint" style={{ marginTop: 8 }}>
-          Bu senaryoda proje mülk sahibince yapılır; müteahhit kârı kesilmez ve
-          kat karşılığı karşılaştırması uygulanmaz.
+          Bu senaryoda proje mülk sahibince yapılır; kat karşılığı karşılaştırması
+          uygulanmaz. Müteahhit kârı varsayılan olarak 0'dır.
         </div>
       </div>
 

@@ -198,10 +198,10 @@ describe('Ticari İşletme — Salih\'in ahır örneği ve kurallar', () => {
     expect(r.rows[0].overridden).toBe(true);
   });
 
-  it('ilave maliyetler parsel alanı üzerinden + serbest kalemler', () => {
+  it('ilave maliyetler: duvar uzunluk×birim, peyzaj/altyapı parsel alanı üzerinden + serbest maliyetler', () => {
     const r = computeIsletme(parcel, {
       ...base,
-      wallUnitCost: 500, landscapeUnitCost: 300, infraUnitCost: 200,
+      wallLength: 1000, wallUnitCost: 500, landscapeUnitCost: 300, infraUnitCost: 200,
       otherCosts: [{ name: 'Trafo', amount: 750000 }],
     });
     expect(r.wallCost).toBe(500000);
@@ -316,5 +316,29 @@ describe('Çekme Mesafesi yöntemi (havuzsuz, oturum tabanlı)', () => {
     const c = computeApartment(parcel, { ...zoningCekme, cekmeFrontEdge: null }, APT_CEKME, 'konut');
     expect(c.footprintArea).toBe(0);
     expect(c.warnings.some((w) => w.includes('ön cephe') || w.includes('KML'))).toBe(true);
+  });
+});
+
+describe('v5.7 motor eklemeleri', () => {
+  it('emsale dahil OLMAYAN bodrum satılabiliri havuzdan düşmez', () => {
+    const aIn = { ...APT_KARMA, basementCount: 1,
+      basements: [{ use: 'konut' as const, area: null, lossRate: 0.10, saleable: null, inEmsal: true }] };
+    const aOut = { ...APT_KARMA, basementCount: 1,
+      basements: [{ use: 'konut' as const, area: null, lossRate: 0.10, saleable: null, inEmsal: false }] };
+    const cIn = computeApartment(parcel, zoningTK, aIn, 'karma');
+    const cOut = computeApartment(parcel, zoningTK, aOut, 'karma');
+    const nIn = cIn.floors.filter((f) => f.kind === 'normal').reduce((s, f) => s + f.saleable, 0);
+    const nOut = cOut.floors.filter((f) => f.kind === 'normal').reduce((s, f) => s + f.saleable, 0);
+    expect(nOut).toBeGreaterThan(nIn);          // havuz korunduğu için normallara daha çok kalır
+    const bIn = cIn.floors.find((f) => f.kind === 'bodrum')!;
+    const bOut = cOut.floors.find((f) => f.kind === 'bodrum')!;
+    expect(bIn.saleable).toBeCloseTo(bOut.saleable, 0);   // bodrumun kendi satılabiliri değişmez
+  });
+
+  it('bodrum kat sayısı 8 desteklenir', () => {
+    const a8 = { ...APT_KARMA, basementCount: 8, basements: Array.from({ length: 8 }, () =>
+      ({ use: 'ortak' as const, area: null, lossRate: 0.10, saleable: null })) };
+    const c = computeApartment(parcel, zoningTK, a8, 'karma');
+    expect(c.floors.filter((f) => f.kind === 'bodrum')).toHaveLength(8);
   });
 });

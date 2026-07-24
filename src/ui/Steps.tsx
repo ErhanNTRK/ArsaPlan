@@ -219,7 +219,7 @@ function Step3Villa({ input, upd }: P) {
         )}
         <Field label="Hesap Yöntemi">
           <Seg value={z.mode} onChange={(m) => upd('zoning', { mode: m })}
-               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan alan' }]} />
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Alan Bilgisi Girilerek' }]} />
         </Field>
 
         {taksKaks ? (

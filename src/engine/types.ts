@@ -108,16 +108,18 @@ export interface AptBasementInput {
   use: BasementUse;
   /** Kat alanı. null → otomatik (TAKS/KAKS'ta taban oturumu). */
   area: number | null;
-  /** TAKS/KAKS: alan kaybı oranı → satılabilir = alan × (1 − oran) */
+  /** Emsale dahil mi? Dahilse satılabiliri havuzdan düşer; değilse üstüne eklenir. */
+  inEmsal?: boolean;
+  /** Ortak alan payı → satılabilir = alan × (1 − oran) */
   lossRate: number;
   /** Satılabilir alan. null → otomatik; elle girilirse sabittir. */
   saleable: number | null;
 }
 
 export interface ApartmentInput {
-  /** 0-4 */
+  /** 0-8 */
   basementCount: number;
-  /** 4 slot; ilk basementCount tanesi kullanılır */
+  /** 8 slot; ilk basementCount tanesi kullanılır */
   basements: AptBasementInput[];
   /** null → otomatik (taban oturumu). Elle girilip TAKS limitini aşarsa uyarı. */
   zeminArea: number | null;
@@ -245,12 +247,16 @@ export interface IsletmeInput {
   buildings: IsletmeBuilding[];
   /** Tüm yapı satırlarına ortak güncelleme (enflasyon) oranı */
   inflationRate: number;
-  /* İlave Maliyetler — tercihe bağlı; parsel m² başına birim ₺ (0 = yok) */
+  /* İlave Maliyetler — tercihe bağlı (0 = yok) */
+  /** Çevre duvarı uzunluğu (m) — maliyet = uzunluk × birim ₺/m */
+  wallLength?: number;
   wallUnitCost: number;
   landscapeUnitCost: number;
   infraUnitCost: number;
   /** Serbest kalemler (ad + tutar) */
   otherCosts: IsletmeOtherCost[];
+  /** Müteahhit kâr oranı (hasılat üzerinden) — varsayılan 0; amaç arsa + yapı */
+  profitRate?: number;
   /** Öngörülen toplam satış değeri (₺, KDV hariç) */
   salesTotal: number;
 }
@@ -277,6 +283,9 @@ export interface IsletmeResult {
   extrasTotal: number;
   totalCost: number;
   salesTotal: number;
+  /** Müteahhit kârı (hasılat × oran); varsayılan 0 */
+  profit: number;
+  profitRate: number;
   /** Arsa değeri = satış − toplam maliyet (müteahhit kârı kesilmez) */
   landValue: number;
   landUnitValue: number;

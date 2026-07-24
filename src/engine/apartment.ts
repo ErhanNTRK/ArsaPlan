@@ -88,7 +88,7 @@ function computeCekme(
     warnings.push(`Hmax ${zoning.hmax!.toLocaleString('tr-TR')} m için önerilen üst kat sayısı ${suggestedNormals}; girilen ${normalCount} kat Hmax ile uyumsuz olabilir.`);
   }
 
-  const basementCount = Math.max(0, Math.min(4, apt.basementCount));
+  const basementCount = Math.max(0, Math.min(8, apt.basementCount));
   const floors: AptFloor[] = [];
 
   /* Bodrumlar */
@@ -207,7 +207,7 @@ export function computeApartment(
       ? Math.round(apt.normalCount)
       : direct ? 3 : Math.max(1, (derivedFloorsFromHmax ?? 4) - 1));
 
-  const basementCount = Math.min(4, Math.max(0, Math.round(apt.basementCount)));
+  const basementCount = Math.min(8, Math.max(0, Math.round(apt.basementCount)));
 
   const floors: AptFloor[] = [];
 
@@ -272,7 +272,7 @@ export function computeApartment(
       const saleable = b.use === 'ortak'
         ? 0
         : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
-      pool -= saleable;
+      if (b.inEmsal !== false) pool -= saleable;   // emsale dahil değilse havuzdan düşmez
       floors.push({
         kind: 'bodrum', index: i,
         label: `${ord(i)} Bodrum Kat` + (variant === 'karma' && b.use !== 'ortak' ? ` (${b.use})` : ''),

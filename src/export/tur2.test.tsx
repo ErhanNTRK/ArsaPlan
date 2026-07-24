@@ -113,7 +113,7 @@ describe('İşletme — ekranlar', () => {
     const html = renderToString(
       <Step4 input={isletmeInput} upd={() => {}} setTop={() => {}} />);
     expect(html).toContain('Öngörülen Satış Değeri');
-    expect(html).toContain('müteahhit kârı kesilmez');
+    expect(html).toContain('Müteahhit kârı varsayılan olarak 0');
   });
   it('Sonuç ekranı sade işletme görünümünü basar; uzman ve kat karşılığı yok', () => {
     const html = renderToString(
@@ -175,5 +175,21 @@ describe('İngilizce ve döviz', () => {
     expect(l).toHaveLength(1);
     expect(l[0].value).toBe(20000);
     expect(l[0].unitValue).toBe(200);
+  });
+});
+
+describe('İşletme v5.7: duvar uzunluğu ve opsiyonel kâr', () => {
+  it('duvar maliyeti = uzunluk × ₺/m; kâr hasılattan düşer', async () => {
+    const { computeIsletme } = await import('../engine/isletme');
+    const parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1000, netArea: 1000 };
+    const inp: any = {
+      buildings: [{ id: 1, type: 'Ahır', buildingClass: 'II-B', area: 1000, unitCost: null, depreciation: 0 }],
+      inflationRate: 0, wallLength: 120, wallUnitCost: 2500, landscapeUnitCost: 0, infraUnitCost: 0,
+      otherCosts: [], profitRate: 0.10, salesTotal: 30_000_000,
+    };
+    const r = computeIsletme(parcel, inp);
+    expect(r.wallCost).toBe(120 * 2500);
+    expect(r.profit).toBe(3_000_000);
+    expect(r.landValue).toBe(30_000_000 - r.totalCost - 3_000_000);
   });
 });

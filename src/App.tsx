@@ -340,7 +340,7 @@ function ArsaApp() {
           </div>
           <div className="topbar-actions no-print">
             <button type="button" className="link-btn topbar-link"
-                    onClick={() => { try { localStorage.removeItem('arsaplan-mod-secimi'); } catch { /* kota */ } window.location.reload(); }}
+                    onClick={() => { window.location.hash = ''; }}
                     title="Yöntem seçim ekranına dön">← Başlangıç</button>
             <button type="button" className="link-btn topbar-link lang-toggle"
                     title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
@@ -421,8 +421,6 @@ function ArsaApp() {
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
 type AppMode = 'landing' | 'arsa' | 'otel';
-const MODE_KEY = 'arsaplan-mod-secimi';
-
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   return (
     <div className="app">
@@ -439,22 +437,28 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
         <div className="step-head">
           <div className="step-eyebrow">Başlangıç</div>
           <div className="step-title">Ne Hesaplamak İstiyorsunuz?</div>
-          <div className="step-desc">Aşağıdaki iki yöntemden birini seçerek analize başlayın.</div>
+          <div className="step-desc">Bir yöntem seçerek analize başlayın.</div>
         </div>
         <div className="card">
-          <div className="card-title">Otel Gelir Hesabı</div>
-          <div className="choice-grid">
-            <Choice on={false} name="Otel Gelir Hesabı"
-                    desc="Gelir İndirgeme Yaklaşımı · Oda, yardımcı gelir ve ticari kira gelirleri üzerinden kapitalizasyon"
-                    onClick={() => onSelect('otel')} />
-          </div>
-        </div>
-        <div className="card">
-          <div className="card-title">Arsa Gelir Projeksiyon Yöntemi</div>
           <div className="choice-grid">
             <Choice on={false} name="Arsa Gelir Projeksiyon Yöntemi"
                     desc="Konut / Ticari / Karma Kullanım · Kat karşılığı ve gelir projeksiyonu karşılaştırması"
                     onClick={() => onSelect('arsa')} />
+            <Choice on={false} name="Otel Gelir Hesabı"
+                    desc="Gelir İndirgeme Yaklaşımı · Oda, yardımcı gelir ve ticari kira gelirleri üzerinden kapitalizasyon"
+                    onClick={() => onSelect('otel')} />
+            <div className="choice choice-disabled" aria-disabled="true">
+              <div className="choice-name">Akaryakıt Gelir Hesabı <span className="soon-badge">Hazırlanıyor</span></div>
+              <div className="choice-desc">İstasyon satış ve market gelirleri üzerinden değerleme</div>
+            </div>
+            <div className="choice choice-disabled" aria-disabled="true">
+              <div className="choice-name">Tarımsal Ürün Gelir Hesabı <span className="soon-badge">Hazırlanıyor</span></div>
+              <div className="choice-desc">Ürün deseni ve verim üzerinden gelir yöntemi</div>
+            </div>
+            <div className="choice choice-disabled" aria-disabled="true">
+              <div className="choice-name">Üst Hakkı Hesaplama <span className="soon-badge">Hazırlanıyor</span></div>
+              <div className="choice-desc">Üst hakkı bedeli ve süre bazlı değerleme</div>
+            </div>
           </div>
         </div>
       </div>
@@ -462,19 +466,24 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
   );
 }
 
-export default function App() {
-  const [mode, setMode] = useState<AppMode>(() => {
-    try { return (localStorage.getItem(MODE_KEY) as AppMode) || 'landing'; } catch { return 'landing'; }
-  });
+function modeFromHash(): AppMode {
+  const h = window.location.hash.replace('#', '');
+  return h === 'arsa' || h === 'otel' ? h : 'landing';
+}
 
-  const choose = (m: Exclude<AppMode, 'landing'>) => {
-    try { localStorage.setItem(MODE_KEY, m); } catch { /* kota */ }
-    setMode(m);
-  };
-  const back = () => {
-    try { localStorage.removeItem(MODE_KEY); } catch { /* kota */ }
-    setMode('landing');
-  };
+export default function App() {
+  // Hash tabanlı yönlendirme: #arsa / #otel. Tarayıcının GERİ tuşu doğal çalışır,
+  // açılışta her zaman yöntem seçim ekranı gelir.
+  const [mode, setMode] = useState<AppMode>(modeFromHash);
+
+  useEffect(() => {
+    const onHash = () => setMode(modeFromHash());
+    window.addEventListener('hashchange', onHash);
+    return () => window.removeEventListener('hashchange', onHash);
+  }, []);
+
+  const choose = (m: Exclude<AppMode, 'landing'>) => { window.location.hash = m; };
+  const back = () => { window.location.hash = ''; };
 
   if (mode === 'otel') return <HotelApp onBack={back} />;
   if (mode === 'arsa') return <ArsaApp />;

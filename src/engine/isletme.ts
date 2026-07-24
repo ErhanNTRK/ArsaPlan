@@ -40,7 +40,7 @@ export function computeIsletme(parcel: Parcel, inp: IsletmeInput): IsletmeResult
   const buildingsCost = rows.reduce((a, r) => a + r.cost, 0);
   const totalBuildingArea = rows.reduce((a, r) => a + r.area, 0);
 
-  const wallCost = R(Math.max(0, inp.wallUnitCost) * parcel.area);
+  const wallCost = R(Math.max(0, inp.wallUnitCost) * Math.max(0, inp.wallLength ?? 0));
   const landscapeCost = R(Math.max(0, inp.landscapeUnitCost) * parcel.area);
   const infraCost = R(Math.max(0, inp.infraUnitCost) * parcel.area);
   const otherCost = inp.otherCosts.reduce((a, c) => a + Math.max(0, R(c.amount)), 0);
@@ -48,7 +48,9 @@ export function computeIsletme(parcel: Parcel, inp: IsletmeInput): IsletmeResult
 
   const totalCost = buildingsCost + extrasTotal;
   const salesTotal = Math.max(0, R(inp.salesTotal));
-  const landValue = salesTotal - totalCost;
+  const profitRate = Math.max(0, inp.profitRate ?? 0);
+  const profit = R(salesTotal * profitRate);
+  const landValue = salesTotal - totalCost - profit;
   const landUnitValue = parcel.area > 0 ? landValue / parcel.area : 0;
 
   if (rows.length === 0) warnings.push('Yapı satırı eklenmedi; maliyet hesaplanamıyor.');
@@ -61,7 +63,7 @@ export function computeIsletme(parcel: Parcel, inp: IsletmeInput): IsletmeResult
   return {
     rows, buildingsCost, totalBuildingArea,
     wallCost, landscapeCost, infraCost, otherCost, extrasTotal,
-    totalCost, salesTotal, landValue, landUnitValue, warnings,
+    totalCost, salesTotal, profit, profitRate, landValue, landUnitValue, warnings,
   };
 }
 

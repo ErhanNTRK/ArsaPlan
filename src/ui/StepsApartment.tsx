@@ -87,7 +87,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                             basements: a.basements.map((b) => ({ ...b, lossRate: 0.07 })) });
                  }
                }}
-               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Doğrudan Alan' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
+               options={[{ value: 'taks-kaks', label: 'TAKS / KAKS' }, { value: 'dogrudan', label: 'Alan Bilgisi Girilerek' }, { value: 'cekme', label: 'Çekme Mesafesi' }]} />
         </Field>
         {z.mode === 'cekme' && (
           <>
@@ -215,40 +215,46 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
       <div className="card">
         <div className="card-title">{taksKaks ? '3' : '2'} · Kat Kurgusu</div>
 
-        <Field label="Bodrum Kat Sayısı">
-          <Seg value={String(Math.min(4, Math.max(0, a.basementCount))) as '0' | '1' | '2' | '3' | '4'}
-               onChange={(v) => setApt({ basementCount: Number(v) })}
-               options={[
-                 { value: '0', label: 'Yok' }, { value: '1', label: '1' }, { value: '2', label: '2' },
-                 { value: '3', label: '3' }, { value: '4', label: '4' },
-               ]} />
+        <Field label="Bodrum Kat Sayısı" hint="0-8 arası">
+          <Num value={a.basementCount}
+               onChange={(v) => setApt({ basementCount: Math.max(0, Math.min(8, Math.round(v))) })} suffix="kat" />
         </Field>
-        {Array.from({ length: Math.min(4, Math.max(0, a.basementCount)) }, (_, i) => (
-          <div className="grid-2" key={i}>
-            <Field label={`${i + 1}. Bodrum — Kullanım`}>
-              <Sel value={a.basements[i].use}
-                   onChange={(u) => setApt({
-                     basements: a.basements.map((b, k) => k === i ? { ...b, use: u } : b),
-                   })}
+        {Array.from({ length: Math.min(8, Math.max(0, a.basementCount)) }, (_, i) => {
+          const b = a.basements[i] ?? { use: 'konut' as const, area: null, lossRate: 0.10, saleable: null };
+          const setB = (patch: Partial<typeof b>) => setApt({
+            basements: Array.from({ length: Math.max(a.basements.length, i + 1) }, (_, k) =>
+              k === i ? { ...(a.basements[k] ?? b), ...patch } : (a.basements[k] ?? { use: 'konut' as const, area: null, lossRate: 0.10, saleable: null })),
+          });
+          return (
+          <div className="grid-3" key={i}>
+            <Field label={`${i + 1}. Bodrum — Satılabilir alan var mı?`}>
+              <Sel value={b.use}
+                   onChange={(u) => setB({ use: u })}
                    options={karma ? [
-                     { value: 'ortak', label: 'Ortak mahal (otopark vb.)' },
-                     { value: 'ticari', label: 'Ticari (satılabilir)' },
-                     { value: 'konut', label: 'Konut (satılabilir)' },
+                     { value: 'ortak', label: 'Yok — ortak alan (otopark vb.)' },
+                     { value: 'ticari', label: 'Var — ticari' },
+                     { value: 'konut', label: 'Var — konut' },
                    ] : [
-                     { value: 'konut', label: 'Konut (satılabilir)' },
-                     { value: 'ortak', label: 'Ortak mahal (otopark vb.)' },
+                     { value: 'konut', label: 'Var — konut' },
+                     { value: 'ortak', label: 'Yok — ortak alan (otopark vb.)' },
                    ]} />
             </Field>
-            {taksKaks && a.basements[i].use !== 'ortak' ? (
-              <Field label="Alan Kaybı" hint="Satılabilir = alan × (1 − oran)">
-                <Pct value={a.basements[i].lossRate}
-                     onChange={(n) => setApt({
-                       basements: a.basements.map((b, k) => k === i ? { ...b, lossRate: n } : b),
-                     })} />
+            {taksKaks && b.use !== 'ortak' ? (
+              <Field label="Emsale dahil mi?"
+                     hint="Dahilse satılabiliri emsal havuzundan düşer; değilse üstüne eklenir.">
+                <Seg value={b.inEmsal !== false}
+                     onChange={(v) => setB({ inEmsal: v })}
+                     options={[{ value: true, label: 'Dahil' }, { value: false, label: 'Değil' }]} />
+              </Field>
+            ) : <div />}
+            {taksKaks && b.use !== 'ortak' ? (
+              <Field label="Ortak Alan Payı" hint="Satılabilir = alan × (1 − oran)">
+                <Pct value={b.lossRate} onChange={(n) => setB({ lossRate: n, saleable: null })} />
               </Field>
             ) : <div />}
           </div>
-        ))}
+          );
+        })}
 
         {taksKaks && (
           <div className="grid-2">
@@ -356,7 +362,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         )}
         <div className="floor-table">
           <div className="floor-head">
-            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span>
+            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Ortak Alan Payı</span><span>Satılabilir Alan</span><span>Ortak Alan</span>
           </div>
           {c.floors.map((f) => {
             const ortak = f.kind === 'bodrum' && a.basements[f.index - 1]?.use === 'ortak';
@@ -373,24 +379,29 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                 </span>
                 <span className="floor-cell">
                   {ortak ? (
-                    <span className="floor-fixed">0 m² · ortak mahal</span>
+                    <span className="floor-fixed">%100 ortak</span>
+                  ) : (
+                    <span className="rate-cell" title="Ortak alan payı · satılabilir = alan × (1 − oran)">
+                      <Pct value={f.area > 0 ? Math.max(0, (f.area - f.saleable) / f.area) : 0}
+                           onChange={(n) => {
+                             if (cekmeMode) {
+                               if (f.kind === 'zemin') setApt({ zeminLossRate: n, zeminSaleable: null });
+                               else if (f.kind === 'bodrum') setApt({ basements: a.basements.map((b, i) => i === f.index - 1 ? { ...b, lossRate: n, saleable: null } : b) });
+                               else if (f.kind === 'piyes') setApt({ cekmePiyesLossRate: n, piyesSaleable: null });
+                               else setApt({ cekmeNormalLossRate: n, normalSaleables: a.normalSaleables.map(() => null) });
+                             } else {
+                               // Diğer modlarda oran, satılabiliri doğrudan yazar
+                               setApt(patchFloor(a, f, 'saleable', Math.round(f.area * (1 - Math.max(0, Math.min(1, n))))));
+                             }
+                           }} />
+                    </span>
+                  )}
+                </span>
+                <span className="floor-cell">
+                  {ortak ? (
+                    <span className="floor-fixed">0 m²</span>
                   ) : (
                     <>
-                      {cekmeMode && (
-                        <span className="rate-mini" title="Kayıp oranı · satılabilir = alan × (1 − oran)">
-                          <Pct value={
-                            f.kind === 'zemin' ? a.zeminLossRate
-                            : f.kind === 'bodrum' ? (a.basements[f.index - 1]?.lossRate ?? 0.07)
-                            : f.kind === 'piyes' ? (a.cekmePiyesLossRate ?? 0.07)
-                            : (a.cekmeNormalLossRate ?? 0.07)}
-                               onChange={(n) => {
-                                 if (f.kind === 'zemin') setApt({ zeminLossRate: n, zeminSaleable: null });
-                                 else if (f.kind === 'bodrum') setApt({ basements: a.basements.map((b, i) => i === f.index - 1 ? { ...b, lossRate: n, saleable: null } : b) });
-                                 else if (f.kind === 'piyes') setApt({ cekmePiyesLossRate: n, piyesSaleable: null });
-                                 else setApt({ cekmeNormalLossRate: n, normalSaleables: a.normalSaleables.map(() => null) });
-                               }} />
-                        </span>
-                      )}
                       <Num value={f.saleable}
                            onChange={(n) => setApt(patchFloor(a, f, 'saleable', n))} suffix="m²" />
                       {canReset(z.mode, f, f.autoSaleable) && (
@@ -399,6 +410,9 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                       )}
                     </>
                   )}
+                </span>
+                <span className="floor-cell floor-common">
+                  {fmtM2(Math.max(0, f.area - f.saleable))}
                 </span>
               </div>
             );
@@ -429,6 +443,10 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         <div className="mini-kpi" style={{ marginTop: 8 }}>
           <div><span>Bahçe / açık alan</span><b>{fmtM2(c.gardenArea)}</b></div>
           <div><span>Kat adedi</span><b>{c.floors.length}</b></div>
+        </div>
+        <div className="mini-kpi" style={{ marginTop: 8 }}>
+          <div><span>Emsale dahil alan</span><b>{fmtM2(c.emsalArea)}</b></div>
+          <div><span>Taban oturumu</span><b>{fmtM2(c.footprintArea)}</b></div>
         </div>
         {c.totalArea > 0 && (c.areaByKind.bodrum + c.areaByKind.piyes) / c.totalArea > 0.35 && (
           <div className="leftover" style={{ marginTop: 10 }}>

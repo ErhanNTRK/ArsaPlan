@@ -57,8 +57,17 @@ export interface RoomRevenueRow {
 export interface AncillaryIncomeRow {
   id: string;
   name: string;
+  /** 'tutar' → annualIncome ₺; 'oran' → oda gelirinin rate kadarı */
+  mode?: 'tutar' | 'oran';
   annualIncome: number;
+  /** mode='oran' iken oda gelirine uygulanan oran (0.02 = %2) */
+  rate?: number;
   note: string;
+}
+
+export interface AncillaryIncomeCalc extends AncillaryIncomeRow {
+  /** Satırın hesaba giren yıllık geliri (₺) */
+  effectiveIncome: number;
 }
 
 /* ─────────────────── 3) Ticari Alan Kira Gelirleri ─────────────────── */
@@ -152,6 +161,7 @@ export interface HotelIncomeResult {
   roomRows: RoomRevenueCalc[];
   totalRoomRevenue: number;
 
+  ancillaryRows: AncillaryIncomeCalc[];
   totalAncillaryRevenue: number;
 
   leaseRows: CommercialLeaseCalc[];

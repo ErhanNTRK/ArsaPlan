@@ -7,5 +7,5 @@ export const BRAND = {
   preparedBy: 'Bu rapor ArsaPlan ile hazırlanmıştır',
   developerLine: 'Geliştirici: Dora Gayrimenkul Değerleme A.Ş. · Erhan Öntürk',
   author: 'Hasan Erhan Öntürk',
-  version: 'v5.6.0 · 2026.07.24',
+  version: 'v5.7.0 · 2026.07.24',
 } as const;

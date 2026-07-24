@@ -253,6 +253,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Yapı Maliyetleri', isletme.buildingsCost],
       ['TOPLAM MALİYET', isletme.totalCost],
       ['Öngörülen Satış Değeri', isletme.salesTotal],
+      ...(isletme.profit > 0 ? [[`Müteahhit Kârı (%${(isletme.profitRate * 100).toFixed(0)})`, isletme.profit] as Row] : []),
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', isletme.landValue],
       ['Arsa m² Birim Değeri', Math.round(isletme.landUnitValue)],
       ...fxLines(input.fx, isletme.landValue, isletme.landUnitValue).map((l): Row => [
@@ -556,7 +557,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     const a = input.apartment;
     const aktifBodrum = a.basements.slice(0, Math.min(4, Math.max(0, a.basementCount)));
     const list: Row[] = [
-      ['Hesap Yöntemi', apt.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan'],
+      ['Hesap Yöntemi', apt.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Alan Bilgisi Girilerek'],
       ['Bodrum Kat Sayısı', aktifBodrum.length],
       ...aktifBodrum.map((b, i): Row => [
         `${i + 1}. Bodrum Kullanımı`,

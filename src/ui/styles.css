@@ -262,7 +262,14 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 /* ── 3-8 Katlı Bina · Kat Tablosu ── */
 .floor-table { display: flex; flex-direction: column; gap: 6px; }
 .floor-head, .floor-row {
-  display: grid; grid-template-columns: 1.2fr 1fr 1.2fr; gap: 8px; align-items: center;
+  display: grid; grid-template-columns: 1.15fr 1fr 0.78fr 1.15fr 0.72fr; gap: 8px; align-items: center;
+}
+.rate-cell { display: block; width: 100%; }
+.rate-cell input { padding: 8px 24px 8px 8px; font-size: 13.5px; width: 100%; }
+.floor-common { font-size: 13px; color: var(--muted); font-weight: 600; justify-content: flex-end; }
+@media (max-width: 760px) {
+  .floor-head, .floor-row { grid-template-columns: 1fr 1fr 0.8fr 1fr 0.7fr; gap: 5px; }
+  .floor-cell input { font-size: 12.5px; padding: 7px 20px 7px 6px; }
 }
 .floor-head {
   font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
@@ -346,3 +353,38 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 .proj-table th { text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); padding: 6px 8px; border-bottom: 2px solid var(--navy); }
 .proj-table td { padding: 7px 8px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
 .proj-table tr:nth-child(even) td { background: var(--navy-50); }
+
+/* ── Başlangıç ekranı: pasif seçenekler ── */
+.choice-disabled { opacity: 0.55; cursor: not-allowed; }
+.choice-disabled:hover { border-color: var(--line); background: #fff; }
+.soon-badge { display: inline-block; margin-left: 8px; padding: 2px 8px; border-radius: 999px;
+  background: rgba(178,141,66,0.14); color: #8a6a2a; font-size: 11px; font-weight: 700; vertical-align: 1px; }
+
+/* ── Ticari işletme: kompakt yatay yapı satırları ── */
+.b-row { display: grid; grid-template-columns: 1.1fr 0.7fr 0.9fr 0.7fr 1.05fr 1fr 30px;
+  gap: 6px; align-items: center; padding: 5px 4px; border-radius: 8px; }
+.b-row:nth-child(even) { background: rgba(15, 42, 71, 0.03); }
+.b-type { font-size: 13px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-cell { position: relative; display: flex; align-items: center; gap: 3px; }
+.b-cell input, .b-cell select { padding: 7px 22px 7px 7px; font-size: 12.5px; width: 100%; }
+.b-cell select { padding-right: 7px; }
+.b-cost { font-size: 12.5px; font-weight: 700; justify-content: flex-end; white-space: nowrap; }
+.b-del { border: none; background: none; color: var(--red); cursor: pointer; font-size: 13px; padding: 4px; }
+.b-head-note { grid-template-columns: 1fr; padding-top: 2px; }
+@media (max-width: 860px) {
+  .b-row { grid-template-columns: 1fr 0.7fr 0.9fr 0.7fr 1fr 0.9fr 24px; gap: 4px; }
+  .b-cell input { font-size: 11.5px; padding: 6px 18px 6px 5px; }
+}
+
+/* ── Otel: kompakt yatay satırlar ── */
+.h-row { display: grid; grid-template-columns: 1.25fr 0.85fr 1fr 0.8fr 0.9fr 1.05fr 28px;
+  gap: 6px; align-items: center; padding: 5px 4px; border-radius: 8px; }
+.h-row:nth-child(even) { background: rgba(15, 42, 71, 0.03); }
+.h-row-anc { grid-template-columns: 1.4fr 1fr 1.1fr 1.1fr 28px; }
+.h-row .b-cell input, .h-row .b-cell select { padding: 7px 20px 7px 7px; font-size: 12.5px; width: 100%; }
+.h-row .seg button { padding: 6px 8px; font-size: 12px; }
+.add-btn { margin-top: 8px; padding: 9px 16px; font-size: 13.5px; }
+@media (max-width: 860px) {
+  .h-row { grid-template-columns: 1.1fr 0.8fr 0.95fr 0.75fr 0.85fr 1fr 24px; gap: 4px; }
+  .h-row .b-cell input { font-size: 11.5px; }
+}

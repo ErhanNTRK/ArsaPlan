@@ -91,3 +91,18 @@ describe('analyzeHotel — uçtan uca orkestrasyon', () => {
     expect(r.summaryText.length).toBeGreaterThan(20);
   });
 });
+
+describe('yardımcı gelir — oran modu', () => {
+  it("Salih'in örneği: oda geliri 10M, diğer gelirler oda gelirinin %2'si → 200.000 ₺, toplam 10,2M", () => {
+    const input: HotelIncomeInput = {
+      ...createDefaultHotelInput(),
+      rooms: [{ id: '1', roomType: 'Standart', roomCount: 100, adr: 1000, occupancy: 1, operatingDays: 100 }], // 10.000.000
+      ancillary: [{ id: 'a1', name: 'Diğer', mode: 'oran', annualIncome: 0, rate: 0.02, note: '' }],
+    };
+    const r = analyzeHotel(input);
+    expect(r.totalRoomRevenue).toBe(10_000_000);
+    expect(r.totalAncillaryRevenue).toBe(200_000);
+    expect(r.totalGrossRevenue).toBe(10_200_000);
+    expect(r.ancillaryRows[0].effectiveIncome).toBe(200_000);
+  });
+});

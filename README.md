@@ -11,6 +11,32 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.7.0 (2026.07.24)** — Büyük düzeltme turu. **Başlangıç:** açılışta beş
+seçenekli yöntem ekranı (Arsa Gelir Projeksiyon Yöntemi, Otel Gelir Hesabı;
+Akaryakıt / Tarımsal Ürün / Üst Hakkı "Hazırlanıyor" rozetiyle pasif); hash
+tabanlı yönlendirme sayesinde tarayıcının GERİ tuşu artık çalışır. **Arsa:**
+"Doğrudan Alan" yöntemi tüm ekran ve raporlarda "Alan Bilgisi Girilerek" oldu.
+Yapı kesiti mimari dile yaklaştırıldı: kat genişlikleri alanla orantılı merkezli
+silüet, pencere dizileri, zemin katta vitrin, bodrumlarda kesik kontur + tarama,
+saçaklı çatı, kat kotları (+3,00 / ±0,00 / −3,00); "mimari proje yerine geçmez"
+notu kaldırıldı. **Kat kurgusu:** "Alan Kaybı" terimi kalktı → "Ortak Alan Payı";
+bodrum başına "Satılabilir alan var mı?" ve "Emsale dahil mi?" soruları (dahil
+değilse emsal havuzundan düşmez — motor golden testli); bodrum sayısı 8'e çıktı;
+Alan Bilgisi Girilerek modundaki bodrum tıklama hatası giderildi. **Kat tablosu**
+beş kolon oldu: Kat · Alan · Ortak Alan Payı (her satırda düzenlenebilir %) ·
+Satılabilir · Ortak Alan; alan özetine emsale dahil alan ve taban oturumu
+eklendi; PDF kat tablosuna Ortak Alan kolonu geldi; PDF'ten "Değerlendirme /
+Kat karşılığı değeri daha yüksek" satırı kaldırıldı. **Ticari işletme:** yapı
+satırları tek satırlık kompakt yatay dizilime geçti (10 satır tek ekranda);
+Güncelleme Oranı, Yapı Ekle'nin sağında; çevre duvarı artık parsel uzunluğu (m) ×
+birim ₺/m ile hesaplanır; "kalem" sözcüğü arayüzden kalktı; müteahhit kârı alanı
+eklendi (varsayılan 0, oran değiştirilebilir; piyasa aralığı telkini yok).
+**Ticari apartman:** asma kat "%40 önerilir" dili kaldırıldı (hesap aynı).
+**Otel:** oda tipleri ve yardımcı gelirler kompakt yatay satırlara geçti, ekle
+düğmeleri belirginleşti; yardımcı gelirlerde yeni "% oda" modu — satır, oda
+gelirinin yüzdesi olarak girilebilir (10M oda × %2 = 200.000 ₺, golden testli);
+brüt gelir/gider etiketlerine "(yıllık)" ibaresi eklendi. 135/135 test.
+
 **v5.6.0 (2026.07.24)** — Otel Gelir Hesabı modülü. Başlangıçta yöntem seçimi:
 "Arsa Gelir Projeksiyon Yöntemi" (mevcut akış, ArsaApp adıyla değişmeden) veya
 "Otel Gelir Hesabı". Otel modülü tamamen bağımsızdır (src/hotel/): oda gelirleri

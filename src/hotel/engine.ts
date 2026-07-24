@@ -33,9 +33,19 @@ export function computeRoomRevenue(rows: RoomRevenueRow[]): { rows: RoomRevenueC
   return { rows: calc, total };
 }
 
-/* ─────────────────── 2) Yardımcı İşletme Gelirleri ─────────────────── */
-export function computeAncillaryRevenue(rows: HotelIncomeInput['ancillary']): number {
-  return rows.reduce((a, r) => a + Math.max(0, R(r.annualIncome)), 0);
+/* ─────────────────── 2) Yardımcı İşletme Gelirleri ───────────────────
+   'tutar' satırlar ₺ olarak; 'oran' satırlar oda gelirinin yüzdesi olarak
+   hesaba girer (örn. oda geliri 10M, oran %2 → 200.000 ₺). */
+export function computeAncillaryRevenue(
+  rows: HotelIncomeInput['ancillary'], roomRevenueTotal: number,
+): { rows: import('./types').AncillaryIncomeCalc[]; total: number } {
+  const calc = rows.map((r) => {
+    const effectiveIncome = (r.mode ?? 'tutar') === 'oran'
+      ? R(Math.max(0, roomRevenueTotal) * Math.max(0, r.rate ?? 0))
+      : Math.max(0, R(r.annualIncome));
+    return { ...r, effectiveIncome };
+  });
+  return { rows: calc, total: calc.reduce((a, r) => a + r.effectiveIncome, 0) };
 }
 
 /* ─────────────────── 3) Ticari Alan Kira Gelirleri ─────────────────── */
@@ -170,7 +180,8 @@ function fmtTLShort(v: number): string {
 /* ─────────────────── Orkestratör — tek çağrıda tüm analizi üretir ─────────────────── */
 export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const roomCalc = computeRoomRevenue(input.rooms);
-  const totalAncillaryRevenue = computeAncillaryRevenue(input.ancillary);
+  const ancCalc = computeAncillaryRevenue(input.ancillary, roomCalc.total);
+  const totalAncillaryRevenue = ancCalc.total;
   const leaseCalc = computeLeaseRevenue(input.leases);
 
   const totalGrossRevenue = roomCalc.total + totalAncillaryRevenue + leaseCalc.total;
@@ -189,6 +200,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   return {
     roomRows: roomCalc.rows,
     totalRoomRevenue: roomCalc.total,
+    ancillaryRows: ancCalc.rows,
     totalAncillaryRevenue,
     leaseRows: leaseCalc.rows,
     totalLeaseRevenue: leaseCalc.total,

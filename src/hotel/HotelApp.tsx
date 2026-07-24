@@ -218,36 +218,27 @@ function StepRooms({ rooms, setRooms, result }: {
         {rooms.map((r, i) => {
           const calc = result.roomRows[i];
           return (
-            <div className="isletme-row" key={r.id}>
-              <div className="isletme-row-head">
-                <b>{r.roomType || `Oda Satırı ${i + 1}`}</b>
-                <button type="button" className="link-btn" onClick={() => del(i)}>Satırı sil</button>
-              </div>
-              <Field label="Oda Tipi">
-                <Sel value={r.roomType} onChange={(v) => upd(i, { roomType: v })}
+            <div className="h-row" key={r.id}>
+              <div className="b-cell">
+                <Sel value={ODA_TIPLERI.includes(r.roomType) ? r.roomType : 'Diğer'}
+                     onChange={(v) => upd(i, { roomType: v })}
                      options={ODA_TIPLERI.map((t) => ({ value: t, label: t }))} />
-              </Field>
-              {r.roomType === 'Diğer' && (
-                <Field label="Oda Tipi Adı"><Txt value={r.roomType} onChange={(v) => upd(i, { roomType: v })} /></Field>
-              )}
-              <div className="grid-3">
-                <Field label="Oda Sayısı"><Num value={r.roomCount} onChange={(n) => upd(i, { roomCount: n })} /></Field>
-                <Field label="Günlük Ortalama Fiyat"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></Field>
-                <Field label="Doluluk Oranı"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></Field>
               </div>
-              <Field label="Yıllık Faaliyet Günü" hint="365 gün çalışmayan sezonluk tesislerde değiştirin">
-                <Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" />
-              </Field>
-              {calc && (
-                <div className="note-box" style={{ marginTop: 8 }}>
-                  {r.roomCount} × {fmtTL(r.adr)} × %{Math.round(r.occupancy * 100)} × {r.operatingDays} gün =
-                  {' '}<b>{fmtTL(calc.annualRevenue)}</b> / yıl
-                </div>
-              )}
+              <div className="b-cell"><Num value={r.roomCount} onChange={(n) => upd(i, { roomCount: n })} suffix="oda" /></div>
+              <div className="b-cell"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></div>
+              <div className="b-cell"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></div>
+              <div className="b-cell"><Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" /></div>
+              <div className="b-cell b-cost">{calc ? fmtTL(calc.annualRevenue) : '—'}</div>
+              <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
             </div>
           );
         })}
-        <button type="button" className="link-btn" onClick={add}>+ Oda tipi ekle</button>
+        {rooms.length > 0 && (
+          <div className="hint" style={{ margin: '4px 0 8px' }}>
+            Kolonlar: Oda Tipi · Oda Sayısı · Günlük Ortalama Fiyat · Doluluk · Faaliyet Günü · Yıllık Gelir
+          </div>
+        )}
+        <button type="button" className="btn add-btn" onClick={add}>+ Oda Tipi Ekle</button>
 
         {rooms.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
@@ -289,23 +280,33 @@ function StepAncillary({ ancillary, setAncillary, result }: {
           Kiraya verilmiş alanlar için "Ticari Kiralar" adımını kullanın (çifte hesaplamayı önler).
         </div>
         {ancillary.map((a, i) => (
-          <div className="isletme-row" key={a.id}>
-            <div className="isletme-row-head">
-              <b>{a.name || `Gelir Kalemi ${i + 1}`}</b>
-              <button type="button" className="link-btn" onClick={() => del(i)}>Satırı sil</button>
-            </div>
-            <Field label="Gelir Adı">
-              <Sel value={a.name} onChange={(v) => upd(i, { name: v })}
+          <div className="h-row h-row-anc" key={a.id}>
+            <div className="b-cell">
+              <Sel value={YARDIMCI_GELIR_KATALOGU.includes(a.name) ? a.name : 'Diğer'}
+                   onChange={(v) => upd(i, { name: v })}
                    options={YARDIMCI_GELIR_KATALOGU.map((t) => ({ value: t, label: t }))} />
-            </Field>
-            {a.name === 'Diğer' && (
-              <Field label="Gelir Kalemi Adı"><Txt value={a.name} onChange={(v) => upd(i, { name: v })} /></Field>
-            )}
-            <Field label="Yıllık Gelir"><Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix="₺" /></Field>
-            <Field label="Açıklama (opsiyonel)"><Txt value={a.note} onChange={(v) => upd(i, { note: v })} /></Field>
+            </div>
+            <div className="b-cell">
+              <Seg value={a.mode ?? 'tutar'} onChange={(v) => upd(i, { mode: v })}
+                   options={[{ value: 'tutar', label: '₺' }, { value: 'oran', label: '% oda' }]} />
+            </div>
+            <div className="b-cell">
+              {(a.mode ?? 'tutar') === 'oran'
+                ? <Pct value={a.rate ?? 0} onChange={(n) => upd(i, { rate: n })} />
+                : <Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix="₺" />}
+            </div>
+            <div className="b-cell b-cost">
+              {(() => { const c = result.ancillaryRows?.[i]; return c ? fmtTL(c.effectiveIncome) : fmtTL(a.annualIncome); })()}
+            </div>
+            <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
           </div>
         ))}
-        <button type="button" className="link-btn" onClick={add}>+ Yardımcı gelir ekle</button>
+        {ancillary.length > 0 && (
+          <div className="hint" style={{ margin: '4px 0 8px' }}>
+            Kolonlar: Gelir Adı · Giriş Türü (₺ tutar / oda gelirinin %'si) · Değer · Yıllık Gelir
+          </div>
+        )}
+        <button type="button" className="btn add-btn" onClick={add}>+ Yardımcı Gelir Ekle</button>
 
         {ancillary.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
@@ -367,7 +368,7 @@ function StepLeases({ leases, setLeases, result }: {
             </div>
           );
         })}
-        <button type="button" className="link-btn" onClick={add}>+ Kira alanı ekle</button>
+        <button type="button" className="btn add-btn" onClick={add}>+ Kira Alanı Ekle</button>
 
         {leases.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
@@ -399,7 +400,7 @@ function StepOpex({ opex, setOpex, result }: {
           {fmtTL(result.totalGrossRevenue)} × %{Math.round(opex.expenseRate * 100)} = {fmtTL(result.totalExpense)} gider
         </div>
         <div className="mini-kpi" style={{ marginTop: 14 }}>
-          <div><span>Toplam Brüt Gelir</span><b>{fmtTL(result.totalGrossRevenue)}</b></div>
+          <div><span>Toplam Brüt Gelir (yıllık)</span><b>{fmtTL(result.totalGrossRevenue)}</b></div>
           <div><span>Net İşletme Geliri (NOI)</span><b>{fmtTL(result.noi)}</b></div>
         </div>
       </div>
@@ -471,7 +472,7 @@ function HotelResult({ input, result }: { input: HotelIncomeInput; result: Retur
             <div className="kpi-value">{fmtTL(result.capitalizedValue)}</div>
             <div className="kpi-sub">Kapitalizasyon oranı %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</div>
           </div>
-          <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir</div><div className="kpi-value">{fmtTL(result.totalGrossRevenue)}</div></div>
+          <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmtTL(result.totalGrossRevenue)}</div></div>
           <div className="kpi"><div className="kpi-label">Toplam İşletme Gideri</div><div className="kpi-value">{fmtTL(result.totalExpense)}</div></div>
           <div className="kpi"><div className="kpi-label">Net İşletme Geliri</div><div className="kpi-value">{fmtTL(result.noi)}</div></div>
         </div>

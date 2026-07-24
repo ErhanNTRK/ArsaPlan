@@ -90,7 +90,7 @@ const D: Record<string, string> = {
   /* — Adım 3 ortak — */
   'İmar Durumu': 'Zoning Status', 'Plan Lejantı': 'Zoning Designation',
   'Hesap Yöntemi': 'Calculation Method', 'TAKS / KAKS': 'Coverage / FAR (TAKS / KAKS)',
-  'Doğrudan Alan': 'Direct Area', 'TAKS': 'Coverage Ratio (TAKS)', 'KAKS': 'FAR (KAKS)',
+  'Doğrudan Alan': 'Direct Area', 'Alan Bilgisi Girilerek': 'By Entering Areas', 'TAKS': 'Coverage Ratio (TAKS)', 'KAKS': 'FAR (KAKS)',
   'Hmax': 'Hmax', 'Serbest': 'Unlimited',
   'Zorunlu: emsal değerini giriniz.': 'Required: enter the FAR value.',
   'Zorunlu: birim maliyet giriniz veya yapı sınıfı seçiniz.': 'Required: enter a unit cost or select a building class.',
@@ -112,7 +112,7 @@ const D: Record<string, string> = {
   'Çatı Arası Piyesi var mı?': 'Attic loft?',
   'Normal Kat Sayısı': 'Number of Typical Floors', 'Üst sınır yoktur': 'No upper limit',
   'Kat Tablosu': 'Floor Table', 'KAT BİLGİSİ': 'FLOOR', 'KAT ALANI': 'FLOOR AREA',
-  'SATILABİLİR ALAN': 'SALEABLE AREA', 'TOPLAM': 'TOTAL', 'ortak mahal': 'common area',
+  'SATILABİLİR ALAN': 'SALEABLE AREA', 'TOPLAM': 'TOTAL', 'ortak mahal': 'common area', 'ortak alan': 'common area', 'ORTAK ALAN': 'COMMON AREA', 'Ortak Alan Payı': 'Common-Area Share',
   'Bahçe / Açık Alan': 'Garden / Open Area',
   'Taban Oturumu Limiti (parsel × TAKS)': 'Footprint Limit (parcel × coverage)',
   'İlave Satılabilir Alan (emsal dışı)': 'Additional Saleable Area (non-FAR)',
