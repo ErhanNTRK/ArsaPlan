@@ -6,7 +6,7 @@
  *   Suit     10 adet · 8.000 ₺ · %54 doluluk · 365 gün
  */
 import { describe, it, expect } from 'vitest';
-import { analyzeHotel, createDefaultHotelInput, computeRoomRevenue, computeCapitalizedValue, computeNoi } from './engine';
+import { analyzeHotel, createDefaultHotelInput, computeRoomRevenue, computeCapitalizedValue, computeNoi, computeProjection } from './engine';
 import type { HotelIncomeInput, RoomRevenueRow } from './types';
 
 const rooms: RoomRevenueRow[] = [
@@ -104,5 +104,46 @@ describe('yardımcı gelir — oran modu', () => {
     expect(r.totalAncillaryRevenue).toBe(200_000);
     expect(r.totalGrossRevenue).toBe(10_200_000);
     expect(r.ancillaryRows[0].effectiveIncome).toBe(200_000);
+  });
+});
+
+describe('projeksiyon — gider tutar bazlı büyür (v5.8 düzeltmesi)', () => {
+  it('gelir ve gider aynı oranda artarsa gider/gelir oranı sabit kalır, NOI aynı oranda büyür', () => {
+    const t = computeProjection(100_000_000, 0.35, {
+      startYear: 2026, years: 10, incomeGrowthRate: 0.15, expenseGrowthRate: 0.15,
+      capRate: 0.10, terminalCapRate: null, discountRate: null,
+    });
+    expect(t).toHaveLength(10);
+    // Oran her yıl %35
+    for (const row of t) {
+      expect(row.totalExpense / row.totalRevenue).toBeCloseTo(0.35, 3);
+    }
+    // NOI bileşik %15 büyür; asla yapay sıfırlanmaz
+    expect(t[0].noi).toBe(65_000_000);
+    expect(t[1].noi / t[0].noi).toBeCloseTo(1.15, 3);
+    expect(t[9].noi).toBeGreaterThan(t[0].noi * 3);
+    expect(t[9].capitalizedValue).toBeGreaterThan(0);
+    // -0 artefaktı yok
+    for (const row of t) expect(Object.is(row.noi, -0)).toBe(false);
+  });
+
+  it('gider artışı gelirden yüksekse marj daralır ama sıfıra çivilenmez', () => {
+    const t = computeProjection(100_000_000, 0.35, {
+      startYear: 2026, years: 25, incomeGrowthRate: 0.10, expenseGrowthRate: 0.20,
+      capRate: 0.10, terminalCapRate: null, discountRate: null,
+    });
+    expect(t).toHaveLength(25);
+    expect(t[24].totalExpense / t[24].totalRevenue).toBeGreaterThan(0.35);
+    expect(t[1].noi).toBeGreaterThan(0);
+  });
+
+  it('yıl sayısı 3-25 aralığına sıkıştırılır', () => {
+    const mk = (y: number) => computeProjection(1_000_000, 0.3, {
+      startYear: 2026, years: y, incomeGrowthRate: 0, expenseGrowthRate: 0,
+      capRate: 0.1, terminalCapRate: null, discountRate: null,
+    });
+    expect(mk(1)).toHaveLength(3);
+    expect(mk(30)).toHaveLength(25);
+    expect(mk(7)).toHaveLength(7);
   });
 });

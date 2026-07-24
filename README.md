@@ -11,6 +11,16 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v5.8.0 (2026.07.24)** — Otel modülü düzeltmeleri. **Projeksiyon motoru
+düzeltildi:** gider artış oranı artık gider ORANINA değil 1. yıl gider TUTARINA
+bileşik uygulanır. Gelir ve gider aynı oranda artarsa gider/gelir oranı sabit
+kalır ve NOI aynı oranda büyür; eski davranıştaki "oran %100'e dayanınca değerin
+sıfıra çivilenmesi" yapay uçurumu ortadan kalktı (−0 ₺ görüntü artefaktı da
+temizlendi; golden testli). **Projeksiyon süresi** 5/10/15/20 kilidinden çıktı:
+3-25 yıl arası serbest. **Yerleşim:** Oda Tipleri, Yardımcı Gelirler ve Ticari
+Kiralar kartları tam sayfa genişliğinde; satır ızgaraları ferahlatıldı.
+Yardımcı Gelirler adımı ilk açılışta bir hazır satırla gelir. 138/138 test.
+
 **v5.7.0 (2026.07.24)** — Büyük düzeltme turu. **Başlangıç:** açılışta beş
 seçenekli yöntem ekranı (Arsa Gelir Projeksiyon Yöntemi, Otel Gelir Hesabı;
 Akaryakıt / Tarımsal Ürün / Üst Hakkı "Hazırlanıyor" rozetiyle pasif); hash

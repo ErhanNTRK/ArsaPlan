@@ -104,7 +104,8 @@ export interface HotelOpexInput {
 /* ─────────────────── Projeksiyon ─────────────────── */
 export interface HotelProjectionInput {
   startYear: number;
-  years: 5 | 10 | 15 | 20;
+  /** 3-25 yıl arası serbest */
+  years: number;
   incomeGrowthRate: number;   // yıllık gelir artış oranı
   expenseGrowthRate: number;  // yıllık gider artış oranı
   capRate: number;            // Kapitalizasyon Oranı (Direkt Kapitalizasyon)

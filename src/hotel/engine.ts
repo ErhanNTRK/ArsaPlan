@@ -98,20 +98,22 @@ export function computeProjection(
   baseRevenue: number, baseExpenseRate: number, input: HotelIncomeInput['projection'],
 ): HotelProjectionYear[] {
   const table: HotelProjectionYear[] = [];
-  let revenue = baseRevenue;
-  let expenseRate = Math.min(1, Math.max(0, baseExpenseRate));
-  for (let i = 1; i <= input.years; i++) {
-    if (i > 1) {
-      revenue = revenue * (1 + input.incomeGrowthRate);
-      expenseRate = Math.min(1, expenseRate * (1 + input.expenseGrowthRate));
-    }
-    const { totalExpense, noi } = computeNoi(revenue, expenseRate);
-    const capitalizedValue = computeCapitalizedValue(noi, input.capRate);
+  const years = Math.max(3, Math.min(25, Math.round(input.years)));
+  const z = (v: number) => (Object.is(v, -0) ? 0 : v);
+  /* Gider, 1. yıl TUTARI üzerinden bileşik büyür (oran değil). Böylece gelir ve
+     gider aynı oranda artarsa gider/gelir oranı sabit kalır ve NOI aynı oranda
+     büyür; gider artışı gelirden yüksekse marj gerçekçi biçimde daralır. */
+  const baseExpense = baseRevenue * Math.min(1, Math.max(0, baseExpenseRate));
+  for (let i = 1; i <= years; i++) {
+    const revenue = baseRevenue * Math.pow(1 + input.incomeGrowthRate, i - 1);
+    const expense = baseExpense * Math.pow(1 + input.expenseGrowthRate, i - 1);
+    const noi = z(R(revenue) - R(expense));
+    const capitalizedValue = z(computeCapitalizedValue(noi, input.capRate));
     table.push({
       year: input.startYear + i - 1,
       yearIndex: i,
-      totalRevenue: R(revenue),
-      totalExpense,
+      totalRevenue: z(R(revenue)),
+      totalExpense: z(R(expense)),
       noi,
       capitalizedValue,
     });

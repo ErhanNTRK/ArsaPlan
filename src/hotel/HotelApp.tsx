@@ -210,7 +210,7 @@ function StepRooms({ rooms, setRooms, result }: {
 
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Oda Tipleri</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           Her satır için Yıllık Gelir = Oda Sayısı × Günlük Ortalama Fiyat × Doluluk Oranı × Faaliyet Günü olarak anlık hesaplanır.
@@ -267,13 +267,17 @@ function StepAncillary({ ancillary, setAncillary, result }: {
   ancillary: AncillaryIncomeRow[]; setAncillary: (a: AncillaryIncomeRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
   const add = () => setAncillary([...ancillary, { id: newId(), name: YARDIMCI_GELIR_KATALOGU[0], annualIncome: 0, note: '' }]);
+  useEffect(() => {
+    if (ancillary.length === 0) add();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const upd = (i: number, patch: Partial<AncillaryIncomeRow>) =>
     setAncillary(ancillary.map((a, k) => (k === i ? { ...a, ...patch } : a)));
   const del = (i: number) => setAncillary(ancillary.filter((_, k) => k !== i));
 
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Yardımcı İşletme Gelirleri</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           Yalnızca otel tarafından işletilen, üçüncü kişiye kiraya verilmemiş gelir kalemlerini buraya ekleyin.
@@ -332,7 +336,7 @@ function StepLeases({ leases, setLeases, result }: {
 
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Ticari Alan Kira Gelirleri</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           Bu bölüm yalnızca üçüncü kişilere kiralanan bağımsız alanlar içindir (otel işletmesinin kendi işlettiği alanlar için "Yardımcı Gelirler" adımını kullanın).
@@ -409,7 +413,6 @@ function StepOpex({ opex, setOpex, result }: {
 }
 
 /* ─────────────────── Adım 6 — Projeksiyon ─────────────────── */
-const YEAR_OPTIONS = [5, 10, 15, 20] as const;
 
 function StepProjection({ projection, setProjection, result }: {
   projection: HotelIncomeInput['projection']; setProjection: (p: Partial<HotelIncomeInput['projection']>) => void;
@@ -421,9 +424,9 @@ function StepProjection({ projection, setProjection, result }: {
         <div className="card-title">Projeksiyon Parametreleri</div>
         <div className="grid-2">
           <Field label="Başlangıç Yılı"><Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></Field>
-          <Field label="Projeksiyon Süresi">
-            <Sel value={String(projection.years)} onChange={(v) => setProjection({ years: Number(v) as 5 | 10 | 15 | 20 })}
-                 options={YEAR_OPTIONS.map((y) => ({ value: String(y), label: `${y} Yıl` }))} />
+          <Field label="Projeksiyon Süresi" hint="3-25 yıl arası">
+            <Num value={projection.years}
+                 onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" />
           </Field>
         </div>
         <div className="grid-2">

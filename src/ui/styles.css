@@ -316,6 +316,7 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
   .kpi-grid { grid-template-columns: repeat(4, 1fr); }
   .kpi.hero { grid-column: span 2; }
   .cols { grid-template-columns: 1fr 1fr; align-items: start; }
+  .cols > .card-wide,
   .cols > .card:only-child,
   .cols > .result-preview { grid-column: 1 / -1; }
   .card { padding: 20px; }
@@ -377,11 +378,11 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 }
 
 /* ── Otel: kompakt yatay satırlar ── */
-.h-row { display: grid; grid-template-columns: 1.25fr 0.85fr 1fr 0.8fr 0.9fr 1.05fr 28px;
-  gap: 6px; align-items: center; padding: 5px 4px; border-radius: 8px; }
+.h-row { display: grid; grid-template-columns: 1.35fr 0.85fr 1.05fr 0.8fr 0.9fr 1.1fr 32px;
+  gap: 12px; align-items: center; padding: 8px 6px; border-radius: 8px; }
 .h-row:nth-child(even) { background: rgba(15, 42, 71, 0.03); }
-.h-row-anc { grid-template-columns: 1.4fr 1fr 1.1fr 1.1fr 28px; }
-.h-row .b-cell input, .h-row .b-cell select { padding: 7px 20px 7px 7px; font-size: 12.5px; width: 100%; }
+.h-row-anc { grid-template-columns: 1.6fr 0.9fr 1.2fr 1fr 32px; gap: 14px; }
+.h-row .b-cell input, .h-row .b-cell select { padding: 9px 22px 9px 9px; font-size: 13.5px; width: 100%; }
 .h-row .seg button { padding: 6px 8px; font-size: 12px; }
 .add-btn { margin-top: 8px; padding: 9px 16px; font-size: 13.5px; }
 @media (max-width: 860px) {
