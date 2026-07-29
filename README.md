@@ -11,6 +11,23 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v6.0.0 (2026.07.26)** — İki yeni modül + PC odaklı büyük düzen turu.
+**Tarımsal Ürün Gelir Hesabı** (tek ekran): Ekili/Dikili/Karma; alan bütçeli
+ürün satırları; 21 ürünlük denetimli katalog (TMO 2025 vb., kaynak etiketli,
+yalnız öneri); ağaç aralığından adet önerisi (yarım-aralık/tam-mesafe);
+KML ile alan; değer = yıllık net gelir × amorti yılı. **Akaryakıt Gelir
+Hesabı** (tek ekran, çift yöntem): 3 ürün KDV hariç; günlük/yıllık/çok-yıl
+ortalaması/kısmi dönem (tarih aralığı 365'e yayılır); ilave gelirler ciro×oran
+veya net; dağıtıcı kirası opsiyonel; kâr önerileri %3-%3-%5, kap oranı konum
+önerili; yuvarlama; opsiyonel maliyet yaklaşımı (arsa+yapılar, KML) → gelir ve
+maliyet değerleri yan yana. **Otel İNA**: risksiz+prim→iskonto, terminal,
+dönemsel bakım yılı/tutarı, NBD — banka Excel goldeni kuruşla doğrulandı;
+Direkt Kapitalizasyon ile yan yana + nihai değer seçimi (uzman takdiri);
+adımlar 6→4'e konsolide. **Kat karşılığı indirgeme** (opsiyonel): proje süresi
+(ay) + oran; 0 iken davranış birebir eski. **Geniş ekran düzeni**: içerik
+1500-1620px'e nefes alır. **Sonuç/PDF kat tablosu** 4 kolon hizalı (Ortak Alan
+başlığıyla — 2.952/2.538/414 muamması bitti). 153 test.
+
 **v5.8.0 (2026.07.24)** — Otel modülü düzeltmeleri. **Projeksiyon motoru
 düzeltildi:** gider artış oranı artık gider ORANINA değil 1. yıl gider TUTARINA
 bileşik uygulanır. Gelir ve gider aynı oranda artarsa gider/gelir oranı sabit

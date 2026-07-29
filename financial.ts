@@ -1,208 +1,268 @@
 /**
- * UZMAN YORUM MOTORU (kural bazlı)
- * Sunucusuz, çevrimdışı, deterministik: aynı girdi her zaman aynı yorumu üretir.
+ * OTEL GELİRİ — HESAPLAMA MOTORU
+ *
+ * Saf TypeScript'tir: React bilmez, DOM'a dokunmaz, yan etkisi yoktur
+ * (ArsaPlan'ın mevcut engine/ klasörüyle aynı ilke).
+ *
+ * Hiçbir hesaplama UI bileşenleri içinde tekrar edilmez; tüm matematik burada,
+ * tek merkezden yönetilir. Her fonksiyon tek sorumluluğa sahiptir.
+ *
+ * Kural: sistem kullanıcıyı uyarır ama hesaplamayı engellemez — nihai karar
+ * her zaman değerleme uzmanına aittir (kullanıcının kendi belirlediği ilke).
  */
 import type {
-  Advice, CapacityResult, FinancialResult, ShareResult,
-  Parcel, Zoning, VillaConfig, EmsalOptions, CostInput, SiteWorks, ResidualInput,
+  HotelIncomeInput, HotelIncomeResult, RoomRevenueRow, RoomRevenueCalc,
+  CommercialLeaseRow, CommercialLeaseCalc, HotelProjectionYear, HotelWarning,
+  HotelPerformanceIndicators,
 } from './types';
 
-const pct = (v: number, d = 0) => `%${(v * 100).toFixed(d)}`;
-const m2 = (v: number) => `${Math.round(v).toLocaleString('tr-TR')} m²`;
-const tl = (v: number) => `${Math.round(v).toLocaleString('tr-TR')} ₺`;
+const R = Math.round;
+const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
 
-export function buildAdvice(
-  parcel: Parcel, zoning: Zoning, villa: VillaConfig, emsal: EmsalOptions,
-  cost: CostInput, site: SiteWorks, residual: ResidualInput,
-  capacity: CapacityResult, financial: FinancialResult, share: ShareResult,
-  shareEnabled: boolean,
-): Advice[] {
-  const out: Advice[] = [];
-  const add = (level: Advice['level'], title: string, body: string) => out.push({ level, title, body });
+/* ─────────────────── 1) Oda Gelirleri ─────────────────── */
+export function computeRoomRevenue(rows: RoomRevenueRow[]): { rows: RoomRevenueCalc[]; total: number } {
+  const calc = rows.map((r) => {
+    const count = Math.max(0, r.roomCount);
+    const adr = Math.max(0, r.adr);
+    const occ = Math.min(1, Math.max(0, r.occupancy));
+    const days = Math.min(365, Math.max(0, r.operatingDays));
+    const annualRevenue = R(count * adr * occ * days);
+    return { ...r, annualRevenue };
+  });
+  const total = calc.reduce((a, r) => a + r.annualRevenue, 0);
+  return { rows: calc, total };
+}
 
-  capacity.warnings.forEach((w) => add('uyari', 'Kapasite uyarısı', w));
+/* ─────────────────── 2) Yardımcı İşletme Gelirleri ───────────────────
+   'tutar' satırlar ₺ olarak; 'oran' satırlar oda gelirinin yüzdesi olarak
+   hesaba girer (örn. oda geliri 10M, oran %2 → 200.000 ₺). */
+export function computeAncillaryRevenue(
+  rows: HotelIncomeInput['ancillary'], roomRevenueTotal: number,
+): { rows: import('./types').AncillaryIncomeCalc[]; total: number } {
+  const calc = rows.map((r) => {
+    const effectiveIncome = (r.mode ?? 'tutar') === 'oran'
+      ? R(Math.max(0, roomRevenueTotal) * Math.max(0, r.rate ?? 0))
+      : Math.max(0, R(r.annualIncome));
+    return { ...r, effectiveIncome };
+  });
+  return { rows: calc, total: calc.reduce((a, r) => a + r.effectiveIncome, 0) };
+}
 
-  /* ── Yöntem notu ── */
-  if (zoning.mode === 'dogrudan') {
-    add('bilgi', 'Doğrudan alan girişi kullanılıyor',
-      'Kapasite, TAKS/KAKS yerine doğrudan girdiğiniz taban oturumu ve toplam inşaat alanı üzerinden kuruldu. ' +
-      'Bu değerlerin plan notu, avan proje veya kütle etüdüyle uyumlu olduğundan emin olunuz; model bunları doğrulayamaz.');
+/* ─────────────────── 3) Ticari Alan Kira Gelirleri ─────────────────── */
+export function computeLeaseRevenue(rows: CommercialLeaseRow[]): { rows: CommercialLeaseCalc[]; total: number } {
+  const calc = rows.map((r) => {
+    const amount = Math.max(0, r.amount);
+    const monthlyAmount = r.inputMode === 'aylik' ? amount : amount / 12;
+    const annualAmount = r.inputMode === 'yillik' ? amount : amount * 12;
+    return { ...r, monthlyAmount: R(monthlyAmount), annualAmount: R(annualAmount) };
+  });
+  const total = calc.reduce((a, r) => a + r.annualAmount, 0);
+  return { rows: calc, total };
+}
+
+/* ─────────────────── Performans Göstergeleri (otomatik) ─────────────────── */
+export function computePerformanceIndicators(rows: RoomRevenueCalc[]): HotelPerformanceIndicators {
+  const totalRoomCount = rows.reduce((a, r) => a + Math.max(0, r.roomCount), 0);
+  if (totalRoomCount === 0) {
+    return { totalRoomCount: 0, blendedAdr: 0, blendedOccupancy: 0, revPar: 0 };
   }
+  const blendedAdr = safeDiv(
+    rows.reduce((a, r) => a + r.adr * r.roomCount, 0), totalRoomCount,
+  );
+  const blendedOccupancy = safeDiv(
+    rows.reduce((a, r) => a + r.occupancy * r.roomCount, 0), totalRoomCount,
+  );
+  return { totalRoomCount, blendedAdr, blendedOccupancy, revPar: blendedAdr * blendedOccupancy };
+}
 
-  /* ── Bağlayıcı kısıt ── */
-  if (capacity.unitCount > 0) {
-    if (capacity.binding === 'TAKS' || capacity.binding === 'DOĞRUDAN TABAN') {
-      add('bilgi', 'Projeyi taban alanı sınırlıyor',
-        `Kullanılabilir taban ${m2(capacity.effectiveFootprint)} ile sınırlı. ` +
-        (capacity.emsalUsage != null && capacity.emsalUsage < 0.85
-          ? `Emsal hakkının yalnızca ${pct(capacity.emsalUsage)}'i kullanılıyor — villa kat adedini artırmak (aynı tabanda daha fazla alan) emsali değerlendirmenin en doğrudan yoludur.`
-          : 'Emsal hakkı da büyük ölçüde kullanılıyor; proje imar haklarını verimli değerlendiriyor.'));
-    } else if (capacity.binding === 'KAKS' || capacity.binding === 'DOĞRUDAN İNŞAAT ALANI') {
-      add('bilgi', 'Projeyi toplam inşaat alanı sınırlıyor',
-        `İnşaat hakkı ${m2(capacity.kaksLimit ?? 0)} ile sınırlı ve tamamına yakını kullanılıyor. ` +
-        'Taban alanında yer kalsa bile toplam alan artırılamaz; bu noktadan sonra değeri artıran tek şey ürün kalitesi ve satış fiyatıdır.');
-    } else if (capacity.binding === 'ÇEKME MESAFESİ') {
-      add('dikkat', 'Projeyi çekme mesafeleri sınırlıyor',
-        `Yapılaşma zarfı ${capacity.envelope.buildableWidth.toFixed(1)} m × ${capacity.envelope.buildableDepth.toFixed(1)} m = ${m2(capacity.envelope.envelopeArea)} ` +
-        `(parselin ${pct(capacity.envelope.envelopeRatio)}'i). Yerleşim verimliliği ${pct(villa.layoutEfficiency)} uygulandığında fiili taban ${m2(capacity.layoutFootprint)} kalıyor. ` +
-        (capacity.taksLimit != null && capacity.layoutFootprint < capacity.taksLimit
-          ? `İmar ${m2(capacity.taksLimit)} tabana izin vermesine rağmen çekmeler bunu ${m2(capacity.taksLimit - capacity.layoutFootprint)} kısıtlıyor. İkiz veya sıralı villa düzeni bu kaybı azaltır.`
-          : 'İmar hakları zaten zarfın altında kaldığı için ek kayıp yok.'));
+/* ─────────────────── 5-8) Gider, NOI, Kapitalizasyon ─────────────────── */
+export function computeNoi(totalGrossRevenue: number, expenseRate: number) {
+  const rate = Math.min(1, Math.max(0, expenseRate));
+  const totalExpense = R(totalGrossRevenue * rate);
+  const noi = totalGrossRevenue - totalExpense;
+  return { totalExpense, noi };
+}
+
+export function computeCapitalizedValue(noi: number, capRate: number): number {
+  if (capRate <= 0) return 0;
+  return R(noi / capRate);
+}
+
+/* ─────────────────── Yıllık Projeksiyon Tablosu ─────────────────── */
+/**
+ * baseExpenseRate: 1. yıl için Toplam Gelir üzerinden uygulanan sabit gider oranı.
+ * expenseGrowthRate ile birlikte, gider oranının kendisi de yıllar içinde
+ * (gelir artışından bağımsız olarak) bileşik büyür. Girdi 0 ise oran sabit kalır.
+ */
+export function computeProjection(
+  baseRevenue: number, baseExpenseRate: number, input: HotelIncomeInput['projection'],
+): HotelProjectionYear[] {
+  const table: HotelProjectionYear[] = [];
+  const years = Math.max(3, Math.min(25, Math.round(input.years)));
+  const z = (v: number) => (Object.is(v, -0) ? 0 : v);
+  /* Gider, 1. yıl TUTARI üzerinden bileşik büyür (oran değil). Böylece gelir ve
+     gider aynı oranda artarsa gider/gelir oranı sabit kalır ve NOI aynı oranda
+     büyür; gider artışı gelirden yüksekse marj gerçekçi biçimde daralır. */
+  const baseExpense = baseRevenue * Math.min(1, Math.max(0, baseExpenseRate));
+  for (let i = 1; i <= years; i++) {
+    const revenue = baseRevenue * Math.pow(1 + input.incomeGrowthRate, i - 1);
+    const expense = baseExpense * Math.pow(1 + input.expenseGrowthRate, i - 1);
+    const noi = z(R(revenue) - R(expense));
+    const capitalizedValue = z(computeCapitalizedValue(noi, input.capRate));
+    table.push({
+      year: input.startYear + i - 1,
+      yearIndex: i,
+      totalRevenue: z(R(revenue)),
+      totalExpense: z(R(expense)),
+      noi,
+      capitalizedValue,
+    });
+  }
+  return table;
+}
+
+/* ─────────────────── Doğrulama / Uyarılar (engellemez, yalnızca bilgilendirir) ─────────────────── */
+export function buildWarnings(input: HotelIncomeInput, result: {
+  totalRoomRevenue: number; totalGrossRevenue: number; noi: number;
+}): HotelWarning[] {
+  const w: HotelWarning[] = [];
+  if (input.rooms.length === 0) {
+    w.push({ level: 'uyari', message: 'Hiç oda tipi eklenmedi; oda geliri hesaplanamıyor.' });
+  }
+  input.rooms.forEach((r, i) => {
+    if (r.occupancy > 1) w.push({ level: 'uyari', message: `${i + 1}. oda satırında doluluk %100'ü geçemez.` });
+    if (r.occupancy < 0) w.push({ level: 'uyari', message: `${i + 1}. oda satırında doluluk negatif olamaz.` });
+    if (r.adr < 0) w.push({ level: 'uyari', message: `${i + 1}. oda satırında negatif fiyat girilemez.` });
+    if (r.roomCount < 0) w.push({ level: 'uyari', message: `${i + 1}. oda satırında negatif oda sayısı girilemez.` });
+    if (r.operatingDays > 365) w.push({ level: 'uyari', message: `${i + 1}. oda satırında faaliyet günü 365'i geçemez.` });
+    if (r.operatingDays < 1) w.push({ level: 'dikkat', message: `${i + 1}. oda satırında faaliyet günü giriniz.` });
+    if (r.occupancy < 0.2 && r.occupancy > 0) {
+      w.push({ level: 'dikkat', message: `${i + 1}. oda satırında doluluk oranı çok düşük görünüyor.` });
     }
+  });
+  if (input.projection.capRate <= 0) {
+    w.push({ level: 'uyari', message: 'Kapitalizasyon oranı sıfır olamaz; nihai değer hesaplanamıyor.' });
   }
+  if (input.projection.capRate > 0 && input.projection.capRate < 0.03) {
+    w.push({ level: 'dikkat', message: 'Kapitalizasyon oranı olağan dışı düşük görünüyor.' });
+  }
+  if (input.projection.capRate > 0.25) {
+    w.push({ level: 'dikkat', message: 'Kapitalizasyon oranı olağan dışı yüksek görünüyor.' });
+  }
+  if (result.totalGrossRevenue <= 0) {
+    w.push({ level: 'uyari', message: 'Gelir girilmeden değer hesaplanamaz.' });
+  }
+  if (result.noi < 0) {
+    w.push({ level: 'dikkat', message: 'İşletme gideri toplam geliri aşıyor; net işletme geliri negatif.' });
+  }
+  return w;
+}
 
-  /* ── Villa kurgusu ── */
-  if (villa.mode === 'adet' && capacity.unitCount > 0) {
-    add('bilgi', 'Villa adedi elle belirlendi',
-      `${capacity.unitCount} villa girildi; kapasite bu adede bölünerek villa başına ${m2(capacity.grossPerVilla)} zemin üstü brüt alan hesaplandı ` +
-      `(taban ${m2(capacity.footprintPerUnit)} × ${villa.floorsPerVilla} kat). Villa büyüklüğü hedefinizin altındaysa adedi azaltınız.`);
+/* ─────────────────── Otomatik Rapor Özeti ─────────────────── */
+export function buildSummaryText(r: {
+  totalGrossRevenue: number; totalExpense: number; noi: number;
+  capitalizedValue: number; capRate: number;
+}): string {
+  if (r.totalGrossRevenue <= 0) {
+    return 'Gelir verileri henüz tamamlanmadığı için değerlendirme metni oluşturulamamıştır.';
   }
+  return (
+    `Yapılan gelir yöntemi analizinde taşınmazın yıllık toplam işletme geliri ` +
+    `${fmtTLShort(r.totalGrossRevenue)} olarak hesaplanmış; işletme giderleri ` +
+    `(${fmtTLShort(r.totalExpense)}) düşüldükten sonra net işletme geliri ` +
+    `${fmtTLShort(r.noi)} olarak belirlenmiştir. %${(r.capRate * 100).toFixed(1).replace('.', ',')} ` +
+    `kapitalizasyon oranı uygulanarak, taşınmazın gelir yaklaşımına göre piyasa değeri ` +
+    `${fmtTLShort(r.capitalizedValue)} olarak tespit edilmiştir.`
+  );
+}
+function fmtTLShort(v: number): string {
+  return Math.round(v).toLocaleString('tr-TR') + ' ₺';
+}
 
-  /* ── Villa–parsel ölçeği ── */
-  if (capacity.unitCount > 0) {
-    const landPerUnit = parcel.area / capacity.unitCount;
-    if (landPerUnit < 250) {
-      add('dikkat', 'Villa başına arsa payı düşük',
-        `Villa başına ${Math.round(landPerUnit)} m² arsa düşüyor. Müstakil villa alıcısının beklentisi genellikle 300 m² üzeridir; ` +
-        'bu yoğunlukta ürün "bahçe dubleksi" algısı yaratır ve hedeflenen m² fiyatına ulaşmak zorlaşır.');
-    } else if (landPerUnit > 900) {
-      add('bilgi', 'Villa başına arsa payı yüksek',
-        `Villa başına ${Math.round(landPerUnit)} m² arsa düşüyor — prestijli ürün için avantaj. ` +
-        'İmar hakkı tam kullanılmıyorsa villa sayısını veya büyüklüğünü artırmak toplam değeri yükseltebilir.');
-    } else {
-      add('olumlu', 'Villa–parsel ölçeği dengeli',
-        `Villa başına ${Math.round(landPerUnit)} m² arsa payı, müstakil villa ürünü için makul aralıktadır.`);
-    }
-    if (capacity.envelope.hasGeometry) {
-      const side = Math.sqrt(capacity.footprintPerUnit);
-      if (side > capacity.envelope.buildableWidth) {
-        add('uyari', 'Villa tabanı zarfa sığmıyor olabilir',
-          `Villa taban alanı ${m2(capacity.footprintPerUnit)} (~${side.toFixed(1)} m × ${side.toFixed(1)} m), zarf genişliği ise ${capacity.envelope.buildableWidth.toFixed(1)} m. ` +
-          'Kat adedini artırıp tabanı küçültmek gerekebilir.');
-      }
-    }
-  }
+/* ─────────────────── Orkestratör — tek çağrıda tüm analizi üretir ─────────────────── */
+export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
+  const roomCalc = computeRoomRevenue(input.rooms);
+  const ancCalc = computeAncillaryRevenue(input.ancillary, roomCalc.total);
+  const totalAncillaryRevenue = ancCalc.total;
+  const leaseCalc = computeLeaseRevenue(input.leases);
 
-  /* ── Bodrum ── */
-  if (emsal.hasBasement) {
-    if (emsal.basementInEmsal) {
-      add('dikkat', 'Bodrum emsale dahil — kapasite kaybı var',
-        `Bodrum katlar (${m2(capacity.basementArea)}) emsale sayıldığı için zemin üstü hakkınızdan aynı miktarda düşüyor. ` +
-        'Plan notunuz izin veriyorsa (tamamen toprak altında kalan, iskân edilmeyen kısımlar için çoğu planda mümkündür) bodrumu emsal dışına almak, ' +
-        'aynı arsada daha fazla satılabilir alan üretmenin en düşük maliyetli yoludur.');
-    } else {
-      add('olumlu', 'Bodrum emsal dışı — doğru kurgu',
-        `Bodrum (${m2(capacity.basementArea)}) emsal dışında; emsal hakkı tamamen zemin üstü satılabilir alana ayrılmış. ` +
-        `Not: bodrum emsale girmese de maliyete giriyor — modelde ${tl(financial.basementCost)} olarak hesaplandı.`);
-    }
-  } else {
-    add('bilgi', 'Bodrum öngörülmemiş',
-      'Bodrum yok; maliyet düşük ancak otopark, depo ve teknik hacimler zemin üstünde çözülmek zorunda. ' +
-      'Eğimli parsellerde bodrum çoğu kez düşük maliyetle kazanılan alandır — parsel eğimliyse yeniden değerlendirilmelidir.');
-  }
+  const totalGrossRevenue = roomCalc.total + totalAncillaryRevenue + leaseCalc.total;
+  const { totalExpense, noi } = computeNoi(totalGrossRevenue, input.opex.expenseRate);
+  const capitalizedValue = computeCapitalizedValue(noi, input.projection.capRate);
 
-  /* ── Çatı arası ── */
-  if (emsal.hasAttic) {
-    if (emsal.atticInEmsal) {
-      add('dikkat', 'Çatı arası emsale dahil',
-        `Çatı arası piyesleri (${m2(capacity.atticArea)}) emsale sayılıyor. Plan notunda "son kat ile irtibatlı, bağımsız bölüm oluşturmayan çatı arası piyesi" ` +
-        'ifadesi varsa çoğu belediyede emsal dışı kabul edilir; bu ayrım villa başına ' + m2(capacity.atticArea / Math.max(1, capacity.unitCount)) + ' fark yaratıyor.');
-    } else {
-      add('olumlu', 'Çatı arası emsal dışı — satılabilir alan kazancı',
-        `Çatı arası piyesleri (${m2(capacity.atticArea)}) emsal dışında tutulmuş ve satılabilir alana eklenmiş. ` +
-        'Villa ürününde çatı arası, m² fiyatını düşürmeden hacim algısı yarattığı için satışa doğrudan katkı verir.');
-    }
-  }
+  const performance = computePerformanceIndicators(roomCalc.rows);
 
-  /* ── Peyzaj / bahçe ── */
-  if (capacity.gardenArea > 0 && capacity.unitCount > 0) {
-    const gardenPerUnit = capacity.gardenArea / capacity.unitCount;
-    add(financial.gardenRevenue > 0 ? 'olumlu' : 'bilgi',
-      'Bahçe ve peyzaj',
-      `Villa başına yaklaşık ${m2(gardenPerUnit)} bahçe düşüyor; peyzaj maliyeti ${tl(financial.landscapeCost)} olarak hesaplandı. ` +
-      (financial.gardenRevenue > 0
-        ? `Bahçe ayrıca fiyatlandığı için hasılata ${tl(financial.gardenRevenue)} katkı veriyor.`
-        : 'Bahçe ayrıca fiyatlanmadı; değeri villa m² fiyatının içinde kabul edildi. Geniş bahçeli villalarda bahçeyi ayrı fiyatlamak hasılatı daha gerçekçi gösterir.'));
-  }
+  const projectionTable = computeProjection(totalGrossRevenue, input.opex.expenseRate, input.projection);
+  const ina = computeIna(projectionTable, input.projection);
 
-  /* ── Maliyet varsayımı ── */
-  if (cost.inflationRate === 0) {
-    add('dikkat', 'Birim maliyet güncellenmemiş',
-      `Bakanlık tebliğ değeri (${tl(cost.unitCost)}/m²) doğrudan kullanılıyor. Tebliğ rakamları resmî işlemler içindir; ` +
-      'piyasa maliyetleri genellikle üzerindedir. Gerçekçi fizibilite için güncelleme oranı girilmesi önerilir.');
-  }
-  if (capacity.saleableArea > 0) {
-    const ratio = financial.costPerSaleableM2 / Math.max(1, financial.revenue / capacity.saleableArea);
-    if (ratio > 0.6) {
-      add('uyari', 'Maliyet / satış dengesi zayıf',
-        `Satılabilir m² başına toplam maliyet ${tl(financial.costPerSaleableM2)}; satış fiyatının ${pct(ratio)}'ine denk geliyor. ` +
-        'Bu oran %60\'ı aştığında arsaya anlamlı değer kalması güçleşir.');
-    }
-  }
+  const warnings = buildWarnings(input, { totalRoomRevenue: roomCalc.total, totalGrossRevenue, noi });
+  const summaryText = buildSummaryText({
+    totalGrossRevenue, totalExpense, noi, capitalizedValue, capRate: input.projection.capRate,
+  });
 
-  /* ── Artık değer sağlığı ── */
-  if (financial.residualLandValue <= 0) {
-    add('uyari', 'Artık arsa değeri negatif',
-      'Mevcut varsayımlarla proje arsa bedelini karşılamıyor. Satış fiyatı, yapı sınıfı, kâr oranı veya finansman varsayımlarından ' +
-      'en az biri gözden geçirilmelidir. Bu sonuç arsanın değersiz olduğu değil, bu proje kurgusunun fizibl olmadığı anlamına gelir.');
-  } else {
-    if (financial.landToRevenue < 0.15) {
-      add('dikkat', 'Arsa payı düşük',
-        `Arsa değeri hasılatın ${pct(financial.landToRevenue, 1)}'ine denk. Konut projelerinde tipik bant %20-35'tir; ` +
-        'maliyet veya kâr varsayımları yüksek olabilir.');
-    } else if (financial.landToRevenue > 0.40) {
-      add('dikkat', 'Arsa payı yüksek',
-        `Arsa değeri hasılatın ${pct(financial.landToRevenue, 1)}'ine denk. Çok değerli bir konum ya da iyimser satış fiyatı varsayımı olabilir; ` +
-        'emsal satış araştırmasıyla doğrulanması önerilir.');
-    } else {
-      add('olumlu', 'Arsa payı makul bantta',
-        `Arsa değeri hasılatın ${pct(financial.landToRevenue, 1)}'ine denk — sektörde kabul gören %20-35 bandında.`);
-    }
-    add(financial.safetyMargin < 0.10 ? 'uyari' : financial.safetyMargin < 0.20 ? 'dikkat' : 'olumlu',
-      'Fiyat düşüşüne dayanım',
-      `Satış fiyatları ${pct(financial.safetyMargin, 1)} düşerse artık arsa değeri sıfırlanır. ` +
-      (financial.safetyMargin < 0.10 ? 'Bu çok dar bir emniyet payıdır; küçük bir dalgalanma projeyi zarara çevirir.'
-        : financial.safetyMargin < 0.20 ? 'Emniyet payı sınırlı; satış fiyatı temkinli seçilmelidir.'
-          : 'Proje makul bir piyasa dalgalanmasını kaldırabilir.'));
-  }
+  return {
+    roomRows: roomCalc.rows,
+    totalRoomRevenue: roomCalc.total,
+    ancillaryRows: ancCalc.rows,
+    totalAncillaryRevenue,
+    leaseRows: leaseCalc.rows,
+    totalLeaseRevenue: leaseCalc.total,
+    totalGrossRevenue,
+    totalExpense,
+    noi,
+    capitalizedValue,
+    performance,
+    projectionTable,
+    ina,
+    warnings,
+    summaryText,
+  };
+}
 
-  /* ── Finansman ── */
-  if (residual.financeRateOfCost > 0.20) {
-    add('dikkat', 'Finansman yükü ağır',
-      `Finansman gideri toplam maliyetin ${pct(residual.financeRateOfCost)}'i olarak alındı (${tl(financial.financeCost)}). ` +
-      'Ön satış ile bu kalem doğrudan düşer ve arsaya kalan değer artar.');
-  } else if (residual.financeRateOfCost === 0) {
-    add('bilgi', 'Finansman gideri hesaba katılmadı',
-      'Finansman oranı %0 girildi. Kredi kullanılacaksa bu kalem modellenmelidir; aksi halde arsa değeri olduğundan yüksek çıkar.');
-  }
+/* ─────────────────── Varsayılan Girdi ─────────────────── */
+export function createDefaultHotelInput(): HotelIncomeInput {
+  const now = new Date().getFullYear();
+  return {
+    general: { facilityName: '', il: '', ilce: '', mahalle: '', ada: '', parsel: '', address: '' },
+    rooms: [],
+    ancillary: [],
+    leases: [],
+    opex: { expenseRate: 0.35 },
+    projection: {
+      startYear: now, years: 10, incomeGrowthRate: 0.15, expenseGrowthRate: 0.15,
+      capRate: 0.10, terminalCapRate: null, discountRate: null,
+    },
+  };
+}
 
-  /* ── Kat karşılığı (kapalıysa yorum üretilmez) ── */
-  if (shareEnabled && financial.revenue > 0 && capacity.unitCount > 0) {
-    const t = `Artık değer yöntemine göre dengeli arsa payı ${pct(share.balancedShare, 1)}; girilen pay ${pct(share.ownerShare, 1)}.`;
-    if (share.verdict === 'arsa-sahibi-lehine') {
-      add('dikkat', 'Kat karşılığı oranı arsa sahibi lehine',
-        `${t} Bu oranda müteahhide maliyet sonrası ${tl(share.contractorNet)} kalıyor; hedef kâr seviyesinin altındaysa sözleşme müteahhit için cazip değildir.`);
-    } else if (share.verdict === 'muteahhit-lehine') {
-      add('dikkat', 'Kat karşılığı oranı müteahhit lehine',
-        `${t} Arsa sahibi, artık değer yöntemiyle hesaplanan değerinin ${tl(Math.abs(share.difference))} altında pay alıyor. Müzakerede bu fark somut dayanaktır.`);
-    } else {
-      add('olumlu', 'Kat karşılığı oranı dengeli',
-        `${t} İki yöntem birbirini doğruluyor; paylaşım oranı piyasa gerçekliğiyle uyumlu.`);
-    }
-  }
+export function newId(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
 
-  /* ── Alternatif senaryo ── */
-  if (capacity.unitCount > 0 && capacity.emsalUsage != null && capacity.emsalUsage < 0.80
-      && capacity.binding !== 'KAKS' && capacity.binding !== 'DOĞRUDAN İNŞAAT ALANI') {
-    add('bilgi', 'Alternatif senaryo önerisi',
-      `Emsal hakkının ${m2((capacity.kaksLimit ?? 0) - capacity.emsalArea)} kadarı kullanılmıyor. Villa kat adedini bir artırmak veya ` +
-      'ikiz/sıralı düzene geçmek, tabanı büyütmeden bu hakkı değere çevirebilir. Ürün segmenti izin veriyorsa 3-6 katlı apartman senaryosu da karşılaştırılmalıdır.');
-  }
-  if (site.landscapeUnitCost === 0 && capacity.gardenArea > 200) {
-    add('dikkat', 'Peyzaj maliyeti sıfır girilmiş',
-      `${m2(capacity.gardenArea)} açık alan var ancak peyzaj birim maliyeti girilmemiş. Villa projelerinde çevre düzenlemesi ` +
-      'satılabilirliği doğrudan etkiler ve göz ardı edilirse maliyet olduğundan düşük çıkar.');
-  }
-
-  return out;
+/**
+ * İNA (İndirgenmiş Nakit Akımı): projeksiyon NOI'leri iskonto oranıyla bugüne
+ * çekilir; belirtilen yılda dönemsel bakım-onarım düşülür; son yıla terminal
+ * değer (son NOI ÷ terminal oran) eklenir. discountRate girilmemişse null.
+ * Golden (banka Excel'i): NOI₁ 385.257,6 · artış %3 · iskonto %11 (7,5+3,5) ·
+ * terminal %10 · bakım 5. yıl 130.867,2 → NBD 4.229.084,21.
+ */
+export function computeIna(
+  table: import('./types').HotelProjectionYear[],
+  p: import('./types').HotelProjectionInput,
+): import('./types').HotelInaResult | null {
+  const i = p.discountRate ?? null;
+  if (i == null || i <= 0 || table.length === 0) return null;
+  const termCap = (p.terminalCapRate ?? p.capRate) || 0;
+  const lastNoi = table[table.length - 1].noi;
+  const terminalValue = termCap > 0 ? lastNoi / termCap : 0;
+  const mYear = p.maintenanceYear ?? 0;
+  const mAmt = p.maintenanceAmount ?? 0;
+  const cashFlows = table.map((row, idx) => {
+    let cf = row.noi;
+    if (mYear === idx + 1 && mAmt > 0) cf -= mAmt;
+    if (idx === table.length - 1) cf += terminalValue;
+    return cf;
+  });
+  const npv = cashFlows.reduce((sum, cf, idx) => sum + cf / Math.pow(1 + i, idx + 1), 0);
+  return { cashFlows, terminalValue, npv };
 }

@@ -1,223 +1,107 @@
 /**
- * ARSA DEĞER ANALİZİ — MOTOR TİPLERİ
+ * KAPASİTE MOTORU (v4)
  *
- * engine klasöründeki her şey SAF TypeScript'tir: React bilmez, DOM'a
- * dokunmaz, yan etkisi yoktur. Böylece test edilebilir ve arayüzden bağımsızdır.
+ * Akış tek yönlüdür, döngüsel bağımlılık yoktur:
+ *   taban oturumu → emsale dahil alan → emsal dışı satılabilir
+ *   → çatı katı → bodrum kat → TOPLAM İNŞAAT ALANI → villa dağılımı
  */
+import type { Parcel, Zoning, EmsalOptions, VillaConfig, CapacityResult } from './types';
 
-/** ADIM 1 — Ne değerleniyor? */
-export type AssetType = 'konut' | 'ticari' | 'karma';
+const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
+const m2 = (v: number) => `${Math.round(v).toLocaleString('tr-TR')} m²`;
 
-/** ADIM 2 — Konut alt tipi */
-export type HousingType = 'villa' | 'apartman-3-6' | 'blok-7-18' | 'site';
+export function computeCapacity(
+  parcel: Parcel, zoning: Zoning, emsal: EmsalOptions, villa: VillaConfig,
+): CapacityResult {
+  const warnings: string[] = [];
+  const direct = zoning.mode === 'dogrudan';
 
-export interface Parcel {
-  il: string; ilce: string; mahalle: string; ada: string; parsel: string;
-  /** Tapu alanı (m²) */
-  area: number;
-  /** Terk/DOP sonrası net parsel alanı (m²) */
-  netArea: number;
-  /** Yol cephesi genişliği (m) — çekme mesafesi hesabı için */
-  width: number;
-  /** Parsel derinliği (m) */
-  depth: number;
-}
+  /* ── 1) İmar hakkı ── */
+  const footprintArea = direct
+    ? Math.max(0, zoning.directFootprint)
+    : (zoning.taks != null ? parcel.netArea * zoning.taks : 0);
+  const emsalArea = direct
+    ? Math.max(0, zoning.directEmsalArea)
+    : (zoning.kaks != null ? parcel.netArea * zoning.kaks : 0);
 
-/**
- * İmar hakkının nasıl tanımlandığı:
- *  'taks-kaks' → TAKS / KAKS / Hmax üzerinden (öncelikli yöntem)
- *  'dogrudan'  → Toplam inşaat alanı ve/veya taban oturumu doğrudan girilir
- *                (plan notu emsal vermiyorsa, avan proje veya kütle etüdü varsa)
- */
-export type ZoningMode = 'taks-kaks' | 'dogrudan';
+  if (emsalArea <= 0) {
+    warnings.push(direct
+      ? 'Emsale dahil toplam inşaat alanı girilmedi.'
+      : 'KAKS girilmediği için emsale dahil alan hesaplanamıyor.');
+  }
+  if (footprintArea <= 0) {
+    warnings.push(direct
+      ? 'Taban oturumu girilmedi; çatı katı oranı ve bahçe alanı hesaplanamıyor.'
+      : 'TAKS girilmediği için taban oturumu hesaplanamıyor.');
+  }
 
-export interface Zoning {
-  mode: ZoningMode;
-  lejant: string;
-  /** Çekme mesafeleri hesaba katılsın mı? (TAKS/KAKS varsa opsiyoneldir) */
-  useSetbacks: boolean;
-  taks: number | null;
-  kaks: number | null;
-  hmax: number | null;
-  floors: number | null;
-  /** 'dogrudan' modda toplam (emsale konu) inşaat alanı m² */
-  directTotalArea: number;
-  /** 'dogrudan' modda toplam taban oturumu m² */
-  directFootprint: number;
-  setbackFront: number;
-  setbackRear: number;
-  setbackSideLeft: number;
-  setbackSideRight: number;
-  planNotes: string;
-}
+  /* ── 2) Emsal dışı satılabilir alan (emsale dahil alanın yüzdesi) ── */
+  const extraArea = !emsal.hasExtra ? 0
+    : emsal.extraMode === 'oran'
+      ? emsalArea * Math.max(0, emsal.extraRate)
+      : Math.max(0, emsal.extraArea);
 
-/** Emsal istisnaları — plan notuna göre değişen alanlar */
-export interface EmsalOptions {
-  hasBasement: boolean;
-  basementInEmsal: boolean;
-  /** Villa başına bodrum alanı (m²). 0 → villa taban alanı kadar varsayılır. */
-  basementPerUnit: number;
-  hasAttic: boolean;
-  atticInEmsal: boolean;
-  /** Villa başına çatı arası piyesi (m²). 0 → taban alanının %40'ı varsayılır. */
-  atticPerUnit: number;
-}
+  /* ── 3) Çatı katı (taban oturumunun yüzdesi) ── */
+  const atticArea = !emsal.hasAttic ? 0
+    : emsal.atticMode === 'oran'
+      ? footprintArea * Math.max(0, emsal.atticRate)
+      : Math.max(0, emsal.atticArea);
 
-/**
- * Villa kurgusu iki yönden kurulabilir:
- *  'alan' → villa büyüklüğü girilir, adet hesaplanır
- *  'adet' → villa adedi girilir, villa büyüklüğü kapasiteden hesaplanır
- */
-export type VillaMode = 'alan' | 'adet';
+  /* ── 4) Bodrum kat — tabanın yüzdesi (varsayılan %100) veya elle ── */
+  const basementArea = !emsal.hasBasement ? 0
+    : emsal.basementMode === 'oran'
+      ? footprintArea * Math.max(0, emsal.basementRate)
+      : Math.max(0, emsal.basementArea);
 
-export interface VillaConfig {
-  mode: VillaMode;
-  /** 'adet' modunda girilen villa sayısı */
-  unitCountManual: number;
-  villaType: 'mustakil' | 'ikiz' | 'sirali';
-  /** Villa başına zemin üstü brüt alan (m²) */
-  grossPerVilla: number;
-  /** Villa başına net (satılabilir) alan — 0 ise brüt kullanılır */
-  netPerVilla: number | null;
-  /** Villa kat adedi (zemin dahil; bodrum ve çatı arası hariç) */
-  floorsPerVilla: number;
-  /** Yapılaşma zarfının bina tabanına dönüşen oranı */
-  layoutEfficiency: number;
-}
+  /* ── 5) Toplam inşaat alanı ──
+     Emsale dahil kalemler emsalin İÇİNDEN yer alır, toplamı artırmaz.
+     Emsal dışı kalemler toplama eklenir. */
+  const emsalConsumedByExtras =
+    (emsal.hasAttic && emsal.atticInEmsal ? atticArea : 0) +
+    (emsal.hasBasement && emsal.basementInEmsal ? basementArea : 0);
 
-export interface CostInput {
-  buildingClass: string;
-  unitCost: number;
-  inflationRate: number;
-  /** Proje, ruhsat, harç, müşavirlik vb. — inşaat maliyeti üzerinden oran */
-  extrasRate: number;
-}
+  const aboveGroundArea = emsalArea - emsalConsumedByExtras;
+  if (aboveGroundArea < 0) {
+    warnings.push(
+      `Emsale dahil edilen çatı ve bodrum alanları (${m2(emsalConsumedByExtras)}), ` +
+      `emsale dahil alanı (${m2(emsalArea)}) aşıyor. Zemin üstü katlara alan kalmıyor.`,
+    );
+  }
 
-/** Peyzaj ve bahçe (tek başlık) */
-export interface SiteWorks {
-  /** Peyzaj/bahçe alanı (m²). Otomatik: net parsel − bina oturumu; elle değiştirilebilir. */
-  landscapeArea: number;
-  /** Peyzaj ve çevre düzenlemesi birim maliyeti (₺/m²) */
-  landscapeUnitCost: number;
-  /** Bahçe m² satış değeri (₺/m²). 0 → bahçe villa fiyatına dahildir. */
-  gardenPricePerM2: number;
-}
+  const outsideEmsal = extraArea +
+    (emsal.hasAttic && !emsal.atticInEmsal ? atticArea : 0) +
+    (emsal.hasBasement && !emsal.basementInEmsal ? basementArea : 0);
 
-export interface SalesInput { unitPrice: number; }
+  const totalArea = emsalArea + outsideEmsal;
+  const saleableArea = totalArea;          // satış toplam inşaat alanı üzerinden
+  const gardenArea = Math.max(0, parcel.netArea - footprintArea);
+  const extraFloorsShare = totalArea > 0 ? (atticArea + basementArea) / totalArea : 0;
 
-export interface ResidualInput {
-  /** Müteahhit kâr oranı (hasılat üzerinden) */
-  profitRate: number;
-  /** Finansman gideri — toplam maliyetin yüzdesi. 0 → hesaba katılmaz. */
-  financeRateOfCost: number;
-}
+  /* ── 6) Villa dağılımı (opsiyonel) ── */
+  const unitCount = Math.max(0, Math.floor(villa.unitCount));
+  const areaPerUnit = unitCount > 0 ? safeDiv(totalArea, unitCount) : 0;
 
-export interface ShareInput {
-  /** Kat karşılığı bölümü raporda gösterilsin mi? */
-  enabled: boolean;
-  ownerShare: number;
-}
+  const floorsAboveGround = Math.max(1, Math.round(villa.floorsAboveGround));
+  const usableAboveGround = Math.max(0, aboveGroundArea);
+  const areaPerFloor = safeDiv(usableAboveGround, floorsAboveGround);
+  const floorFits = footprintArea <= 0 || areaPerFloor <= footprintArea + 0.5;
+  const minFloorsNeeded = footprintArea > 0 ? Math.ceil(usableAboveGround / footprintArea) : 0;
 
-export interface ProjectInput {
-  assetType: AssetType;
-  housingType: HousingType;
-  parcel: Parcel;
-  zoning: Zoning;
-  emsal: EmsalOptions;
-  villa: VillaConfig;
-  cost: CostInput;
-  site: SiteWorks;
-  sales: SalesInput;
-  residual: ResidualInput;
-  share: ShareInput;
-}
+  if (!floorFits && footprintArea > 0) {
+    warnings.push(
+      `Zemin üstü ${m2(usableAboveGround)} alan, ${floorsAboveGround} katta ${m2(areaPerFloor)} kat alanı gerektiriyor; ` +
+      `taban oturumu ise ${m2(footprintArea)}. Bu yerleşim için en az ${minFloorsNeeded} kat gerekir.`,
+    );
+  }
+  if (unitCount > 0 && areaPerUnit < 40) {
+    warnings.push(`Villa başına ${m2(areaPerUnit)} düşüyor; villa adedini azaltmayı değerlendiriniz.`);
+  }
 
-export interface EnvelopeResult {
-  buildableWidth: number;
-  buildableDepth: number;
-  envelopeArea: number;
-  envelopeRatio: number;
-  hasGeometry: boolean;
-  geometryDeviation: number;
-  warnings: string[];
-}
-
-export type BindingConstraint =
-  | 'TAKS' | 'KAKS' | 'ÇEKME MESAFESİ' | 'DOĞRUDAN TABAN' | 'DOĞRUDAN İNŞAAT ALANI' | 'YOK';
-
-export interface CapacityResult {
-  envelope: EnvelopeResult;
-  taksLimit: number | null;
-  kaksLimit: number | null;
-  layoutFootprint: number;
-  effectiveFootprint: number;
-  footprintPerUnit: number;
-  countByFootprint: number;
-  countByEmsal: number | null;
-  unitCount: number;
-  unitCountRange: [number, number];
-  binding: BindingConstraint;
-  emsalPerUnit: number;
-  /** Villa başına zemin üstü brüt alan (adet modunda hesaplanır) */
-  grossPerVilla: number;
-  grossPerUnit: number;
-  saleablePerUnit: number;
-  emsalArea: number;
-  grossArea: number;
-  saleableArea: number;
-  basementArea: number;
-  atticArea: number;
-  footprintTotal: number;
-  gardenArea: number;
-  parcelEfficiency: number;
-  emsalUsage: number | null;
-  warnings: string[];
-}
-
-export interface FinancialResult {
-  effectiveUnitCost: number;
-  aboveGroundCost: number;
-  basementCost: number;
-  atticCost: number;
-  constructionCost: number;
-  landscapeCost: number;
-  extrasCost: number;
-  financeCost: number;
-  totalCost: number;
-  buildingRevenue: number;
-  gardenRevenue: number;
-  revenue: number;
-  developerProfit: number;
-  residualLandValue: number;
-  landUnitValue: number;
-  landToRevenue: number;
-  roi: number;
-  breakEvenFactor: number;
-  safetyMargin: number;
-  costPerSaleableM2: number;
-}
-
-export interface ShareResult {
-  ownerShare: number;
-  contractorShare: number;
-  ownerUnits: number;
-  contractorUnits: number;
-  ownerArea: number;
-  contractorArea: number;
-  ownerValue: number;
-  contractorValue: number;
-  contractorNet: number;
-  balancedShare: number;
-  difference: number;
-  verdict: 'arsa-sahibi-lehine' | 'muteahhit-lehine' | 'dengeli';
-}
-
-export type AdviceLevel = 'olumlu' | 'bilgi' | 'dikkat' | 'uyari';
-export interface Advice { level: AdviceLevel; title: string; body: string; }
-
-export interface AnalysisResult {
-  capacity: CapacityResult;
-  financial: FinancialResult;
-  share: ShareResult;
-  advice: Advice[];
+  return {
+    footprintArea, emsalArea, extraArea, atticArea, basementArea,
+    emsalConsumedByExtras, aboveGroundArea: usableAboveGround,
+    totalArea, saleableArea, gardenArea, extraFloorsShare,
+    unitCount, areaPerUnit, floorsAboveGround, areaPerFloor, floorFits, minFloorsNeeded,
+    warnings,
+  };
 }

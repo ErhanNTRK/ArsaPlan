@@ -1,236 +1,206 @@
-/* ═══ TASARIM SİSTEMİ — kurumsal, sade, mobil öncelikli ═══ */
-:root {
-  --navy: #0f2a47;
-  --navy-2: #1b3d63;
-  --navy-50: #eef2f7;
-  --accent: #b4884b;      /* tek vurgu rengi: soft altın */
-  --accent-dim: #f6efe3;
-  --green: #1e6b41;
-  --green-dim: #e6f2ea;
-  --red: #b42318;
-  --red-dim: #fdeceb;
-  --amber: #92610a;
-  --amber-dim: #fdf3e1;
-  --bg: #f4f6f9;
-  --surface: #ffffff;
-  --line: #dfe5ec;
-  --line-2: #c8d2de;
-  --text: #17202c;
-  --text-2: #55636f;
-  --text-3: #94a1ae;
-  --r: 14px;
-  --r-sm: 10px;
-  --shadow: 0 1px 2px rgba(16, 32, 52, .05), 0 8px 24px rgba(16, 32, 52, .06);
+/**
+ * TİCARİ İŞLETME — ADIM BİLEŞENLERİ
+ * Ekle-mantığı: kullanıcı katalogdan yapı seçer, satır olarak eklenir;
+ * her satırda alan, yıpranma ve birim maliyet (tebliğden otomatik, elle değişir).
+ */
+import type { ProjectInput, IsletmeBuilding, IsletmeInput } from '../engine';
+import { computeIsletme, ISLETME_KATALOG } from '../engine';
+import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { Field, Txt, Num, Pct, Sel, Seg, fmtM2, fmtTL, fmtTLm2 } from './fields';
+import type { Upd, SetTop } from './Steps';
+
+interface P { input: ProjectInput; upd: Upd; setTop: SetTop; }
+
+const TYPE_OPTIONS = ISLETME_KATALOG.flatMap((k) =>
+  k.types.map((t) => ({ value: t.label, label: `${k.category} — ${t.label}`, cls: t.buildingClass })));
+
+export function Step3Isletme({ input, upd }: P) {
+  const inp = input.isletme;
+  const r = computeIsletme(input.parcel, inp);
+  const set = (patch: Partial<IsletmeInput>) => upd('isletme', patch);
+  const setB = (i: number, patch: Partial<IsletmeBuilding>) =>
+    set({ buildings: inp.buildings.map((b, k) => (k === i ? { ...b, ...patch } : b)) });
+
+  const addBuilding = (typeLabel: string) => {
+    const opt = TYPE_OPTIONS.find((o) => o.value === typeLabel);
+    if (!opt) return;
+    set({
+      buildings: [...inp.buildings, {
+        type: opt.value, buildingClass: opt.cls, area: 0,
+        depreciation: 0, unitCostOverride: null,
+      }],
+    });
+  };
+
+  return (
+    <div className="cols">
+      <div className="card">
+        <div className="card-title">1 · Yapılar</div>
+        <div className="grid-2">
+          <Field label="Yapı Ekle" hint="Katalogdan seçin; aynı türden birden fazla eklenebilir.">
+            <Sel value="" onChange={(v) => v && addBuilding(v)}
+                 options={[{ value: '', label: 'Yapı türü seçiniz…' }, ...TYPE_OPTIONS.map(({ value, label }) => ({ value, label }))]} />
+          </Field>
+          <Field label="Güncelleme Oranı" hint="Tebliğ birim maliyetlerine uygulanır · tüm satırlara ortak">
+            <Pct value={inp.inflationRate} onChange={(n) => set({ inflationRate: n })} />
+          </Field>
+        </div>
+
+        {inp.buildings.map((b, i) => {
+          const row = r.rows[i];
+          return (
+            <div className="b-row" key={i}>
+              <div className="b-cell b-type" title={b.type}>{b.type}</div>
+              <div className="b-cell">
+                <Sel value={b.buildingClass}
+                     onChange={(code) => setB(i, { buildingClass: code, unitCostOverride: null })}
+                     options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: x.code }))} />
+              </div>
+              <div className="b-cell">
+                <Num value={b.area} onChange={(n) => setB(i, { area: n })} suffix="m²" />
+              </div>
+              <div className="b-cell">
+                <Pct value={b.depreciation} onChange={(n) => setB(i, { depreciation: n, unitCostOverride: null })} />
+              </div>
+              <div className="b-cell">
+                <Num value={row.effectiveUnitCost}
+                     onChange={(n) => setB(i, { unitCostOverride: n })} suffix="₺/m²" />
+                {row.overridden && (
+                  <button type="button" className="cell-reset" title="Otomatik hesaba dön"
+                          onClick={() => setB(i, { unitCostOverride: null })}>↺</button>
+                )}
+              </div>
+              <div className="b-cell b-cost">{fmtTL(row.cost)}</div>
+              <button type="button" className="b-del" title="Satırı sil"
+                      onClick={() => set({ buildings: inp.buildings.filter((_, k) => k !== i) })}>✕</button>
+            </div>
+          );
+        })}
+        {inp.buildings.length > 0 && (
+          <div className="b-row b-head-note hint">
+            Kolonlar: Yapı · Sınıf · Alan · Yıpranma · Birim Maliyet (↺ otomatiğe döner) · Maliyet
+          </div>
+        )}
+        {inp.buildings.length > 0 && (
+          <div className="mini-kpi" style={{ marginTop: 10 }}>
+            <div><span>Toplam yapı alanı</span><b>{fmtM2(r.totalBuildingArea)}</b></div>
+            <div><span>Yapı maliyetleri</span><b>{fmtTL(r.buildingsCost)}</b></div>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">2 · İlave Maliyetler (tercihe bağlı)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          Peyzaj ve altyapı, parsel alanı ({fmtM2(input.parcel.area)}) üzerinden; çevre duvarı,
+          girdiğiniz uzunluk üzerinden hesaplanır. 0 bırakılan satır hesaba girmez.
+        </div>
+        <div className="grid-2">
+          <Field label="Çevre Duvarı — Parsel Uzunluğu"><Num value={inp.wallLength ?? 0} onChange={(n) => set({ wallLength: n })} suffix="m" /></Field>
+          <Field label="Çevre Duvarı — Birim Maliyet"
+                 hint={(inp.wallLength ?? 0) > 0 && inp.wallUnitCost > 0 ? `Duvar maliyeti: ${fmtTL((inp.wallLength ?? 0) * inp.wallUnitCost)}` : undefined}>
+            <Num value={inp.wallUnitCost} onChange={(n) => set({ wallUnitCost: n })} suffix="₺/m" />
+          </Field>
+        </div>
+        <div className="grid-2">
+          <Field label="Peyzaj / Çevre Düz."><Num value={inp.landscapeUnitCost} onChange={(n) => set({ landscapeUnitCost: n })} suffix="₺/m²" /></Field>
+          <Field label="Altyapı"><Num value={inp.infraUnitCost} onChange={(n) => set({ infraUnitCost: n })} suffix="₺/m²" /></Field>
+        </div>
+        {inp.otherCosts.map((oc, i) => (
+          <div className="grid-2" key={i}>
+            <Field label={`Diğer Maliyet ${i + 1}`}>
+              <Txt value={oc.name} placeholder="Örn. trafo, arıtma, tabela"
+                   onChange={(v) => set({ otherCosts: inp.otherCosts.map((x, k) => k === i ? { ...x, name: v } : x) })} />
+            </Field>
+            <Field label="Tutar">
+              <Num value={oc.amount} suffix="₺"
+                   onChange={(n) => set({ otherCosts: inp.otherCosts.map((x, k) => k === i ? { ...x, amount: n } : x) })} />
+            </Field>
+          </div>
+        ))}
+        <button type="button" className="link-btn"
+                onClick={() => set({ otherCosts: [...inp.otherCosts, { name: '', amount: 0 }] })}>
+          + Maliyet ekle
+        </button>
+        {inp.otherCosts.length > 0 && (
+          <button type="button" className="link-btn" style={{ marginLeft: 12 }}
+                  onClick={() => set({ otherCosts: inp.otherCosts.slice(0, -1) })}>
+            Son maliyeti sil
+          </button>
+        )}
+        {r.extrasTotal > 0 && (
+          <div className="note-box" style={{ marginTop: 10 }}>İlave maliyetler toplamı: <b>{fmtTL(r.extrasTotal)}</b></div>
+        )}
+      </div>
+
+      <div className="card result-preview">
+        <div className="card-title">Maliyet Özeti</div>
+        <div className="mini-kpi">
+          <div><span>Yapı maliyetleri</span><b>{fmtTL(r.buildingsCost)}</b></div>
+          <div><span>İlave maliyetler</span><b>{fmtTL(r.extrasTotal)}</b></div>
+        </div>
+        <div className="mini-kpi" style={{ marginTop: 8 }}>
+          <div><span>TOPLAM MALİYET</span><b>{fmtTL(r.totalCost)}</b></div>
+          <div><span>Yapı satırı</span><b>{r.rows.length} adet</b></div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+export function Step4Isletme({ input, upd, setTop }: P) {
+  const inp = input.isletme;
+  const r = computeIsletme(input.parcel, inp);
+  return (
+    <div className="cols">
+      <div className="card">
+        <div className="card-title">Öngörülen Satış Değeri</div>
+        <Field label="Taşınmazın Toplam Satış Değeri" hint="Tek toplam tutar, KDV hariç">
+          <Num value={inp.salesTotal} onChange={(n) => upd('isletme', { salesTotal: n })} suffix="₺" />
+        </Field>
+        <Field label="Müteahhit Kârı" hint="Varsayılan 0 — amaç arsa + yapı değeridir; gerekirse oran girin.">
+          <Pct value={inp.profitRate ?? 0} onChange={(n) => upd('isletme', { profitRate: n })} />
+        </Field>
+        {inp.salesTotal > 0 && (
+          <div className="note-box">
+            Satış {fmtTL(r.salesTotal)} − maliyet {fmtTL(r.totalCost)}
+            {r.profit > 0 && <> − kâr {fmtTL(r.profit)}</>} =
+            {' '}<b>{fmtTL(r.landValue)}</b> arsa değeri
+            {input.parcel.area > 0 && <> · {fmtTLm2(r.landUnitValue)}</>}
+          </div>
+        )}
+        <div className="hint" style={{ marginTop: 8 }}>
+          Bu senaryoda proje mülk sahibince yapılır; kat karşılığı karşılaştırması
+          uygulanmaz. Müteahhit kârı varsayılan olarak 0'dır.
+        </div>
+      </div>
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
+      <div className="card">
+        <div className="card-title">Rapor Görselleri</div>
+        <Field label="PDF'te parsel krokisi"
+               hint="Kroki için Taşınmaz adımında KML yüklenmiş olmalıdır.">
+          <Seg value={input.reportVisuals === false ? 'hayir' : 'evet'}
+               onChange={(v: string) => setTop('reportVisuals', v === 'evet')}
+               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+        </Field>
+      </div>
 
-.app { max-width: 900px; margin: 0 auto; padding-bottom: 104px; }
-
-/* ── Yeni bileşenler ── */
-.cols { display: grid; gap: 12px; }
-.mini-kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mini-kpi.three { grid-template-columns: repeat(3, 1fr); }
-.mini-kpi > div {
-  background: var(--navy-50); border-radius: var(--r-sm); padding: 11px 12px;
-  display: flex; flex-direction: column; gap: 3px;
-}
-.mini-kpi span { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text-2); }
-.mini-kpi b { font-size: 17px; font-weight: 700; letter-spacing: -.3px; color: var(--navy); font-variant-numeric: tabular-nums; }
-.result-preview { border-color: var(--navy); }
-.breakdown { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--text-2); line-height: 1.5; }
-.breakdown b { color: var(--text); }
-.link-btn {
-  background: none; border: none; padding: 0; cursor: pointer; font-family: inherit;
-  font-size: 12px; font-weight: 600; color: var(--navy-2); text-decoration: underline;
-}
-.blocker { background: var(--red-dim); border-color: #f3c6c2; color: var(--red); font-size: 13px; font-weight: 600; }
-.topbar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.navbar-inner { display: flex; gap: 10px; width: 100%; max-width: 900px; margin: 0 auto; }
-
-/* ── Başlık + ilerleme ── */
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  background: var(--navy); color: #fff;
-  padding: 14px 18px calc(14px + env(safe-area-inset-top));
-  box-shadow: 0 2px 12px rgba(15, 42, 71, .18);
-}
-.topbar h1 { font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
-.topbar p { font-size: 11.5px; color: #a9bdd4; margin-top: 2px; letter-spacing: .02em; }
-.progress-row { display: flex; align-items: center; gap: 10px; margin-top: 11px; }
-.progress-track { flex: 1; height: 4px; background: rgba(255,255,255,.18); border-radius: 99px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .35s cubic-bezier(.32,.72,0,1); }
-.progress-label { font-size: 11.5px; font-weight: 700; color: #dbe6f2; white-space: nowrap; letter-spacing: .03em; }
-
-/* ── Adım gövdesi ── */
-.step { padding: 20px 16px 8px; animation: rise .26s cubic-bezier(.32,.72,0,1); }
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.step-head { margin-bottom: 18px; }
-.step-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
-.step-title { font-size: 22px; font-weight: 700; letter-spacing: -.5px; margin-top: 4px; }
-.step-desc { font-size: 13.5px; color: var(--text-2); margin-top: 6px; }
-
-.card {
-  background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
-  padding: 16px; margin-bottom: 12px; box-shadow: var(--shadow);
-}
-.card-title {
-  font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--text-3); margin-bottom: 12px;
-}
-
-/* ── Form ── */
-.field { margin-bottom: 13px; }
-.field:last-child { margin-bottom: 0; }
-.label { display: block; font-size: 12.5px; font-weight: 600; color: var(--text-2); margin-bottom: 5px; }
-.hint { font-size: 11.5px; color: var(--text-3); margin-top: 4px; line-height: 1.45; }
-input, select, textarea {
-  width: 100%; font-family: inherit; font-size: 16px; color: var(--text);
-  background: #fff; border: 1.5px solid var(--line-2); border-radius: var(--r-sm);
-  padding: 11px 13px; outline: none; transition: border-color .16s, box-shadow .16s;
-  -webkit-appearance: none; appearance: none;
-}
-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2355636f' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat; background-position: right 13px center; padding-right: 34px;
-}
-input:focus, select:focus, textarea:focus { border-color: var(--navy-2); box-shadow: 0 0 0 3px rgba(27, 61, 99, .1); }
-textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-.suffix-wrap { position: relative; }
-.suffix { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 12.5px; color: var(--text-3); pointer-events: none; }
-.suffix-wrap input { padding-right: 46px; }
-
-/* ── Seçim kartları ── */
-.choice-grid { display: grid; gap: 8px; }
-.choice {
-  display: flex; align-items: flex-start; gap: 11px; width: 100%; text-align: left; cursor: pointer;
-  background: #fff; border: 1.5px solid var(--line-2); border-radius: var(--r-sm); padding: 13px;
-  font-family: inherit; transition: border-color .16s, background .16s;
-}
-.choice:active { transform: scale(.995); }
-.choice.on { border-color: var(--navy); background: var(--navy-50); }
-.choice.off { opacity: .55; }
-.choice-dot {
-  width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--line-2);
-  flex-shrink: 0; margin-top: 1px; position: relative;
-}
-.choice.on .choice-dot { border-color: var(--navy); }
-.choice.on .choice-dot::after {
-  content: ''; position: absolute; inset: 3px; border-radius: 50%; background: var(--navy);
-}
-.choice-name { font-size: 14px; font-weight: 600; }
-.choice-desc { font-size: 12px; color: var(--text-2); margin-top: 2px; }
-
-.seg { display: flex; gap: 6px; }
-.seg button {
-  flex: 1; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
-  background: #fff; border: 1.5px solid var(--line-2); border-radius: var(--r-sm);
-  padding: 10px 6px; color: var(--text-2); transition: all .16s;
-}
-.seg button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
-
-/* ── Alt gezinme ── */
-.navbar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 20;
-  background: rgba(255,255,255,.95); backdrop-filter: blur(14px);
-  border-top: 1px solid var(--line);
-  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
-}
-.btn {
-  flex: 1; min-height: 46px; font-family: inherit; font-size: 14.5px; font-weight: 700;
-  border-radius: var(--r-sm); cursor: pointer; border: 1.5px solid transparent;
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  transition: transform .14s, box-shadow .14s, background .14s;
-}
-.btn:active { transform: scale(.98); }
-.btn-primary { background: var(--navy); color: #fff; }
-.btn-primary:hover { box-shadow: 0 6px 18px rgba(15, 42, 71, .22); }
-.btn-ghost { background: #fff; color: var(--text-2); border-color: var(--line-2); }
-.btn-accent { background: var(--accent); color: #fff; }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-sm { min-height: 38px; font-size: 13px; flex: 0 0 auto; padding: 0 14px; }
-
-/* ── Sonuç ── */
-.kpi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-.kpi {
-  background: #fff; border: 1px solid var(--line); border-radius: var(--r-sm);
-  padding: 13px; box-shadow: var(--shadow);
-}
-.kpi-label { font-size: 10.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--text-3); }
-.kpi-value { font-size: 19px; font-weight: 700; letter-spacing: -.4px; margin-top: 5px; font-variant-numeric: tabular-nums; }
-.kpi.hero { grid-column: span 2; background: var(--navy); border-color: var(--navy); }
-.kpi.hero .kpi-label { color: #9fb4cc; }
-.kpi.hero .kpi-value { color: #fff; font-size: 26px; }
-.kpi.hero .kpi-sub { font-size: 12px; color: #b9c9dc; margin-top: 3px; }
-
-.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
-.row:last-child { border-bottom: none; }
-.row-label { font-size: 13.5px; color: var(--text-2); }
-.row-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.row.total { border-top: 2px solid var(--navy); border-bottom: none; margin-top: 4px; padding-top: 11px; }
-.row.total .row-label { font-weight: 700; color: var(--text); }
-.row.total .row-value { font-size: 16px; }
-.neg { color: var(--red); }
-.pos { color: var(--green); }
-
-.badge { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 99px; }
-.badge-navy { background: var(--navy-50); color: var(--navy); }
-.badge-green { background: var(--green-dim); color: var(--green); }
-.badge-amber { background: var(--amber-dim); color: var(--amber); }
-.badge-red { background: var(--red-dim); color: var(--red); }
-
-/* ── Uzman yorumları ── */
-.advice { border-left: 3px solid var(--line-2); background: #fff; border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 12px 14px; margin-bottom: 9px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.advice-title { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; }
-.advice-body { font-size: 13px; color: var(--text-2); line-height: 1.55; }
-.advice.olumlu { border-left-color: var(--green); }
-.advice.olumlu .advice-title { color: var(--green); }
-.advice.dikkat { border-left-color: var(--amber); }
-.advice.dikkat .advice-title { color: var(--amber); }
-.advice.uyari { border-left-color: var(--red); background: var(--red-dim); }
-.advice.uyari .advice-title { color: var(--red); }
-.advice.bilgi { border-left-color: var(--navy-2); }
-.advice.bilgi .advice-title { color: var(--navy); }
-
-.note-box { background: var(--navy-50); border-radius: var(--r-sm); padding: 12px 14px; font-size: 12.5px; color: var(--text-2); line-height: 1.55; }
-.stamp { text-align: center; font-size: 11px; color: var(--text-3); padding: 14px 0 4px; }
-
-/* ── Yazdırma / PDF ── */
-@media print {
-  body { background: #fff; }
-  .topbar, .navbar, .no-print { display: none !important; }
-  .app { max-width: none; padding: 0; }
-  .card, .kpi, .advice { box-shadow: none; break-inside: avoid; }
-  .kpi.hero { background: #fff !important; border: 2px solid var(--navy) !important; }
-  .kpi.hero .kpi-value { color: var(--navy) !important; }
-  .kpi.hero .kpi-label, .kpi.hero .kpi-sub { color: var(--text-2) !important; }
-  .step { padding: 0; }
-}
-
-@media (min-width: 760px) {
-  .step { padding: 28px 24px 12px; }
-  .kpi-grid { grid-template-columns: repeat(4, 1fr); }
-  .kpi.hero { grid-column: span 2; }
-  .cols { grid-template-columns: 1fr 1fr; align-items: start; }
-  .cols > .card:only-child,
-  .cols > .result-preview { grid-column: 1 / -1; }
-  .card { padding: 20px; }
-  .step-title { font-size: 26px; }
-  input, select, textarea { font-size: 15px; }
-  .topbar { padding: 16px 24px; }
-}
-@media (max-width: 380px) {
-  .grid-3 { grid-template-columns: 1fr 1fr; }
-  .mini-kpi.three { grid-template-columns: 1fr; }
+      <div className="card">
+        <div className="card-title">Döviz Karşılığı (opsiyonel)</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          Kur girilirse raporlarda arsa değeri döviz cinsinden de yazılır; boş bırakılırsa hiçbir şey değişmez.
+        </div>
+        <div className="grid-2">
+          <Field label="1 USD kaç ₺" hint="Örn. 47,20">
+            <Num value={input.fx?.usd ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { usd: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+          <Field label="1 EUR kaç ₺" hint="Örn. 51,10">
+            <Num value={input.fx?.eur ?? 0} step="0.0001"
+                 onChange={(v) => upd('fx', { eur: v > 0 ? v : null })} suffix="₺" />
+          </Field>
+        </div>
+      </div>
+    </div>
+  );
 }
