@@ -4,6 +4,8 @@ import { analyze } from './engine';
 import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
 import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/Steps';
 import { Choice } from './ui/fields';
+import { AgriApp } from './agri/AgriApp';
+import { FuelApp } from './fuel/FuelApp';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
@@ -420,7 +422,7 @@ function ArsaApp() {
    "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
-type AppMode = 'landing' | 'arsa' | 'otel';
+type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   return (
     <div className="app">
@@ -447,14 +449,12 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
             <Choice on={false} name="Otel Gelir Hesabı"
                     desc="Gelir İndirgeme Yaklaşımı · Oda, yardımcı gelir ve ticari kira gelirleri üzerinden kapitalizasyon"
                     onClick={() => onSelect('otel')} />
-            <div className="choice choice-disabled" aria-disabled="true">
-              <div className="choice-name">Akaryakıt Gelir Hesabı <span className="soon-badge">Hazırlanıyor</span></div>
-              <div className="choice-desc">İstasyon satış ve market gelirleri üzerinden değerleme</div>
-            </div>
-            <div className="choice choice-disabled" aria-disabled="true">
-              <div className="choice-name">Tarımsal Ürün Gelir Hesabı <span className="soon-badge">Hazırlanıyor</span></div>
-              <div className="choice-desc">Ürün deseni ve verim üzerinden gelir yöntemi</div>
-            </div>
+            <Choice on={false} name="Akaryakıt Gelir Hesabı"
+                    desc="Litre/ciro bazlı gelir yöntemi + opsiyonel maliyet yaklaşımı · KDV hariç fiyatlarla"
+                    onClick={() => onSelect('akaryakit')} />
+            <Choice on={false} name="Tarımsal Ürün Gelir Hesabı"
+                    desc="Ekili / Dikili / Karma ürün deseni · verim kataloğu · amorti yılı yaklaşımı"
+                    onClick={() => onSelect('tarimsal')} />
             <div className="choice choice-disabled" aria-disabled="true">
               <div className="choice-name">Üst Hakkı Hesaplama <span className="soon-badge">Hazırlanıyor</span></div>
               <div className="choice-desc">Üst hakkı bedeli ve süre bazlı değerleme</div>
@@ -468,7 +468,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
 
 function modeFromHash(): AppMode {
   const h = window.location.hash.replace('#', '');
-  return h === 'arsa' || h === 'otel' ? h : 'landing';
+  return h === 'arsa' || h === 'otel' || h === 'tarimsal' || h === 'akaryakit' ? h : 'landing';
 }
 
 export default function App() {
@@ -486,6 +486,8 @@ export default function App() {
   const back = () => { window.location.hash = ''; };
 
   if (mode === 'otel') return <HotelApp onBack={back} />;
+  if (mode === 'tarimsal') return <AgriApp onBack={back} />;
+  if (mode === 'akaryakit') return <FuelApp onBack={back} />;
   if (mode === 'arsa') return <ArsaApp />;
   return <Landing onSelect={choose} />;
 }
