@@ -1,66 +1,69 @@
-# ArsaPlan v6.0.2 — Kat Kurgusu, Asma Kat, Akaryakıt Eksikleri + Font Hatası Düzeltmesi
+# ArsaPlan v6.0.3 — Üst Hakkı Değerleme Modülü (YENİ) + Akaryakıt Ekleri
 
-Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **165/165** · `npm run build`
-→ başarılı · oxlint → 0 hata. Her PDF/Excel çıktısı gerçek üretilip (bazıları
-LibreOffice ile gerçek render alınarak) metin/görsel kontrol edildi.
+Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **190/190** · `npm run build`
+→ başarılı · oxlint → 0 hata. Üst Hakkı için gerçek 31 dönemlik PDF (2 sayfa,
+otomatik sayfalama) ve Excel gerçek üretilip LibreOffice ile render alınarak
+doğrulandı.
 
-## Bu pakette düzelenler
+## YENİ: Üst Hakkı Değerleme Modülü
 
-1. **Kat sıralaması düzeltildi** (ekran + PDF + Excel): artık gerçek bina
-   mantığıyla en üstten alta Çatı → Normal Katlar → Asma Kat → Zemin →
-   Bodrumlar (en son eklenen bodrum en altta) sırasıyla görünüyor. Gerçek
-   PDF üretilip doğrulandı.
-2. **Ticari/Karma + Çekme Mesafesi'nde Asma Kat eksikliği düzeltildi.**
-   Kök neden: `computeCekme` (Çekme Mesafesi motoru) içinde asma kat mantığı
-   hiç yoktu; UI'daki gizleme bunu doğru yansıtıyordu. Motora eklendi, golden
-   testle kilitlendi, gerçek PDF'te doğrulandı. Asma kat oranı %40'ta
-   bırakıldı (araştırma: yasal asgari 1/3 ≈ %33, Planlı Alanlar İmar
-   Yönetmeliği m.4 — %40 bu asgarinin makul üzerinde); ipucu metnine yasal
-   asgari referansı eklendi.
-3. **Tarımsal Ürün Excel'indeki #### hatası kesin çözüldü.** Kök neden: Net
-   Gelir/Yaklaşık Değer sayıları 3 birimlik dekoratif bir kenar sütununa
-   yazılıyordu. Sütun genişlikleri düzeltildi; LibreOffice ile gerçek dosya
-   render edilip metninde `#` karakteri SIFIR olduğu kanıtlandı.
-4. **Kat Kurgusu ekranındaki responsive sorun düzeltildi.** Sabit 5 kolonlu
-   ızgara (orta ekranlarda sıkışıp kutuların üst üste binmesine yol açıyordu)
-   yerine Dora'daki kanıtlanmış "etiketli iki-katlı kart" deseni kullanıldı —
-   kat sayısı ne kadar artarsa artsın hiçbir kutu üst üste binmez.
+Yalnız oteller değil, üst hakkına konu olabilecek tüm gelir getirici
+taşınmazlar için. Landing ekranındaki "Hazırlanıyor" rozeti kalktı, modül
+aktif.
 
-## Akaryakıt Gelir Hesabı — eksikler tamamlandı
+- **Ana yöntem: Gelir İndirgeme (DCF).** Dönem sayısı SABİT DEĞİL — tamamen
+  kalan üst hakkı süresine göre otomatik oluşur (golden testle 10/22/31/47/49
+  yıl senaryoları doğrulandı).
+- **Az veri ilkesi:** yıl yıl elle doldurma yok — 1. yıl geliri + yıllık
+  büyüme oranı girilir, tablo kendisi türetilir (Otel modülüyle aynı dil;
+  Denizbank'ın gerçek şablonundaki büyüme-oranı deseniyle doğrulandı).
+- **Süre:** tesis tarihi + ilk süre girilirse kalan süre otomatik önerilir
+  (öneri asla dayatılmaz, elle değiştirilebilir).
+- **Üst hakkı/irtifak ödemesi ve Ecrimisil** — ikisi de ayrı, opsiyonel,
+  kendi büyüme oranlı satırlar (Denizbank örneğinden öğrenilen: ecrimisil de
+  gerçekten yıllık tekrarlanan bir DCF kalemi olarak modellenmiş).
+- **Terminal değer varsayılan YOKTUR** — yalnız sözleşmede devir bedeli
+  belirtilmişse açılır ve son yıla indirgenir.
+- **İskonto oranı:** risksiz + risk primi (üst hakkı tam mülkiyetten daha
+  riskli — süre sonu belirsizliği).
+- **Referans Üst Hakkı Hesabı** (pratik çapraz kontrol, ana yöntem değil):
+  K = Kalan Süre Anüite Faktörü ÷ İlk Süre Anüite Faktörü, aynı iskonto
+  oranıyla.
+- **Maliyet ve Emsal yaklaşımları** — opsiyonel, manuel/yapıştırılan referans
+  değerler olarak yan yana gösterilir.
+- **Nihai değer** — DCF / Referans / Maliyet / Emsal / Elle Gir arasından
+  KULLANICI seçer; sistem hiçbir zaman dayatmaz.
+- **PDF + Excel** — tam DCF tablosu (dönem sayısı kaç olursa olsun, PDF'te
+  otomatik sayfalanır, taşmaz), kurumsal görsel dil (NAVY/GOLD, Dora logosu).
+- **25 golden test.**
 
-- **"↺ Sayfayı Sıfırla" düğmesi eklendi** (üst bardaki geri düğmesinin
-  yanında; onay sorar, taslağı ve tüm alanları temizler).
-- **"Diğer Gelirler (yakıt cirosunun %'si)" tek satır eklendi** — ayrıntılı
-  gelir kalemleriyle (Market, Oto Yıkama vb.) BİRLİKTE veya bunların yerine
-  kullanılabilir; bazı ekspertiz dosyalarında yalnız tek bir "Diğer Gelirler"
-  toplamı bulunduğu için (banka formatlarında görülen desen). Golden testli.
-- **PDF ve Excel indirme eklendi** (önceden bu modülde hiç yoktu) — Tarımsal
-  Ürün ve Arsa modülleriyle aynı kurumsal görsel dili paylaşıyor (NAVY/GOLD
-  paleti, aynı başlık/altbilgi). Gelir + (varsa) Maliyet yaklaşımı yan yana.
-  Gerçek verilerle üretilip hem PDF metni hem Excel'in LibreOffice render'ı
-  satır satır doğrulandı.
+## Akaryakıt — üç eksik daha tamamlandı
 
-## Bonus: uygulama genelinde önceden var olan bir font hatası bulundu ve düzeltildi
+- **"↺ Sayfayı Sıfırla"** düğmesi (bir önceki pakette eklenmişti, bu pakette
+  de mevcut).
+- **"Diğer Gelirler (yakıt cirosunun %'si)"** tek satır (bir önceki pakette).
+- **PDF + Excel indirme** (bir önceki pakette).
+- **YENİ — Kapitalizasyon oranı konum önerisi:** önceden yalnızca ipucu
+  (tooltip) metni vardı, gerçek bir seçici yoktu. Şimdi "Konum" açılır
+  menüsü var: Şehir İçi (%10) / Şehre Yakın Orta Ölçek (%10-12) / Şehirlerarası
+  (%12) — seçilince kap. oranı kutusuna otomatik yazılır, sonra elle
+  değiştirilebilir.
 
-PDF'lerde kullanılan gömülü Türkçe font **â/ê/î/ô/û (şapkalı ünlüler)
-karakterlerini hiç desteklemiyormuş** — bu, benim bu turki modüllerimin değil,
-**uygulamanın en başından beri var olan** bir hataydı: Arsa modülündeki
-"Müteahhit Kârı" satırı da PDF'te sessizce kesiliyordu, önceki teslimatlarda
-fark edilmemiş. Kalıcı font düzeltmesi riskli/kapsamlı olacağından, güvenli
-ve hızlı çözüm uygulandı: "Kâr" kelimesi PDF/Excel üreten TÜM dosyalarda
-(export/pdf.ts, export/excel.ts, fuel/pdf.ts, fuel/excel.ts) anlamca eşdeğer
-ve karakter sorunu olmayan **"Kazanç"** ile değiştirildi ("Müteahhit Kazancı",
-"Net Kazanç" vb.) — hem yeni hem eski PDF'lerde artık kesilme yok, gerçek
-PDF'lerle doğrulandı.
+## Bonus: uygulama genelinde önceden var olan font hatası düzeltildi
+
+PDF'lerde kullanılan gömülü Türkçe font â/ê/î/ô/û karakterlerini hiç
+desteklemiyordu (Arsa modülündeki "Müteahhit Kârı" da sessizce kesiliyordu).
+"Kâr" kelimesi tüm PDF/Excel üreten dosyalarda "Kazanç" ile değiştirildi;
+Üst Hakkı modülü de baştan bu kısıtı bilerek yazıldı (hiç "â" kullanmadı).
 
 ## Bu paketin KAPSAMADIĞI (dürüst sınır)
 
-- **Üst Hakkı Değerleme Modülü** — detaylı konuştuğumuz, en büyük yeni modül
-  henüz yazılmadı. Ayrı bir turda ele alınacak.
-- **Akaryakıt'ın derin sayfa düzeni/mod seçimi/otomasyon-Excel okuma
-  yeniden tasarımı** — bu pakette yalnız üç somut eksik (sıfırlama, %'lik
-  diğer gelir, PDF/Excel) eklendi; ChatGPT prompt'undaki daha büyük yeniden
-  tasarım (veri girişi öncesi yöntem seçimi ekranı vb.) henüz işlenmedi.
+- **Akaryakıt'ın "yöntem seçimi" giriş kapısı** (Tarımsal Ürün'deki gibi
+  baştan "hangi veri elinde?" ekranı) — henüz eklenmedi.
+- **Akaryakıt otomasyon-Excel okuma** — örnek dosya beklendiği için hiç
+  başlanmadı.
+- **Genel stil taraması** (Otel/İşletme modüllerinin tekrar gözden
+  geçirilmesi) — bu turlarda öncelik Tarım/Akaryakıt/Arsa/Üst Hakkı oldu.
 
 ## Yükleme
 GitHub → ArsaPlan → Add file → Upload files → `src`, `public`, `package.json`
