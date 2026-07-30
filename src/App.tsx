@@ -6,6 +6,7 @@ import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/S
 import { Choice } from './ui/fields';
 import { AgriApp } from './agri/AgriApp';
 import { FuelApp } from './fuel/FuelApp';
+import { UstHakkiApp } from './usthakki/UstHakkiApp';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
@@ -422,7 +423,7 @@ function ArsaApp() {
    "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
-type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit';
+type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'usthakki';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   return (
     <div className="app">
@@ -455,10 +456,9 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
             <Choice on={false} name="Tarımsal Ürün Gelir Hesabı"
                     desc="Ekili / Dikili / Karma ürün deseni · verim kataloğu · amorti yılı yaklaşımı"
                     onClick={() => onSelect('tarimsal')} />
-            <div className="choice choice-disabled" aria-disabled="true">
-              <div className="choice-name">Üst Hakkı Hesaplama <span className="soon-badge">Hazırlanıyor</span></div>
-              <div className="choice-desc">Üst hakkı bedeli ve süre bazlı değerleme</div>
-            </div>
+            <Choice on={false} name="Üst Hakkı Değerleme"
+                    desc="Gelir İndirgeme (DCF) · dönem sayısı kalan süre kadar · Referans/Maliyet/Emsal karşılaştırması"
+                    onClick={() => onSelect('usthakki')} />
           </div>
         </div>
       </div>
@@ -468,7 +468,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
 
 function modeFromHash(): AppMode {
   const h = window.location.hash.replace('#', '');
-  return h === 'arsa' || h === 'otel' || h === 'tarimsal' || h === 'akaryakit' ? h : 'landing';
+  return h === 'arsa' || h === 'otel' || h === 'tarimsal' || h === 'akaryakit' || h === 'usthakki' ? h : 'landing';
 }
 
 export default function App() {
@@ -488,6 +488,7 @@ export default function App() {
   if (mode === 'otel') return <HotelApp onBack={back} />;
   if (mode === 'tarimsal') return <AgriApp onBack={back} />;
   if (mode === 'akaryakit') return <FuelApp onBack={back} />;
+  if (mode === 'usthakki') return <UstHakkiApp onBack={back} />;
   if (mode === 'arsa') return <ArsaApp />;
   return <Landing onSelect={choose} />;
 }

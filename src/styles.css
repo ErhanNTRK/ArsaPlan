@@ -55,6 +55,20 @@
 }
 .floor-total .floor-label { font-weight: 800; margin-right: 4px; }
 
+/* v6: Üst Hakkı — DCF önizleme tablosu (tam liste PDF/Excel'de) */
+.dcf-table { display: flex; flex-direction: column; gap: 3px; margin-top: 10px; }
+.dcf-head, .dcf-row {
+  display: grid; grid-template-columns: 0.5fr 1.1fr 1.2fr 1.2fr 1.2fr; gap: 6px;
+  padding: 5px 6px; font-size: 12.5px; align-items: center;
+}
+.dcf-head { font-size: 10.5px; font-weight: 800; letter-spacing: .03em; opacity: .6; text-transform: uppercase; }
+.dcf-row:nth-child(even) { background: rgba(15,42,71,.03); border-radius: 6px; }
+.dcf-row span:not(:first-child) { text-align: right; }
+.dcf-more { text-align: center; opacity: .6; font-style: italic; grid-template-columns: 1fr; }
+@media (max-width: 700px) {
+  .dcf-head, .dcf-row { grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr; font-size: 11px; gap: 4px; }
+}
+
 /* v6: Tarımsal Ürün — yan ürün alt satırı, dışa aktarma satırı, küçük bağlantı düğmesi */
 .linklike { border: none; background: none; color: var(--navy, #12365e); text-decoration: underline;
   font-size: 12px; cursor: pointer; padding: 2px 4px; }

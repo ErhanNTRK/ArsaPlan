@@ -259,9 +259,16 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             <div className="pfield pfield--ro"><span>İlave Gelirler/yıl</span><b>{TL(r.extrasNet + r.otherIncomeFromPct)}</b></div>
             {r.dealerRentApplied > 0 && <div className="pfield pfield--ro"><span>Dağıtıcı Kirası</span><b>−{TL(r.dealerRentApplied)}</b></div>}
             <div className="pfield pfield--ro"><span>Toplam Net Kâr/yıl</span><b>{TL(r.totalNet)}</b></div>
+            <label className="pfield pfield--s"><span>Konum</span>
+              <select value="" onChange={(e) => { const v = Number(e.target.value); if (v) patch({ capRate: v }); }}>
+                <option value="">Öneri seçin…</option>
+                <option value="10">Şehir içi (10bin+ Lt/gün) → %10</option>
+                <option value="11">Şehre yakın, orta ölçek (5-10bin Lt/gün) → %10-12</option>
+                <option value="12">Şehirlerarası / düşük ciro → %12</option>
+              </select></label>
             <label className="pfield pfield--s"><span>Kap. Oranı %</span>
               <input type="number" step="0.5" value={state.capRate || ''}
-                     title="Öneri: şehirlerarası/düşük ciro %12 · orta ölçek %10-12 · şehir içi 10bin+ Lt %10"
+                     title="Düşük ciro → yüksek risk → yüksek kap. oranı → düşük değer. Yüksek ciro → düşük risk → düşük kap. oranı → yüksek değer."
                      onChange={(e) => patch({ capRate: Number(e.target.value) || 0 })} /></label>
             <label className="pfield pfield--s"><span>Yuvarlama ₺</span>
               <input type="number" value={state.rounding || ''} onChange={(e) => patch({ rounding: Number(e.target.value) || 0 })} /></label>
