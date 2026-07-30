@@ -517,6 +517,22 @@ export function Step5({ input, upd, setTop }: P) {
       </div>
 
       <div className="card">
+        <div className="card-title">Günümüze İndirgeme</div>
+        <div className="hint" style={{ marginBottom: 10 }}>
+          İnşaat bir anda değil süre içinde biter; hasılat ve maliyet bugünkü değerlerine
+          indirgenerek arsanın daha dürüst artık değeri bulunur. Süre 0 bırakılırsa (varsayılan)
+          sonuç değişmez — bu, mevcut hesabın birebir aynısıdır.
+        </div>
+        <Field label="Proje Süresi (ay)" hint="İnşaatın başlangıcından satışların bitimine kadarki süre.">
+          <input type="number" min={0} className="input" value={r.projectMonths ?? 0}
+                 onChange={(e) => upd('residual', { projectMonths: Math.max(0, Number(e.target.value) || 0) })} />
+        </Field>
+        <Field label="Yıllık İndirgeme Oranı" hint="Süre > 0 iken kullanılır; piyasa uygulaması %10-20.">
+          <Pct value={r.timeDiscountRate ?? 0} onChange={(n) => upd('residual', { timeDiscountRate: n })} />
+        </Field>
+      </div>
+
+      <div className="card">
         <div className="card-title">Kat Karşılığı Analizi</div>
         <Field label="Rapora eklensin mi?"
                hint="Kat karşılığı yöntemi artık değer yönteminden farklı sonuç verebilir.">

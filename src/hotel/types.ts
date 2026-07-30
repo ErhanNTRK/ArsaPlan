@@ -109,12 +109,28 @@ export interface HotelProjectionInput {
   incomeGrowthRate: number;   // yıllık gelir artış oranı
   expenseGrowthRate: number;  // yıllık gider artış oranı
   capRate: number;            // Kapitalizasyon Oranı (Direkt Kapitalizasyon)
-  terminalCapRate: number | null; // opsiyonel, ileride DCF için ayrılmış alan
-  discountRate: number | null;    // opsiyonel, ileride DCF için ayrılmış alan
+  /** İNA terminal kapitalizasyon oranı (null → capRate kullanılır) */
+  terminalCapRate: number | null;
+  /** İNA iskonto oranı = risksiz + risk primi (null → İNA hesaplanmaz) */
+  discountRate: number | null;
+  /** İskonto bileşenleri (yalnız gösterim/öneri; discountRate esas) */
+  riskFreeRate?: number | null;
+  riskPremium?: number | null;
+  /** Dönemsel bakım-onarım: belirtilen yılda tek seferlik gider (₺) */
+  maintenanceYear?: number | null;
+  maintenanceAmount?: number | null;
 }
 
 /** Tüm otel geliri modülü girdisi — tek kaynak (Single Source of Truth). */
+export type HotelFinalMethod = 'direkt' | 'ina' | 'manuel';
+
 export interface HotelIncomeInput {
+  /** Hesap para birimi ve TL kuru (yalnız gösterim; 'TRY' → kur 1) */
+  currency?: 'TRY' | 'USD' | 'EUR';
+  fxRate?: number | null;
+  /** Nihai değer seçimi: uzman takdiri */
+  finalMethod?: HotelFinalMethod;
+  finalManualValue?: number | null;
   general: HotelGeneralInfo;
   rooms: RoomRevenueRow[];
   ancillary: AncillaryIncomeRow[];
@@ -142,6 +158,15 @@ export interface HotelPerformanceIndicators {
   blendedOccupancy: number;
   /** RevPAR = ADR × Doluluk */
   revPar: number;
+}
+
+export interface HotelInaResult {
+  /** Yıl bazında nakit akımı (bakım düşülmüş, son yıla terminal eklenmiş) */
+  cashFlows: number[];
+  /** Terminal değer (son yıl NOI ÷ terminal oran) */
+  terminalValue: number;
+  /** Net Bugünkü Değer — İNA yöntemi sonucu */
+  npv: number;
 }
 
 export interface HotelProjectionYear {
@@ -175,6 +200,8 @@ export interface HotelIncomeResult {
 
   performance: HotelPerformanceIndicators;
   projectionTable: HotelProjectionYear[];
+  /** İNA sonucu (discountRate girilmişse) */
+  ina: HotelInaResult | null;
 
   warnings: HotelWarning[];
   summaryText: string;

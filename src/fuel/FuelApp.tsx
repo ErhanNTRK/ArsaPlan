@@ -75,7 +75,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
     <div className="app fuel-app">
       <div className="topbar no-print"><div className="topbar-inner">
         <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} className="topbar-logo" />
-        <button type="button" className="btn-ghost" onClick={onBack}>← Yöntem Seçimi</button>
+        <button type="button" className="btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
       </div></div>
 
       <div className="step">

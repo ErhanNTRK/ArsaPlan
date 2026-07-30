@@ -356,41 +356,51 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   function floorTable() {
     if (!apt) return;
     const h = 6.4;
-    const C2 = M + W * 0.64, C3 = PW - M - 3;
+    /* Dört kolon gerçek genişlikte, her kolonun kendi x-konumu — TOPLAM satırı
+     * dahil hiçbir sayı elle kaydırılmış "yaklaşık" bir konuma basılmaz. */
+    const C1 = M + W * 0.46, C3 = M + W * 0.85, C4 = PW - M - 3;
     pageBreak(h * 3);
     doc.setFillColor(...NAVY);
     doc.rect(M, y - 4.2, W, h, 'F');
-    doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(255, 255, 255);
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(7.2); doc.setTextColor(255, 255, 255);
     doc.text(t('KAT BİLGİSİ'), M + 3, y);
-    doc.text(t('KAT ALANI'), C2, y, { align: 'right' });
+    doc.text(t('KAT ALANI'), C1, y, { align: 'right' });
     doc.text(t('SATILABİLİR ALAN'), C3, y, { align: 'right' });
+    doc.text(t('ORTAK ALAN'), C4, y, { align: 'right' });
     y += h + 0.6;
     let z = true;
+    let totalOrtak = 0;
     for (const fl of apt.floors) {
       pageBreak(h);
       if (z) { doc.setFillColor(...FAINT); doc.rect(M, y - 4.2, W, h, 'F'); }
       z = !z;
       const ortak = fl.kind === 'bodrum' && input.apartment.basements[fl.index - 1]?.use === 'ortak';
+      const ortakAlan = ortak ? fl.area : Math.max(0, fl.area - fl.saleable);
+      totalOrtak += ortakAlan;
       doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...INK);
       doc.text(t(fl.label), M + 3, y);
       doc.setFont('NTRK', 'bold');
-      doc.text(m2(fl.area), C2, y, { align: 'right' });
+      doc.text(m2(fl.area), C1, y, { align: 'right' });
       if (ortak) {
         doc.setFont('NTRK', 'normal'); doc.setTextColor(...GRAY);
         doc.text(t('ortak mahal'), C3, y, { align: 'right' });
       } else {
         doc.text(m2(fl.saleable), C3, y, { align: 'right' });
       }
+      doc.setFont('NTRK', 'normal'); doc.setTextColor(...GRAY); doc.setFontSize(8.3);
+      doc.text(m2(ortakAlan), C4, y, { align: 'right' });
+      doc.setFontSize(9);
       y += h;
     }
     pageBreak(h);
     doc.setFillColor(...NAVY);
     doc.rect(M, y - 4.2, W, h, 'F');
-    doc.setFont('NTRK', 'bold'); doc.setFontSize(9.2); doc.setTextColor(255, 255, 255);
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
     doc.text(t('TOPLAM'), M + 3, y);
-    doc.text(m2(apt.totalArea), C2 - 22, y, { align: 'right' });
-    doc.text(m2(apt.saleableTotal), C3 - 24, y, { align: 'right' });
-    doc.text(m2(Math.max(0, apt.totalArea - apt.saleableTotal)), C3, y, { align: 'right' });
+    doc.text(m2(apt.totalArea), C1, y, { align: 'right' });
+    doc.text(m2(apt.saleableTotal), C3, y, { align: 'right' });
+    doc.setFontSize(8.3);
+    doc.text(m2(totalOrtak), C4, y, { align: 'right' });
     y += h + 2;
     zebra = false;
   }
@@ -575,6 +585,10 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
   row(`Müteahhit Kârı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValue), { band: true });
+  if ((input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null) {
+    row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
+        tl(f.discountedLandValue), { bold: true });
+  }
   row('Arsa m² Birim Değeri', tlm2(f.landUnitValue), { bold: true });
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
   for (const l of fxLines(input.fx, f.residualLandValue, f.landUnitValue)) {

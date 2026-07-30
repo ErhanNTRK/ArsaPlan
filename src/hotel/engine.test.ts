@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { analyzeHotel, createDefaultHotelInput, computeRoomRevenue, computeCapitalizedValue, computeNoi, computeProjection } from './engine';
+import { computeIna } from './engine';
 import type { HotelIncomeInput, RoomRevenueRow } from './types';
 
 const rooms: RoomRevenueRow[] = [
@@ -145,5 +146,32 @@ describe('projeksiyon — gider tutar bazlı büyür (v5.8 düzeltmesi)', () => 
     expect(mk(1)).toHaveLength(3);
     expect(mk(30)).toHaveLength(25);
     expect(mk(7)).toHaveLength(7);
+  });
+});
+
+describe('İNA — banka Excel goldeni (birebir)', () => {
+  it('NOI 385.257,6 · %3 artış · iskonto %11 · terminal %10 · bakım 5. yıl → NBD 4.229.084,21', () => {
+    // Excel'deki tabloyu üretecek girdi: NOI₁ = gelir × (1 − gider) = 1.100.736 × 0,35... 
+    // Motora doğrudan gelir 1.100.736 ve gider %65 veriyoruz → NOI₁ 385.257,6
+    const table = computeProjection(1100736, 0.65, {
+      startYear: 2026, years: 10, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
+      terminalCapRate: 0.10,
+      discountRate: 0.11, riskFreeRate: 0.075, riskPremium: 0.035,
+      maintenanceYear: 5, maintenanceAmount: 130867.2,
+    } as any);
+    expect(table[0].noi).toBeCloseTo(385257.6, -1);
+    expect(table[1].noi).toBeCloseTo(396815.328, -1);
+    const ina = computeIna(table, {
+      startYear: 2026, years: 10, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
+      terminalCapRate: 0.10, discountRate: 0.11,
+      maintenanceYear: 5, maintenanceAmount: 130867.2,
+    } as any)!;
+    expect(ina.terminalValue).toBeCloseTo(5026737.85, -2);
+    expect(ina.cashFlows[4]).toBeCloseTo(433610.82 - 130867.2, -1);
+    expect(ina.npv).toBeCloseTo(4229084.21, -2);
+  });
+  it('iskonto girilmezse İNA null (mevcut davranış bozulmaz)', () => {
+    const table = computeProjection(1000000, 0.6, { startYear: 2026, years: 5, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.1, terminalCapRate: null, discountRate: null } as any);
+    expect(computeIna(table, { startYear: 2026, years: 5, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.1, terminalCapRate: null, discountRate: null } as any)).toBeNull();
   });
 });

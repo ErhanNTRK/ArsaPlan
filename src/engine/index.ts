@@ -126,6 +126,7 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
     revenue: isletme.salesTotal,
     developerProfit: 0,
     residualLandValue: isletme.landValue,
+    discountedLandValue: isletme.landValue,
     landUnitValue: isletme.landUnitValue,
     landToRevenue: isletme.salesTotal > 0 ? isletme.landValue / isletme.salesTotal : 0,
     roi: 0,

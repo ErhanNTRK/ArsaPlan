@@ -34,12 +34,24 @@ export function computeFinancial(
   const developerProfit = revenue * residual.profitRate;
   const residualLandValue = revenue - totalCost - developerProfit;
 
+  /* İndirgeme: hasılat (ve kâr) proje SONUNDAN, maliyet düzgün yayılım varsayımıyla
+     ORTA NOKTADAN bugüne çekilir. Süre 0 → klasik sonuçla birebir. */
+  const months = Math.max(0, residual.projectMonths ?? 0);
+  const rate = Math.max(0, residual.timeDiscountRate ?? 0);
+  let discountedLandValue = residualLandValue;
+  if (months > 0 && rate > 0) {
+    const yEnd = months / 12;
+    const dEnd = Math.pow(1 + rate, -yEnd);
+    const dMid = Math.pow(1 + rate, -yEnd / 2);
+    discountedLandValue = (revenue - developerProfit) * dEnd - totalCost * dMid;
+  }
+
   const denom = revenue * (1 - residual.profitRate);
   const breakEvenFactor = denom > 0 ? totalCost / denom : 0;
 
   return {
     effectiveUnitCost, constructionCost, landscapeCost, extrasCost, financeCost, totalCost,
-    buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue,
+    buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue, discountedLandValue,
     landUnitValue: safeDiv(residualLandValue, parcel.area),
     landToRevenue: safeDiv(residualLandValue, revenue),
     roi: safeDiv(developerProfit, totalCost + residualLandValue),

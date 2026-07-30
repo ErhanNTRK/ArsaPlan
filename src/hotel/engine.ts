@@ -193,6 +193,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const performance = computePerformanceIndicators(roomCalc.rows);
 
   const projectionTable = computeProjection(totalGrossRevenue, input.opex.expenseRate, input.projection);
+  const ina = computeIna(projectionTable, input.projection);
 
   const warnings = buildWarnings(input, { totalRoomRevenue: roomCalc.total, totalGrossRevenue, noi });
   const summaryText = buildSummaryText({
@@ -212,6 +213,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     capitalizedValue,
     performance,
     projectionTable,
+    ina,
     warnings,
     summaryText,
   };
@@ -235,4 +237,32 @@ export function createDefaultHotelInput(): HotelIncomeInput {
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10);
+}
+
+/**
+ * İNA (İndirgenmiş Nakit Akımı): projeksiyon NOI'leri iskonto oranıyla bugüne
+ * çekilir; belirtilen yılda dönemsel bakım-onarım düşülür; son yıla terminal
+ * değer (son NOI ÷ terminal oran) eklenir. discountRate girilmemişse null.
+ * Golden (banka Excel'i): NOI₁ 385.257,6 · artış %3 · iskonto %11 (7,5+3,5) ·
+ * terminal %10 · bakım 5. yıl 130.867,2 → NBD 4.229.084,21.
+ */
+export function computeIna(
+  table: import('./types').HotelProjectionYear[],
+  p: import('./types').HotelProjectionInput,
+): import('./types').HotelInaResult | null {
+  const i = p.discountRate ?? null;
+  if (i == null || i <= 0 || table.length === 0) return null;
+  const termCap = (p.terminalCapRate ?? p.capRate) || 0;
+  const lastNoi = table[table.length - 1].noi;
+  const terminalValue = termCap > 0 ? lastNoi / termCap : 0;
+  const mYear = p.maintenanceYear ?? 0;
+  const mAmt = p.maintenanceAmount ?? 0;
+  const cashFlows = table.map((row, idx) => {
+    let cf = row.noi;
+    if (mYear === idx + 1 && mAmt > 0) cf -= mAmt;
+    if (idx === table.length - 1) cf += terminalValue;
+    return cf;
+  });
+  const npv = cashFlows.reduce((sum, cf, idx) => sum + cf / Math.pow(1 + i, idx + 1), 0);
+  return { cashFlows, terminalValue, npv };
 }

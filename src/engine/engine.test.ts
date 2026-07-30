@@ -242,3 +242,22 @@ describe('uzman yorumları', () => {
     expect(r.advice.some((a) => a.level === 'uyari')).toBe(true);
   });
 });
+
+describe('kat karşılığı indirgeme (v6)', () => {
+  it('süre 0 → indirgemeli değer klasik değerle birebir', () => {
+    const r = analyze(structuredClone(base));
+    expect(r.financial.discountedLandValue).toBeCloseTo(r.financial.residualLandValue, 6);
+  });
+  it('30 ay · %30: hasılat sondan, maliyet ortadan çekilir (el hesabı goldeni)', () => {
+    const inp = structuredClone(base);
+    inp.residual.projectMonths = 30;
+    inp.residual.timeDiscountRate = 0.30;
+    const r = analyze(inp);
+    const f = r.financial;
+    const yEnd = 2.5;
+    const expected = (f.revenue - f.developerProfit) * Math.pow(1.30, -yEnd)
+                   - f.totalCost * Math.pow(1.30, -yEnd / 2);
+    expect(f.discountedLandValue).toBeCloseTo(expected, 2);
+    expect(f.discountedLandValue).toBeLessThan(f.residualLandValue);
+  });
+});

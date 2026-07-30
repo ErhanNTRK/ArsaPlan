@@ -324,6 +324,10 @@ export interface SalesInput {
 }
 
 export interface ResidualInput {
+  /** Proje süresi (ay) — 0 = indirgeme yok (varsayılan davranış birebir korunur) */
+  projectMonths?: number;
+  /** Yıllık indirgeme oranı (0.30 = %30) */
+  timeDiscountRate?: number;
   profitRate: number;
   /** Finansman gideri — toplam maliyetin yüzdesi. 0 → hesaba katılmaz. */
   financeRateOfCost: number;
@@ -412,6 +416,9 @@ export interface FinancialResult {
   revenue: number;
   developerProfit: number;
   residualLandValue: number;
+  /** İndirgemeli arsa değeri: hasılat proje sonundan, maliyet orta noktadan bugüne çekilir.
+   *  projectMonths 0 iken residualLandValue ile birebir aynıdır. */
+  discountedLandValue: number;
   landUnitValue: number;
   landToRevenue: number;
   roi: number;

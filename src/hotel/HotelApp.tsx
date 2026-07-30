@@ -43,10 +43,8 @@ function loadDraft(): HotelIncomeInput {
 const STEPS = [
   { title: 'Genel Bilgiler', desc: 'Tesis ve taşınmaz kimliği.' },
   { title: 'Oda Gelirleri', desc: 'Oda tipi, sayısı, ücret ve doluluk.' },
-  { title: 'Yardımcı Gelirler', desc: 'Restoran, SPA, otopark ve benzeri işletme gelirleri.' },
-  { title: 'Ticari Kiralar', desc: 'Üçüncü kişilere kiralanan bağımsız alanlar.' },
-  { title: 'İşletme Gideri', desc: 'Toplam gelir üzerinden gider oranı.' },
-  { title: 'Projeksiyon', desc: 'Yıllara göre gelir/gider artışı ve kapitalizasyon.' },
+  { title: 'Diğer Gelirler', desc: 'Yardımcı işletme gelirleri ve üçüncü kişilere kiralanan alanlar.' },
+  { title: 'Gider · Projeksiyon · İNA', desc: 'Gider oranı, yıllara göre artışlar, kapitalizasyon ve iskonto.' },
 ];
 const TOTAL = STEPS.length;
 
@@ -82,7 +80,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
   const blocker = (): string | null => {
     if (step === 1 && !input.general.facilityName.trim()) return 'Tesis adını giriniz.';
-    if (step === 6 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
+    if (step === 4 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
     return null;
   };
   const stop = blocker();
@@ -121,11 +119,15 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
         {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} />}
         {step === 2 && <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} />}
-        {step === 3 && <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />}
-        {step === 4 && <StepLeases leases={input.leases} setLeases={setLeases} result={result} />}
-        {step === 5 && <StepOpex opex={input.opex} setOpex={setOpex} result={result} />}
-        {step === 6 && <StepProjection projection={input.projection} setProjection={setProjection} result={result} />}
-        {isResult && <HotelResult input={input} result={result} />}
+        {step === 3 && (<>
+          <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />
+          <StepLeases leases={input.leases} setLeases={setLeases} result={result} />
+        </>)}
+        {step === 4 && (<>
+          <StepOpex opex={input.opex} setOpex={setOpex} result={result} />
+          <StepProjection projection={input.projection} setProjection={setProjection} result={result} />
+        </>)}
+        {isResult && <HotelResult input={input} result={result} setFinal={(p) => setInput((x) => ({ ...x, ...p }))} />}
 
         {stop && !isResult && <div className="card blocker">{stop}</div>}
         {!isResult && (
@@ -436,6 +438,43 @@ function StepProjection({ projection, setProjection, result }: {
         <Field label="Kapitalizasyon Oranı" hint="Direkt Kapitalizasyon Yöntemi: NOI ÷ Kapitalizasyon Oranı">
           <Pct value={projection.capRate} onChange={(n) => setProjection({ capRate: n })} />
         </Field>
+
+        <div className="card-title" style={{ marginTop: 18 }}>İNA (İndirgenmiş Nakit Akımı) — opsiyonel</div>
+        <div className="grid-2">
+          <Field label="Risksiz Getiri Oranı" hint="Örn. %7,5">
+            <Pct value={projection.riskFreeRate ?? 0} onChange={(n) => {
+              const prim = projection.riskPremium ?? 0;
+              setProjection({ riskFreeRate: n, discountRate: n + prim > 0 ? n + prim : null });
+            }} />
+          </Field>
+          <Field label="Risk Primi" hint="Örn. %3,5">
+            <Pct value={projection.riskPremium ?? 0} onChange={(n) => {
+              const rf = projection.riskFreeRate ?? 0;
+              setProjection({ riskPremium: n, discountRate: rf + n > 0 ? rf + n : null });
+            }} />
+          </Field>
+        </div>
+        <div className="grid-2">
+          <Field label="İskonto Oranı" hint="Risksiz + prim (elle de ezilebilir)">
+            <Pct value={projection.discountRate ?? 0} onChange={(n) => setProjection({ discountRate: n > 0 ? n : null })} />
+          </Field>
+          <Field label="Terminal Kap. Oranı" hint="Boş → kapitalizasyon oranı kullanılır">
+            <Pct value={projection.terminalCapRate ?? projection.capRate} onChange={(n) => setProjection({ terminalCapRate: n > 0 ? n : null })} />
+          </Field>
+        </div>
+        <div className="grid-2">
+          <Field label="Dönemsel Bakım — Yıl" hint="Örn. 5 (0 = yok)">
+            <Num value={projection.maintenanceYear ?? 0} onChange={(n) => setProjection({ maintenanceYear: n > 0 ? Math.round(n) : null })} />
+          </Field>
+          <Field label="Dönemsel Bakım — Tutar" hint="O yılın nakit akımından düşülür">
+            <Num value={projection.maintenanceAmount ?? 0} onChange={(n) => setProjection({ maintenanceAmount: n > 0 ? n : null })} suffix="₺" />
+          </Field>
+        </div>
+        {result.ina && (
+          <div className="note-box" style={{ marginTop: 10 }}>
+            İNA sonucu: Terminal {fmtTL(result.ina.terminalValue)} · <b>NBD {fmtTL(result.ina.npv)}</b>
+          </div>
+        )}
       </div>
 
       <div className="card">
@@ -464,17 +503,47 @@ function StepProjection({ projection, setProjection, result }: {
 }
 
 /* ─────────────────── Sonuç Ekranı ─────────────────── */
-function HotelResult({ input, result }: { input: HotelIncomeInput; result: ReturnType<typeof analyzeHotel> }) {
+function HotelResult({ input, result, setFinal }: {
+  input: HotelIncomeInput; result: ReturnType<typeof analyzeHotel>;
+  setFinal: (p: Partial<HotelIncomeInput>) => void;
+}) {
+  const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
+    : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
+    : result.capitalizedValue;
   const [busy, setBusy] = useState(false);
   return (
     <div className="cols">
       <div className="card result-preview">
-        <div className="kpi-grid">
-          <div className="kpi hero">
-            <div className="kpi-label">Gelir Yaklaşımına Göre Piyasa Değeri</div>
-            <div className="kpi-value">{fmtTL(result.capitalizedValue)}</div>
-            <div className="kpi-sub">Kapitalizasyon oranı %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</div>
+        <div className="dual-values">
+          <div className={`dual-box${(input.finalMethod ?? 'direkt') === 'direkt' ? ' dual-box--chosen' : ''}`}>
+            <span>DİREKT KAPİTALİZASYON</span>
+            <b>{fmtTL(result.capitalizedValue)}</b>
+            <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</em>
           </div>
+          {result.ina && (
+            <div className={`dual-box${input.finalMethod === 'ina' ? ' dual-box--chosen' : ''}`}>
+              <span>İNA (NBD)</span>
+              <b>{fmtTL(result.ina.npv)}</b>
+              <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
+            </div>
+          )}
+        </div>
+        <div className="hrow-labeled" style={{ margin: '12px 0' }}>
+          <label className="pfield"><span>Nihai Değer Seçimi (uzman takdiri)</span>
+            <select value={input.finalMethod ?? 'direkt'}
+                    onChange={(e) => setFinal({ finalMethod: e.target.value as HotelIncomeInput['finalMethod'] })}>
+              <option value="direkt">Direkt Kapitalizasyon</option>
+              {result.ina && <option value="ina">İNA (NBD)</option>}
+              <option value="manuel">Elle tutar</option>
+            </select></label>
+          {input.finalMethod === 'manuel' && (
+            <label className="pfield"><span>Elle Nihai Değer ₺</span>
+              <input type="number" value={input.finalManualValue ?? ''}
+                     onChange={(e) => setFinal({ finalManualValue: Number(e.target.value) || 0 })} /></label>
+          )}
+          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmtTL(finalValue)}</b></div>
+        </div>
+        <div className="kpi-grid" style={{ marginTop: 12 }}>
           <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmtTL(result.totalGrossRevenue)}</div></div>
           <div className="kpi"><div className="kpi-label">Toplam İşletme Gideri</div><div className="kpi-value">{fmtTL(result.totalExpense)}</div></div>
           <div className="kpi"><div className="kpi-label">Net İşletme Geliri</div><div className="kpi-value">{fmtTL(result.noi)}</div></div>

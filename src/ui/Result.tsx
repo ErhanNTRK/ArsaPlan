@@ -185,6 +185,12 @@ export function Result({ input, result, version }: {
           <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
           <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValue)}</div>
           <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
+          {(input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null && (
+            <div className="kpi-sub" style={{ marginTop: 4 }}>
+              İndirgemeli Arsa Değeri ({input.residual.projectMonths} ay · %{((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())}):{' '}
+              <b>{fmtTL(f.discountedLandValue)}</b>
+            </div>
+          )}
           {fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l) => (
             <div className="kpi-sub" key={l.code}>
               {l.code}: <b>{fxMoney(l.symbol, l.value)}</b> · {fxMoney(l.symbol, l.unitValue)}/m² · kur {l.rate.toLocaleString(LOC())}
@@ -223,19 +229,21 @@ export function Result({ input, result, version }: {
         )}
         <div className="floor-table floor-result" style={{ marginTop: 12 }}>
           <div className="floor-head">
-            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span>
+            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span><span>Ortak Alan</span>
           </div>
           {apt.floors.map((fl) => (
             <div className="floor-row" key={`${fl.kind}-${fl.index}`}>
               <span className="floor-label">{fl.label}</span>
               <span className="floor-cell">{fmtM2(fl.area)}</span>
               <span className="floor-cell">{fl.kind === 'bodrum' && input.apartment.basements[fl.index - 1]?.use === 'ortak' ? 'ortak mahal' : fmtM2(fl.saleable)}</span>
+              <span className="floor-cell">{fmtM2(Math.max(0, fl.area - fl.saleable))}</span>
             </div>
           ))}
           <div className="floor-row floor-total">
             <span className="floor-label">TOPLAM</span>
             <span className="floor-cell"><b>{fmtM2(apt.totalArea)}</b></span>
             <span className="floor-cell"><b>{fmtM2(apt.saleableTotal)}</b></span>
+            <span className="floor-cell"><b>{fmtM2(Math.max(0, apt.totalArea - apt.saleableTotal))}</b></span>
           </div>
         </div>
         <div style={{ marginTop: 10 }}>
