@@ -253,7 +253,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Yapı Maliyetleri', isletme.buildingsCost],
       ['TOPLAM MALİYET', isletme.totalCost],
       ['Öngörülen Satış Değeri', isletme.salesTotal],
-      ...(isletme.profit > 0 ? [[`Müteahhit Kârı (%${(isletme.profitRate * 100).toFixed(0)})`, isletme.profit] as Row] : []),
+      ...(isletme.profit > 0 ? [[`Müteahhit Kazancı (%${(isletme.profitRate * 100).toFixed(0)})`, isletme.profit] as Row] : []),
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', isletme.landValue],
       ['Arsa m² Birim Değeri', Math.round(isletme.landUnitValue)],
       ...fxLines(input.fx, isletme.landValue, isletme.landUnitValue).map((l): Row => [
@@ -278,7 +278,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     const ftr0 = ws1.getCell(`B${row}`);
     ftr0.value =
       `${tt(BRAND.preparedBy)} · ${tt(BRAND.developerLine)}\n` +
-      `${tt('Yöntem: Gelir Projeksiyonu')} · ${tt('Müteahhit kârı kesilmemiştir')} · ${tt('Tutarlar KDV hariçtir')} · ${tt('Birim maliyet kaynağı')}: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
+      `${tt('Yöntem: Gelir Projeksiyonu')} · ${tt('Müteahhit kazancı kesilmemiştir')} · ${tt('Tutarlar KDV hariçtir')} · ${tt('Birim maliyet kaynağı')}: ${TEBLIG_KAYNAK} · ${BRAND.appName} ${version}`;
     ftr0.alignment = { indent: 1, wrapText: true };
     ws1.getRow(row).height = 26;
     ftr0.font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5B6B7F' } };
@@ -347,7 +347,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       cell.alignment = i === 0 ? { indent: 1 } : { horizontal: 'right', indent: 1 };
     });
     row++;
-    for (const fl of apt.floors) {
+    for (const fl of [...apt.floors].reverse()) {
       ws1.getCell(`B${row}`).value = fl.label;
       ws1.getCell(`B${row}`).font = { name: 'Arial', size: 10 };
       ws1.getCell(`B${row}`).alignment = { indent: 1 };
@@ -446,7 +446,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Yapı Satış Hasılatı', Math.round(f.buildingRevenue), TL, false],
       ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue), TL, false],
       ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue), TL, true],
-      ['Müteahhit Kârı', Math.round(f.developerProfit), TL, false],
+      ['Müteahhit Kazancı', Math.round(f.developerProfit), TL, false],
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue), TL, true],
       ['Arsa m² Birim Değeri', Math.round(f.landUnitValue), TLM2, false],
       ['Arsa Değeri / Hasılat', f.landToRevenue, PCT, false],
@@ -489,7 +489,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Villa Satış Hasılatı', Math.round(f.buildingRevenue)],
     ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue)],
     ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue)],
-    ['Müteahhit Kârı', Math.round(f.developerProfit)],
+    ['Müteahhit Kazancı', Math.round(f.developerProfit)],
     ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue)],
     ['Arsa m² Birim Değeri', Math.round(f.landUnitValue)],
     ['Arsa Değeri / Hasılat', f.landToRevenue],
@@ -587,7 +587,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Zemin Kat Satış Birim Değeri', input.sales.apt.zemin],
       ['Normal Kat Satış Birim Değeri', input.sales.apt.normal],
       ['Piyes Satış Birim Değeri', input.sales.apt.piyes],
-      ['Müteahhit Kâr Oranı', input.residual.profitRate],
+      ['Müteahhit Kazanç Oranı', input.residual.profitRate],
       ['Finansman Gideri (toplam maliyetin yüzdesi)', input.residual.financeRateOfCost],
       ['Kat Karşılığı Bölümü', input.share.enabled ? 'Raporda gösteriliyor' : 'Kapalı'],
       ['Arsa Sahibi Payı', input.share.ownerShare],
@@ -615,7 +615,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Peyzaj Birim Maliyeti', input.site.landscapeUnitCost],
     ['Bahçe Satış Değeri', input.site.gardenPricePerM2],
     ['Satış Birim Değeri (toplam inşaat m²)', input.sales.unitPrice],
-    ['Müteahhit Kâr Oranı', input.residual.profitRate],
+    ['Müteahhit Kazanç Oranı', input.residual.profitRate],
     ['Finansman Gideri (toplam maliyetin yüzdesi)', input.residual.financeRateOfCost],
     ['Kat Karşılığı Bölümü', input.share.enabled ? 'Raporda gösteriliyor' : 'Kapalı'],
     ['Arsa Sahibi Payı', input.share.ownerShare],

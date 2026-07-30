@@ -292,7 +292,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
           </button>
         )}
 
-        {karma && !cekmeMode && (
+        {karma && (
           <>
             <Field label="Asma Kat var mı?"
                    hint="Zemin katın ticari uzantısı · genelde 1 adet olur">
@@ -317,7 +317,8 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             {a.asmaCount > 0 && (
               <div className="note-box" style={{ marginBottom: 10 }}>
                 Asma kat alanı zemin katın <b>%{(a.asmaRate * 100).toFixed(0)}</b>'ı olarak önerilir;
-                kat tablosundan elle değiştirilebilir. Ortak mahal ve kayıp uygulanmaz:
+                kat tablosundan elle değiştirilebilir. Yasal asgari: bağımsız bölümün 1/3'ü
+                (Planlı Alanlar İmar Yönetmeliği m.4). Ortak mahal ve kayıp uygulanmaz:
                 satılabilir alan = kat alanı.
               </div>
             )}
@@ -360,67 +361,72 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             1. Normal Kat'a girilen değerler diğer normal katlara kopyalanır; her satır tek tek düzenlenebilir.
           </div>
         )}
-        <div className="floor-table">
-          <div className="floor-head">
-            <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Ortak Alan Payı</span><span>Satılabilir Alan</span><span>Ortak Alan</span>
-          </div>
+        <div className="floor-cards">
           {c.floors.map((f) => {
             const ortak = f.kind === 'bodrum' && a.basements[f.index - 1]?.use === 'ortak';
             return (
-              <div className="floor-row" key={`${f.kind}-${f.index}`}>
-                <span className="floor-label">{f.label}</span>
-                <span className="floor-cell">
-                  <Num value={f.area}
-                       onChange={(n) => setApt(patchFloor(a, f, 'area', n))} suffix="m²" />
-                  {canReset(z.mode, f, f.autoArea) && (
-                    <button type="button" className="cell-reset" title="Otomatik değere dön"
-                            onClick={() => setApt(patchFloor(a, f, 'area', null))}>↺</button>
-                  )}
-                </span>
-                <span className="floor-cell">
-                  {ortak ? (
-                    <span className="floor-fixed">%100 ortak</span>
-                  ) : (
-                    <span className="rate-cell" title="Ortak alan payı · satılabilir = alan × (1 − oran)">
-                      <Pct value={f.area > 0 ? Math.max(0, (f.area - f.saleable) / f.area) : 0}
-                           onChange={(n) => {
-                             if (cekmeMode) {
-                               if (f.kind === 'zemin') setApt({ zeminLossRate: n, zeminSaleable: null });
-                               else if (f.kind === 'bodrum') setApt({ basements: a.basements.map((b, i) => i === f.index - 1 ? { ...b, lossRate: n, saleable: null } : b) });
-                               else if (f.kind === 'piyes') setApt({ cekmePiyesLossRate: n, piyesSaleable: null });
-                               else setApt({ cekmeNormalLossRate: n, normalSaleables: a.normalSaleables.map(() => null) });
-                             } else {
-                               // Diğer modlarda oran, satılabiliri doğrudan yazar
-                               setApt(patchFloor(a, f, 'saleable', Math.round(f.area * (1 - Math.max(0, Math.min(1, n))))));
-                             }
-                           }} />
-                    </span>
-                  )}
-                </span>
-                <span className="floor-cell">
-                  {ortak ? (
-                    <span className="floor-fixed">0 m²</span>
-                  ) : (
-                    <>
-                      <Num value={f.saleable}
-                           onChange={(n) => setApt(patchFloor(a, f, 'saleable', n))} suffix="m²" />
-                      {canReset(z.mode, f, f.autoSaleable) && (
+              <div className="prop-card floor-card" key={`${f.kind}-${f.index}`}>
+                <div className="floor-card__title">{f.label}</div>
+                <div className="prop-card__top">
+                  <label className="pfield">
+                    <span>Kat Alanı</span>
+                    <span className="floor-cell">
+                      <Num value={f.area}
+                           onChange={(n) => setApt(patchFloor(a, f, 'area', n))} suffix="m²" />
+                      {canReset(z.mode, f, f.autoArea) && (
                         <button type="button" className="cell-reset" title="Otomatik değere dön"
-                                onClick={() => setApt(patchFloor(a, f, 'saleable', null))}>↺</button>
+                                onClick={() => setApt(patchFloor(a, f, 'area', null))}>↺</button>
                       )}
-                    </>
-                  )}
-                </span>
-                <span className="floor-cell floor-common">
-                  {fmtM2(Math.max(0, f.area - f.saleable))}
-                </span>
+                    </span>
+                  </label>
+                  <label className="pfield">
+                    <span>Ortak Alan Payı</span>
+                    {ortak ? (
+                      <span className="floor-fixed">%100 ortak</span>
+                    ) : (
+                      <span className="rate-cell" title="Ortak alan payı · satılabilir = alan × (1 − oran)">
+                        <Pct value={f.area > 0 ? Math.max(0, (f.area - f.saleable) / f.area) : 0}
+                             onChange={(n) => {
+                               if (cekmeMode) {
+                                 if (f.kind === 'zemin') setApt({ zeminLossRate: n, zeminSaleable: null });
+                                 else if (f.kind === 'bodrum') setApt({ basements: a.basements.map((b, i) => i === f.index - 1 ? { ...b, lossRate: n, saleable: null } : b) });
+                                 else if (f.kind === 'piyes') setApt({ cekmePiyesLossRate: n, piyesSaleable: null });
+                                 else setApt({ cekmeNormalLossRate: n, normalSaleables: a.normalSaleables.map(() => null) });
+                               } else {
+                                 // Diğer modlarda oran, satılabiliri doğrudan yazar
+                                 setApt(patchFloor(a, f, 'saleable', Math.round(f.area * (1 - Math.max(0, Math.min(1, n))))));
+                               }
+                             }} />
+                      </span>
+                    )}
+                  </label>
+                  <label className="pfield">
+                    <span>Satılabilir Alan</span>
+                    {ortak ? (
+                      <span className="floor-fixed">0 m²</span>
+                    ) : (
+                      <span className="floor-cell">
+                        <Num value={f.saleable}
+                             onChange={(n) => setApt(patchFloor(a, f, 'saleable', n))} suffix="m²" />
+                        {canReset(z.mode, f, f.autoSaleable) && (
+                          <button type="button" className="cell-reset" title="Otomatik değere dön"
+                                  onClick={() => setApt(patchFloor(a, f, 'saleable', null))}>↺</button>
+                        )}
+                      </span>
+                    )}
+                  </label>
+                  <div className="pfield pfield--ro">
+                    <span>Ortak Alan</span>
+                    <b>{fmtM2(Math.max(0, f.area - f.saleable))}</b>
+                  </div>
+                </div>
               </div>
             );
           })}
-          <div className="floor-row floor-total">
+          <div className="floor-card floor-total">
             <span className="floor-label">TOPLAM</span>
-            <span className="floor-cell"><b>{fmtM2(c.totalArea)}</b></span>
-            <span className="floor-cell"><b>{fmtM2(c.saleableTotal)}</b></span>
+            <span className="floor-cell"><b>{fmtM2(c.totalArea)}</b> kat alanı</span>
+            <span className="floor-cell"><b>{fmtM2(c.saleableTotal)}</b> satılabilir</span>
           </div>
         </div>
         {c.warnings.map((w, i) => (

@@ -231,7 +231,7 @@ export function Result({ input, result, version }: {
           <div className="floor-head">
             <span>Kat Bilgisi</span><span>Kat Alanı</span><span>Satılabilir Alan</span><span>Ortak Alan</span>
           </div>
-          {apt.floors.map((fl) => (
+          {[...apt.floors].reverse().map((fl) => (
             <div className="floor-row" key={`${fl.kind}-${fl.index}`}>
               <span className="floor-label">{fl.label}</span>
               <span className="floor-cell">{fmtM2(fl.area)}</span>

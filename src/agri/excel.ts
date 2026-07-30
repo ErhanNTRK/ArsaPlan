@@ -33,9 +33,9 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
     properties: { defaultRowHeight: 16 },
     pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } },
   });
-  ws.columns = [{ width: 3 }, { width: 40 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 20 }, { width: 3 }];
+  ws.columns = [{ width: 3 }, { width: 30 }, { width: 14 }, { width: 13 }, { width: 12 }, { width: 10 }, { width: 17 }, { width: 3 }];
 
-  ws.mergeCells('A1:G2');
+  ws.mergeCells('A1:H2');
   const t = ws.getCell('A1');
   t.value = '  Tarımsal Ürün Gelir Hesabı';
   t.font = { name: 'Arial', size: 15, bold: true, color: { argb: 'FFFFFFFF' } };
@@ -43,7 +43,7 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   t.alignment = { vertical: 'middle' };
   ws.getRow(1).height = 24;
   ws.getRow(2).height = 20;
-  ws.mergeCells('A3:G3');
+  ws.mergeCells('A3:H3');
   const st = ws.getCell('A3');
   const idParts = [input.mahalle && `${input.mahalle} Mah.`, input.ada && `Ada ${input.ada}`, input.parsel && `Parsel ${input.parsel}`].filter(Boolean).join(' · ');
   st.value = `  Ürün Deseni ve Gelir Yaklaşımı${idParts ? ' — ' + idParts : ''} · ${BRAND.company}`;
@@ -51,10 +51,10 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   st.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   st.alignment = { vertical: 'middle' };
   ws.getRow(3).height = 15;
-  ws.mergeCells('A4:G4');
+  ws.mergeCells('A4:H4');
   ws.getCell('A4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
   ws.getRow(4).height = 3;
-  ws.addImage(logoId, { tl: { col: 4.6, row: 0.3 }, ext: { width: 132, height: 40 } });
+  ws.addImage(logoId, { tl: { col: 5.3, row: 0.3 }, ext: { width: 105, height: 32 } });
 
   let row = 6;
   function section(text: string) {

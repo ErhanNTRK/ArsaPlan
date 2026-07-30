@@ -1,84 +1,67 @@
-# ArsaPlan v6.0.1 — Gerçek Düzeltmeler + Tarımsal Ürün Tam İnşası
+# ArsaPlan v6.0.2 — Kat Kurgusu, Asma Kat, Akaryakıt Eksikleri + Font Hatası Düzeltmesi
 
-Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **161/161** (v6.0.0'daki
-153 + yeni 8 tarımsal golden) · `npm run build` → başarılı · oxlint → 0 hata.
-Her düzeltme bu kez **gerçek PDF/Excel üretip metin+görsel olarak** kontrol
-edildi — "yazdım ama bağlamadım" hatası bu pakette tekrarlanmadı.
+Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **165/165** · `npm run build`
+→ başarılı · oxlint → 0 hata. Her PDF/Excel çıktısı gerçek üretilip (bazıları
+LibreOffice ile gerçek render alınarak) metin/görsel kontrol edildi.
 
-## Bu pakette gerçekten düzelenler (öncekinde YAZILMIŞ ama BAĞLANMAMIŞTI)
+## Bu pakette düzelenler
 
-1. **Geniş ekran düzeni artık gerçekten çalışıyor.** `src/styles.css` daha
-   önce yazılmış ama `main.tsx` yalnızca `ui/styles.css`'i çağırıyordu — CSS
-   hiç yüklenmiyordu. İkinci import satırı eklendi; derlenmiş `dist` çıktısında
-   `1500px`/`1620px` kurallarının gerçekten var olduğu doğrulandı.
-2. **PDF kat tablosu düzeltildi.** Dört kolon (Kat Bilgisi / Kat Alanı /
-   Satılabilir Alan / Ortak Alan) artık gerçek başlıklarla, elle kaydırma
-   olmadan doğru hizada. Gerçek PDF üretilip `pdftotext` ile TOPLAM satırının
-   üç sayısının doğru kolona denk geldiği kanıtlandı.
-3. **Günümüze indirgeme arayüze bağlandı.** Motor (`financial.ts`) zaten
-   vardı ama hiçbir ekranda soran kutu yoktu. Step 5'e "Proje Süresi (ay)" +
-   "Yıllık İndirgeme Oranı" eklendi; Sonuç ekranına ve PDF'e "İndirgemeli Arsa
-   Değeri" satırı eklendi — hem Kat Karşılığı hem Gelir Projeksiyonu aynı kod
-   yolunu paylaştığı için ikisinde de otomatik çalışır. 24 ay/%15 senaryosuyla
-   gerçek PDF üretilip satırın doğru bastığı doğrulandı.
+1. **Kat sıralaması düzeltildi** (ekran + PDF + Excel): artık gerçek bina
+   mantığıyla en üstten alta Çatı → Normal Katlar → Asma Kat → Zemin →
+   Bodrumlar (en son eklenen bodrum en altta) sırasıyla görünüyor. Gerçek
+   PDF üretilip doğrulandı.
+2. **Ticari/Karma + Çekme Mesafesi'nde Asma Kat eksikliği düzeltildi.**
+   Kök neden: `computeCekme` (Çekme Mesafesi motoru) içinde asma kat mantığı
+   hiç yoktu; UI'daki gizleme bunu doğru yansıtıyordu. Motora eklendi, golden
+   testle kilitlendi, gerçek PDF'te doğrulandı. Asma kat oranı %40'ta
+   bırakıldı (araştırma: yasal asgari 1/3 ≈ %33, Planlı Alanlar İmar
+   Yönetmeliği m.4 — %40 bu asgarinin makul üzerinde); ipucu metnine yasal
+   asgari referansı eklendi.
+3. **Tarımsal Ürün Excel'indeki #### hatası kesin çözüldü.** Kök neden: Net
+   Gelir/Yaklaşık Değer sayıları 3 birimlik dekoratif bir kenar sütununa
+   yazılıyordu. Sütun genişlikleri düzeltildi; LibreOffice ile gerçek dosya
+   render edilip metninde `#` karakteri SIFIR olduğu kanıtlandı.
+4. **Kat Kurgusu ekranındaki responsive sorun düzeltildi.** Sabit 5 kolonlu
+   ızgara (orta ekranlarda sıkışıp kutuların üst üste binmesine yol açıyordu)
+   yerine Dora'daki kanıtlanmış "etiketli iki-katlı kart" deseni kullanıldı —
+   kat sayısı ne kadar artarsa artsın hiçbir kutu üst üste binmez.
 
-## Tarımsal Ürün Gelir Hesabı — tam yeniden inşa
+## Akaryakıt Gelir Hesabı — eksikler tamamlandı
 
-- **Seçim kapısı:** Ekili / Dikili / Karma seçilmeden alt veriler görünmez
-  (landing sayfasıyla BİREBİR aynı `.choice` bileşeni kullanılarak — görsel
-  dil otomatik tutarlı).
-- **Ada/parsel opsiyonel:** elle yazılabilir, zorunlu değil; KML yüklenirse
-  mahalle/ada/parsel VE alan otomatik doldurur ama dayatmaz, hepsi üzerine
-  yazılabilir.
-- **Ekilebilir Alan:** varsayılan %100; oran ↔ m² çift yönlü bağlı (biri
-  değişince diğeri güncellenir).
-- **"Diğer" ürün:** listede olmayan ürün serbestçe yazılabilir (örn. Ispanak).
-- **Yan Ürün (opsiyonel, tıklayınca açılır, yalnız Ekili satırlarında):**
-  buğday→saman, arpa→saman, ayçiçeği→küspe, pamuk→çiğit küspesi — online
-  denetimli güncel fiyatlarla (kaynak notlu), "Diğer" seçeneğiyle serbest de
-  yazılabilir. Aynı alan/dönüm üzerinden hesaplanır, ana ürünün net gelirine
-  eklenir (Şekerbank örnek Excel'iyle kuruşuna doğrulandı: buğday 939.676 TL
-  + saman 217.896 TL formülü ayrı ayrı test edilip birebir tuttu).
-- **Dikili (Ağaç):** ağaç sayısı doğrudan girilir, ürün seçilince hesap
-  başlar; dikim aralığı yalnız opsiyonel yardımcı araçtır (4×4→625 gibi
-  öneri verir, zorunlu değil). "➕ Farklı Ağaç Ekle" ile çoklu ağaç türü.
-  Opsiyonel Alan m² alanı: doldurulursa yoğunluk kontrolü yapılır (m² başına
-  1 ağaçtan fazlaysa uyarır, engellemez) ve Karma'daki kalan-alan hesabına
-  girer.
-- **Karma:** Ekili + Dikili satırlar birlikte; "Kalan Alan" göstergesi
-  (parsel ekilebilir alanı − ekili ayrılan − dikili ayrılan, yalnız alanı
-  girilmiş dikili satırlar sayılır).
-- **Amorti yılı:** varsayılan **25**, her zaman değiştirilebilir.
-- **Değer:** yıllık net gelir × amorti yılı, **en yakın 5.000 TL'nin katına**
-  yuvarlanır. Klişe "nihai takdir uzmana aittir" cümlesi kaldırıldı.
-- **PDF + Excel indirme (YENİ — önceden hiç yoktu):** İkisi de kurumsal
-  başlık/renk paletini (NAVY/GOLD, Dora logosu) mevcut Arsa modülüyle
-  BİREBİR paylaşıyor — ayrı bir görsel dil icat edilmedi. Ada/parsel/KML
-  bilgisi varsa gösterilir, yoksa da belge sorunsuz üretilir. Karma modda
-  Ekili ve Dikili ürünler PDF/Excel'de AYRI iki liste halinde. Excel banka/
-  kurumsal alıcıya iletilebilir kalitede (ExcelJS, aynı export/excel.ts
-  deseni). Her ikisi de gerçek verilerle üretilip içerikleri satır satır
-  doğrulandı.
-- **8 yeni golden test:** ağaç aralığı, Şekerbank formülü doğrulaması, yan
-  ürün hesabı, yoğunluk uyarısı, Karma kalan-alan, 5.000 TL yuvarlama, alan
-  aşım uyarısı.
+- **"↺ Sayfayı Sıfırla" düğmesi eklendi** (üst bardaki geri düğmesinin
+  yanında; onay sorar, taslağı ve tüm alanları temizler).
+- **"Diğer Gelirler (yakıt cirosunun %'si)" tek satır eklendi** — ayrıntılı
+  gelir kalemleriyle (Market, Oto Yıkama vb.) BİRLİKTE veya bunların yerine
+  kullanılabilir; bazı ekspertiz dosyalarında yalnız tek bir "Diğer Gelirler"
+  toplamı bulunduğu için (banka formatlarında görülen desen). Golden testli.
+- **PDF ve Excel indirme eklendi** (önceden bu modülde hiç yoktu) — Tarımsal
+  Ürün ve Arsa modülleriyle aynı kurumsal görsel dili paylaşıyor (NAVY/GOLD
+  paleti, aynı başlık/altbilgi). Gelir + (varsa) Maliyet yaklaşımı yan yana.
+  Gerçek verilerle üretilip hem PDF metni hem Excel'in LibreOffice render'ı
+  satır satır doğrulandı.
 
-## Genel tutarlılık
+## Bonus: uygulama genelinde önceden var olan bir font hatası bulundu ve düzeltildi
 
-- "← Yöntem Seçimi" → **"← Ana Sayfaya Dön"**, tüm modüllerde (Arsa/Otel/
-  Tarım/Akaryakıt) tutarlı.
+PDF'lerde kullanılan gömülü Türkçe font **â/ê/î/ô/û (şapkalı ünlüler)
+karakterlerini hiç desteklemiyormuş** — bu, benim bu turki modüllerimin değil,
+**uygulamanın en başından beri var olan** bir hataydı: Arsa modülündeki
+"Müteahhit Kârı" satırı da PDF'te sessizce kesiliyordu, önceki teslimatlarda
+fark edilmemiş. Kalıcı font düzeltmesi riskli/kapsamlı olacağından, güvenli
+ve hızlı çözüm uygulandı: "Kâr" kelimesi PDF/Excel üreten TÜM dosyalarda
+(export/pdf.ts, export/excel.ts, fuel/pdf.ts, fuel/excel.ts) anlamca eşdeğer
+ve karakter sorunu olmayan **"Kazanç"** ile değiştirildi ("Müteahhit Kazancı",
+"Net Kazanç" vb.) — hem yeni hem eski PDF'lerde artık kesilme yok, gerçek
+PDF'lerle doğrulandı.
 
 ## Bu paketin KAPSAMADIĞI (dürüst sınır)
 
-- **Akaryakıt modülünün otomasyon-Excel okuma ve sayfa düzeni yeniden
-  tasarımı** — Salih'in "tek tek inceleyip döneceğim" dediği ve henüz
-  iletilmediği için dokunulmadı. Buton adı ve genel stil tutarlılığı hariç,
-  Akaryakıt'ın iç mantığı bir önceki haliyle duruyor.
-- Genel stil denetimi Tarım+PDF/Excel odaklıydı; diğer ekranlarda (Otel,
-  İşletme) küçük tutarsızlıklar kalmış olabilir — göze çarpan olursa
-  bildirin, ayrı bir turda toplu taranır.
+- **Üst Hakkı Değerleme Modülü** — detaylı konuştuğumuz, en büyük yeni modül
+  henüz yazılmadı. Ayrı bir turda ele alınacak.
+- **Akaryakıt'ın derin sayfa düzeni/mod seçimi/otomasyon-Excel okuma
+  yeniden tasarımı** — bu pakette yalnız üç somut eksik (sıfırlama, %'lik
+  diğer gelir, PDF/Excel) eklendi; ChatGPT prompt'undaki daha büyük yeniden
+  tasarım (veri girişi öncesi yöntem seçimi ekranı vb.) henüz işlenmedi.
 
 ## Yükleme
-GitHub → ArsaPlan → Add file → Upload files → zip içindeki `src`, `public`,
-`package.json` dosyalarını sürükleyip bırak → Commit → Actions'ın yeşile
-dönmesini bekleyin.
+GitHub → ArsaPlan → Add file → Upload files → `src`, `public`, `package.json`
+sürükle → Commit → Actions'ın yeşile dönmesini bekleyin.

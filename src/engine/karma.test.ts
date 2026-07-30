@@ -317,6 +317,23 @@ describe('Çekme Mesafesi yöntemi (havuzsuz, oturum tabanlı)', () => {
     expect(c.footprintArea).toBe(0);
     expect(c.warnings.some((w) => w.includes('ön cephe') || w.includes('KML'))).toBe(true);
   });
+
+  it('golden: Çekme Mesafesi + Karma varyantında asma kat artık desteklenir (önceden hiç yoktu)', () => {
+    const withAsma: ApartmentInput = { ...APT_CEKME, asmaCount: 1, asmaRate: 0.40, asmaAreas: [null, null, null, null], asmaSaleables: [null, null, null, null] };
+    const c = computeApartment(parcel, zoningCekme, withAsma, 'karma');
+    const asma = c.floors.find((f) => f.kind === 'asma');
+    expect(asma).toBeDefined();
+    expect(asma!.label).toContain('Asma Kat');
+    const zemin = c.floors.find((f) => f.kind === 'zemin')!;
+    expect(asma!.area).toBeCloseTo(zemin.area * 0.40, 0);   // varsayılan öneri: zemin × asmaRate
+    expect(asma!.saleable).toBeCloseTo(asma!.area, 6);       // çekme yönteminde kayıpsız
+  });
+
+  it('konut varyantında (karma değilken) asma kat oluşmaz, çekme modunda da', () => {
+    const withAsma: ApartmentInput = { ...APT_CEKME, asmaCount: 1 };
+    const c = computeApartment(parcel, zoningCekme, withAsma, 'konut');
+    expect(c.floors.find((f) => f.kind === 'asma')).toBeUndefined();
+  });
 });
 
 describe('v5.7 motor eklemeleri', () => {

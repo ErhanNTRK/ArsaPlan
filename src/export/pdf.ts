@@ -370,7 +370,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     y += h + 0.6;
     let z = true;
     let totalOrtak = 0;
-    for (const fl of apt.floors) {
+    for (const fl of [...apt.floors].reverse()) {
       pageBreak(h);
       if (z) { doc.setFillColor(...FAINT); doc.rect(M, y - 4.2, W, h, 'F'); }
       z = !z;
@@ -429,8 +429,8 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.text(tl(isletme.landValue), M + 5, y + 17.5);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(168, 189, 212);
     doc.text(isletme.profit > 0
-      ? `${t('Müteahhit Kârı')}: ${tl(isletme.profit)} (${pct(isletme.profitRate)})`
-      : t('Müteahhit kârı kesilmemiştir (proje mülk sahibince yapılır)'), M + 5, y + 23);
+      ? `${t('Müteahhit Kazancı')}: ${tl(isletme.profit)} (${pct(isletme.profitRate)})`
+      : t('Müteahhit kazancı kesilmemiştir (proje mülk sahibince yapılır)'), M + 5, y + 23);
     const cx2 = M + W * 0.56;
     doc.setDrawColor(58, 88, 124);
     doc.line(cx2 - 4, y + 4.5, cx2 - 4, y + H - 4.5);
@@ -498,7 +498,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (isletme.extrasTotal > 0) row('İlave Maliyetler', tl(isletme.extrasTotal));
     row('TOPLAM MALİYET', tl(isletme.totalCost), { band: true });
     row('Öngörülen Satış Değeri', tl(isletme.salesTotal), { bold: true, color: GREEN });
-    if (isletme.profit > 0) row(`Müteahhit Kârı (${pct(isletme.profitRate)})`, tl(isletme.profit), { color: RED });
+    if (isletme.profit > 0) row(`Müteahhit Kazancı (${pct(isletme.profitRate)})`, tl(isletme.profit), { color: RED });
     row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(isletme.landValue), { band: true });
     row('Arsa m² Birim Değeri', tlm2(isletme.landUnitValue), { bold: true });
     for (const l of fxLines(input.fx, isletme.landValue, isletme.landUnitValue)) {
@@ -507,7 +507,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     }
     y += 4;
 
-    drawFooter(doc, version, 'Ticari İşletme · Müteahhit kârı kesilmez · Tutarlar KDV hariçtir');
+    drawFooter(doc, version, 'Ticari İşletme · Müteahhit kazancı kesilmez · Tutarlar KDV hariçtir');
     const name0 = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.pdf`
       .replace(/-+\./, '.');
     return { doc, name: name0 };
@@ -583,7 +583,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   row('Yapı Satış Hasılatı', tl(f.buildingRevenue));
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
-  row(`Müteahhit Kârı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
+  row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValue), { band: true });
   if ((input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null) {
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,

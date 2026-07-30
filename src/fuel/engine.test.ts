@@ -35,7 +35,7 @@ describe('computeFuel — banka formatı goldeni', () => {
         { id: 'tek', name: 'Tekel', mode: 'ciro', turnover: 85085, profitPct: 4, netAmount: 0 },
         { id: 'oy', name: 'Oto Yıkama', mode: 'net', turnover: 0, profitPct: 0, netAmount: 50000 },
       ],
-      dealerRent: { include: false, yearlyAmount: 0 },
+      otherIncomePctOfFuel: 0, dealerRent: { include: false, yearlyAmount: 0 },
       capRate: 0.10, rounding: 0,
       cost: { enabled: false, parcelArea: 0, landUnitValue: 0, buildings: [] },
     });
@@ -48,7 +48,7 @@ describe('computeFuel — banka formatı goldeni', () => {
   it('dağıtıcı kirası dahil edilirse düşülür; edilmezse dokunulmaz', () => {
     const mk = (include: boolean) => computeFuel({
       products: [P({ mode: 'gunluk', dailyLiters: 1000, unitPrice: 50, profitPct: 3 })],
-      extras: [], dealerRent: { include, yearlyAmount: 200000 },
+      extras: [], otherIncomePctOfFuel: 0, dealerRent: { include, yearlyAmount: 200000 },
       capRate: 0.10, rounding: 0,
       cost: { enabled: false, parcelArea: 0, landUnitValue: 0, buildings: [] },
     });
@@ -57,7 +57,7 @@ describe('computeFuel — banka formatı goldeni', () => {
   it('çift yöntem: yuvarlama + maliyet yaklaşımı (madeni yağ tesisi senaryosu)', () => {
     const r = computeFuel({
       products: [P({ mode: 'gunluk', dailyLiters: 3000, unitPrice: 50, profitPct: 3 })],
-      extras: [], dealerRent: { include: false, yearlyAmount: 0 },
+      extras: [], otherIncomePctOfFuel: 0, dealerRent: { include: false, yearlyAmount: 0 },
       capRate: 0.12, rounding: 50000,
       cost: { enabled: true, parcelArea: 5000, landUnitValue: 8000, buildings: [
         { id: 'k', name: 'Kanopi+Satış Binası', area: 600, unitCost: 15000 },
@@ -68,5 +68,33 @@ describe('computeFuel — banka formatı goldeni', () => {
     expect(r.costLand).toBe(40000000);
     expect(r.costBuildings).toBeCloseTo(600 * 15000 + 2507 * 600, 2);
     expect(r.costValue).toBeCloseTo(r.costLand + r.costBuildings, 2);
+  });
+});
+
+describe("'Diğer Gelirler' — yakıt cirosunun yüzdesi tek satır", () => {
+  it('otherIncomePctOfFuel yakıt cirosuna uygulanır ve toplam net kâra eklenir', () => {
+    const input = {
+      products: [{ id: 'p1', name: 'Motorin', mode: 'yillik' as const, dailyLiters: 0, yearlyLiters: 1000000,
+        multiYearLiters: [], periodLiters: 0, periodDays: 0, unitPrice: 40, profitPct: 3 }],
+      extras: [], otherIncomePctOfFuel: 2, dealerRent: { include: false, yearlyAmount: 0 },
+      capRate: 10, rounding: 0,
+      cost: { enabled: false, parcelArea: 0, landUnitValue: 0, buildings: [] },
+    };
+    const r = computeFuel(input);
+    // ciro = 1.000.000 × 40 = 40.000.000 · %2 = 800.000
+    expect(r.otherIncomeFromPct).toBeCloseTo(800000, 1);
+    expect(r.totalNet).toBeCloseTo(r.fuelNet + 800000, 1);
+  });
+  it('0 iken hiç etki etmez (varsayılan kapalı)', () => {
+    const input = {
+      products: [{ id: 'p1', name: 'Motorin', mode: 'yillik' as const, dailyLiters: 0, yearlyLiters: 1000000,
+        multiYearLiters: [], periodLiters: 0, periodDays: 0, unitPrice: 40, profitPct: 3 }],
+      extras: [], otherIncomePctOfFuel: 0, dealerRent: { include: false, yearlyAmount: 0 },
+      capRate: 10, rounding: 0,
+      cost: { enabled: false, parcelArea: 0, landUnitValue: 0, buildings: [] },
+    };
+    const r = computeFuel(input);
+    expect(r.otherIncomeFromPct).toBe(0);
+    expect(r.totalNet).toBe(r.fuelNet);
   });
 });

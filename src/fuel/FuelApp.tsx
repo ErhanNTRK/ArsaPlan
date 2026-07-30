@@ -8,6 +8,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { computeFuel, daysBetween, type FuelInput, type FuelProductInput, type ExtraIncomeRow } from './engine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
+import { downloadFuelPdf } from './pdf';
+import { downloadFuelExcel } from './excel';
 
 const DRAFT = 'arsaplan-fuel-draft-v1';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -31,6 +33,7 @@ function defProduct(i: number): FuelProductInput & { periodStart: string; period
 const DEFAULT = {
   products: [defProduct(0), defProduct(1), defProduct(2)],
   extras: [] as ExtraIncomeRow[],
+  otherIncomePctOfFuel: 0,
   dealerRent: { include: false, yearlyAmount: 0 },
   capRate: 10, rounding: 50000,
   cost: { enabled: false, parcelArea: 0, landUnitValue: 0,
@@ -76,6 +79,10 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
       <div className="topbar no-print"><div className="topbar-inner">
         <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} className="topbar-logo" />
         <button type="button" className="btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
+        <button type="button" className="btn-ghost" title="Tüm alanları temizler"
+                onClick={() => { if (window.confirm('Sayfa sıfırlansın mı? Tüm girdiler silinecek.')) { localStorage.removeItem(DRAFT); setState(DEFAULT); } }}>
+          ↺ Sayfayı Sıfırla
+        </button>
       </div></div>
 
       <div className="step">
@@ -177,6 +184,14 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             ➕ Gelir Kalemi Ekle
           </button>
           <div className="hrow-labeled" style={{ marginTop: 12 }}>
+            <label className="pfield"><span>Diğer Gelirler <em title="Bazı dosyalarda ayrıntı yoktur, yalnız tek bir 'Diğer Gelirler' toplamı bulunur. Ayrıntılı kalemlerle birlikte de kullanılabilir.">(yakıt cirosunun %'si)</em></span>
+              <input type="number" step="0.5" placeholder="0" value={state.otherIncomePctOfFuel || ''}
+                     onChange={(e) => patch({ otherIncomePctOfFuel: Number(e.target.value) || 0 })} /></label>
+            {state.otherIncomePctOfFuel > 0 && (
+              <div className="pfield pfield--ro"><span>Katkı</span><b>{TL(r.otherIncomeFromPct)}</b></div>
+            )}
+          </div>
+          <div className="hrow-labeled" style={{ marginTop: 12 }}>
             <label className="pfield"><span>Dağıtıcıya Kira Ödeniyor mu?</span>
               <select value={state.dealerRent.include ? '1' : '0'}
                       onChange={(e) => patch({ dealerRent: { ...state.dealerRent, include: e.target.value === '1' } })}>
@@ -241,7 +256,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
           <div className="card-title">Sonuç — Değerleme</div>
           <div className="hrow-labeled">
             <div className="pfield pfield--ro"><span>Yakıt Net Kârı/yıl</span><b>{TL(r.fuelNet)}</b></div>
-            <div className="pfield pfield--ro"><span>İlave Gelirler/yıl</span><b>{TL(r.extrasNet)}</b></div>
+            <div className="pfield pfield--ro"><span>İlave Gelirler/yıl</span><b>{TL(r.extrasNet + r.otherIncomeFromPct)}</b></div>
             {r.dealerRentApplied > 0 && <div className="pfield pfield--ro"><span>Dağıtıcı Kirası</span><b>−{TL(r.dealerRentApplied)}</b></div>}
             <div className="pfield pfield--ro"><span>Toplam Net Kâr/yıl</span><b>{TL(r.totalNet)}</b></div>
             <label className="pfield pfield--s"><span>Kap. Oranı %</span>
@@ -267,6 +282,10 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
           </div>
           {r.warnings.map((w, i) => <div className="warn-line" key={i}>{w}</div>)}
           <div className="hint">İki yöntem yan yana sunulur; nihai değer takdiri uzmana aittir.</div>
+          <div className="export-row no-print">
+            <button type="button" className="btn-ghost" onClick={() => downloadFuelPdf(engineInput, r)}>📄 PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={() => downloadFuelExcel(engineInput, r)}>📊 Excel İndir</button>
+          </div>
         </div>
 
         <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · Akaryakıt Gelir Modülü</div>

@@ -114,6 +114,21 @@ function computeCekme(
     autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
   });
 
+  /* Asma kat(lar) — yalnızca karma varyantında; çekme yönteminde ortak mahal/kayıp
+   * uygulanmaz (satılabilir = alan), diğer iki yöntemle aynı öneri mantığı: alan
+   * elle girilmezse zemin katın asmaRate'i kadar önerilir. */
+  const asmaN = variant === 'karma' ? Math.max(0, Math.round(apt.asmaCount)) : 0;
+  for (let i = 1; i <= asmaN; i++) {
+    const aOv = apt.asmaAreas[i - 1];
+    const area = R(Math.max(0, aOv ?? zArea * Math.max(0, apt.asmaRate)));
+    const sOv = apt.asmaSaleables[i - 1];
+    const saleable = R(Math.max(0, sOv ?? area));
+    floors.push({
+      kind: 'asma', index: i, label: asmaN > 1 ? `${ord(i)} Asma Kat (ticari)` : 'Asma Kat (ticari)',
+      area, saleable, autoArea: aOv == null, autoSaleable: sOv == null,
+    });
+  }
+
   /* Normal katlar — çıkmalı alanla başlar */
   for (let j = 1; j <= normalCount; j++) {
     const area = R(Math.max(0, apt.normalAreas[j - 1] ?? normalBaseArea));

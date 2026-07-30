@@ -43,6 +43,9 @@ export interface FuelCostInput {
 export interface FuelInput {
   products: FuelProductInput[];
   extras: ExtraIncomeRow[];
+  /** Tek satır alternatif: bazı dosyalarda ayrıntı yok, yalnız "Diğer Gelirler" toplamı
+   *  yakıt cirosunun yüzdesi olarak verilir. 0 = kullanılmıyor; ayrıntılı extras ile birlikte de kullanılabilir. */
+  otherIncomePctOfFuel: number;
   dealerRent: { include: boolean; yearlyAmount: number };
   capRate: number;              // 0.10 = %10
   rounding: number;             // sonuç yuvarlama adımı (ör. 50000); 0 = yok
@@ -60,6 +63,7 @@ export interface FuelResult {
   fuelTurnover: number;
   fuelNet: number;
   extrasNet: number;
+  otherIncomeFromPct: number;
   dealerRentApplied: number;
   totalNet: number;
   incomeValue: number;          // totalNet / capRate
@@ -110,8 +114,10 @@ export function computeFuel(input: FuelInput): FuelResult {
     s + (e.mode === 'net' ? Math.max(0, e.netAmount)
       : Math.max(0, e.turnover) * Math.max(0, e.profitPct) / 100), 0));
 
+  const otherIncomeFromPct = R(fuelTurnover * Math.max(0, input.otherIncomePctOfFuel) / 100);
+
   const dealerRentApplied = input.dealerRent.include ? Math.max(0, input.dealerRent.yearlyAmount) : 0;
-  const totalNet = R(fuelNet + extrasNet - dealerRentApplied);
+  const totalNet = R(fuelNet + extrasNet + otherIncomeFromPct - dealerRentApplied);
   if (totalNet < 0) warnings.push('Dağıtıcı kirası düşüldükten sonra net kâr negatif.');
 
   const incomeValue = input.capRate > 0 ? R(totalNet / input.capRate) : 0;
@@ -126,7 +132,7 @@ export function computeFuel(input: FuelInput): FuelResult {
   }
 
   return {
-    products, fuelTurnover, fuelNet, extrasNet, dealerRentApplied, totalNet,
+    products, fuelTurnover, fuelNet, extrasNet, otherIncomeFromPct, dealerRentApplied, totalNet,
     incomeValue, incomeValueRounded, costLand, costBuildings, costValue, warnings,
   };
 }
