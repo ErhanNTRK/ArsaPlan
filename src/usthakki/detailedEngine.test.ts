@@ -1,13 +1,11 @@
-/** Ayrıntılı Üst Hakkı Değer Analizi — golden testler (2026-07-30/31). */
+/** Toplam Gelir Üzerinden Üst Hakkı Hesabı — golden testler.
+ *  2026-07-31 SON REVİZYON: Gelir modeli Excel ile birebir (Salih onayı) —
+ *  her kalem 1. yıl tutarı olarak girilir, aynı oranla büyür, TOPLANIR. */
 import { describe, it, expect } from 'vitest';
-import { computeDetailedUstHakki, computeRoomIncome, computeCostApproach, type DetailedUstHakkiInput, type DetailedRoomRow, type BuildingCostRow } from './detailedEngine';
+import { computeDetailedUstHakki, computeRoomIncome, computeCostApproach, type DetailedUstHakkiInput, type DetailedRoomRow } from './detailedEngine';
 
 const rooms: DetailedRoomRow[] = [
   { id: 'r1', name: 'Standart', count: 30, price: 3750, occupancyPct: 55, days: 365 },
-];
-const buildings: BuildingCostRow[] = [
-  { id: 'b1', type: 'Standart Bloklar', area: 8000, unitCost: 20000 },
-  { id: 'b2', type: 'Lobi ve Resepsiyon Binası', area: 500, unitCost: 25000 },
 ];
 
 const base: DetailedUstHakkiInput = {
@@ -15,9 +13,10 @@ const base: DetailedUstHakkiInput = {
   sureUnit: 'yil', kalanSureYil: 5, toplamSureYil: 49,
   currency: 'TL', fxRate: 1,
   rooms, roomGrowthPct: 5,
-  foodPct: 10, otherPct: 5, meetingPct: 3, shopPct: 2,
-  roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 8, energyPct: 6, repairPct: 3,
-  landUnitValue: 4000, buildings, showCostApproachInPdf: true,
+  foodIncomeBase: 250000, otherIncomeBase: 300000, meetingIncomeBase: 100000, shopIncomeBase: 50000,
+  roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 8, energyPct: 7, repairPct: 2,
+  landUnitValue: 4000, buildings: [{ id: 'b1', type: 'Standart Bloklar', area: 8000, unitCost: 20000 }],
+  buildingDepreciationPct: 25, showCostApproachInPdf: true,
   operatorPremiumPct: 5, propertyTaxPct: 0.4, insurancePct: 0.2, renewalFundPct: 4,
   ecrimisilBase: 0, ecrimisilGrowthPct: 0,
   ustHakkiOdemeBase: 200000, ustHakkiOdemeGrowthPct: 2,
@@ -32,59 +31,61 @@ describe('computeRoomIncome — Adet × Fiyat × Doluluk × Gün', () => {
   });
 });
 
-describe('computeCostApproach — Arsa Değeri + Yapı Maliyetleri (2026-07-31 yeni model)', () => {
-  it('Arsa Değeri = Arsa Alanı × Arsa m² Birim Değeri', () => {
-    const c = computeCostApproach({ parcelArea: 5000, landUnitValue: 4000, buildings: [] });
-    expect(c.landValue).toBe(20000000);
-  });
-  it('Yapı Maliyetleri = Σ (Alan × Yapı Birim Maliyeti)', () => {
-    const c = computeCostApproach({ parcelArea: 5000, landUnitValue: 4000, buildings });
-    // 8000×20000 + 500×25000 = 160.000.000 + 12.500.000 = 172.500.000
-    expect(c.buildingsCost).toBe(172500000);
-  });
-  it('Toplam Maliyet = Arsa Değeri + Yapı Maliyetleri', () => {
-    const c = computeCostApproach({ parcelArea: 5000, landUnitValue: 4000, buildings });
-    expect(c.totalCost).toBe(20000000 + 172500000);
-  });
-  it('en yakın 5.000\'e yuvarlanmış hali de üretilir', () => {
-    const c = computeCostApproach({ parcelArea: 5001, landUnitValue: 4000.5, buildings: [] });
-    expect(c.totalCostRounded % 5000).toBe(0);
+describe('computeCostApproach — Excel formülleriyle birebir', () => {
+  it('Emlak Vergisine Esas Değer = Arsa + Yapı×(1-Aşınma%)', () => {
+    const c = computeCostApproach({ parcelArea: 5000, landUnitValue: 4000, buildings: [{ id: 'b1', type: 'x', area: 8000, unitCost: 20000 }], buildingDepreciationPct: 25 });
+    expect(c.propertyTaxBase).toBe(140000000);
   });
 });
 
-describe('Gelir zinciri — Oda payı = 100 − diğerlerinin toplamı', () => {
-  it('toplam gelir, oda gelirinden geriye türetilir', () => {
+describe('YENİ Gelir Modeli — Excel ile birebir: her kalem TUTAR olarak girilir, TOPLANIR', () => {
+  it('Toplam Gelir = Oda + Yiyecek + Diğer + Toplantı + Dükkan (TOPLAMA, bölme değil)', () => {
     const r = computeDetailedUstHakki(base);
-    const roomPct = 100 - (10 + 5 + 3 + 2);
-    expect(r.years[0].totalRevenue).toBeCloseTo(r.years[0].roomIncome / (roomPct / 100), 0);
+    const y1 = r.years[0];
+    expect(y1.totalRevenue).toBeCloseTo(y1.roomIncome + y1.foodIncome + y1.otherIncome + y1.meetingIncome + y1.shopIncome, 0);
   });
-  it('tüm kalemler Oda Fiyat Artış Oranı ile aynı oranda büyür', () => {
+  it('1. yıl gelir kalemleri girilen tutarların AYNISIDIR (henüz büyümemiş)', () => {
     const r = computeDetailedUstHakki(base);
-    expect(r.years[1].totalRevenue / r.years[0].totalRevenue).toBeCloseTo(1.05, 3);
+    expect(r.years[0].foodIncome).toBe(250000);
+    expect(r.years[0].otherIncome).toBe(300000);
+    expect(r.years[0].meetingIncome).toBe(100000);
+    expect(r.years[0].shopIncome).toBe(50000);
   });
-});
-
-describe('Maliyet tabanlı giderler — Emlak Vergisi/Sigorta/Yenileme Fonu artık TOPLAM MALİYET üzerinden (Arsa m² değil)', () => {
-  it('Emlak Vergisi = Toplam Maliyet × oran', () => {
+  it('TÜM kalemler AYNI oranla (Oda Fiyat Artış Oranı) bileşik büyür', () => {
     const r = computeDetailedUstHakki(base);
-    expect(r.years[0].propertyTax).toBeCloseTo(r.cost.totalCost * 0.004, 0);
+    expect(r.years[1].roomIncome / r.years[0].roomIncome).toBeCloseTo(1.05, 3);
+    expect(r.years[1].foodIncome / r.years[0].foodIncome).toBeCloseTo(1.05, 3);
+    expect(r.years[1].meetingIncome / r.years[0].meetingIncome).toBeCloseTo(1.05, 3);
   });
-  it('Bina Sigortası = Toplam Maliyet × oran', () => {
+  it('Oda Payı % artık BİLGİ AMAÇLI, sonradan hesaplanır (girdi değildir)', () => {
     const r = computeDetailedUstHakki(base);
-    expect(r.years[0].insurance).toBeCloseTo(r.cost.totalCost * 0.002, 0);
-  });
-  it('Yenileme Fonu = Toplam Maliyet × oran (varsayılan %4)', () => {
-    const r = computeDetailedUstHakki(base);
-    expect(r.years[0].renewalFund).toBeCloseTo(r.cost.totalCost * 0.04, 0);
-  });
-  it('Ecrimisil/Üst Hakkı/Bayilik hâlâ elle + büyüme (Toplam Maliyet\'ten bağımsız)', () => {
-    const r = computeDetailedUstHakki(base);
-    expect(r.years[0].ustHakkiOdeme).toBe(200000);
-    expect(r.years[1].ustHakkiOdeme).toBeCloseTo(200000 * 1.02, 1);
+    const y1 = r.years[0];
+    expect(y1.roomIncomePct).toBeCloseTo((y1.roomIncome / y1.totalRevenue) * 100, 1);
   });
 });
 
-describe('Tek iskonto oranı (2026-07-31: risksiz+prim ayrımı kaldırıldı)', () => {
+describe('Gider tabanları — Excel formülleriyle birebir', () => {
+  it('Diğer Gider = (Diğer Gelir + Toplantı Geliri) × oran — Excel: =+(AQ21+AQ22)*AN31', () => {
+    const r = computeDetailedUstHakki(base);
+    const y1 = r.years[0];
+    expect(y1.otherExpense).toBeCloseTo((y1.otherIncome + y1.meetingIncome) * 0.25, 0);
+  });
+  it('Bina Sigortası/Yenileme Fonu = yalnız Yapı Değeri (arsa hariç)', () => {
+    const r = computeDetailedUstHakki(base);
+    expect(r.years[0].insurance).toBeCloseTo(r.cost.buildingsCost * 0.002, 0);
+    expect(r.years[0].renewalFund).toBeCloseTo(r.cost.buildingsCost * 0.04, 0);
+  });
+  it('Basit Tamirat = Yapı Değeri × oran (Toplam Gelir DEĞİL)', () => {
+    const r = computeDetailedUstHakki(base);
+    expect(r.years[0].repairExpense).toBeCloseTo(r.cost.buildingsCost * 0.02, 0);
+  });
+  it('Emlak Vergisi = Emlak Vergisine Esas Değer × oran', () => {
+    const r = computeDetailedUstHakki(base);
+    expect(r.years[0].propertyTax).toBeCloseTo(r.cost.propertyTaxBase * 0.004, 0);
+  });
+});
+
+describe('Tek iskonto oranı — 1. dönem indirgenmez, 2.+ NetKâr/(1+i)^(t-1)', () => {
   it('discountRatePct doğrudan kullanılır', () => {
     const r = computeDetailedUstHakki(base);
     expect(r.discountRate).toBeCloseTo(0.11, 4);
@@ -121,5 +122,36 @@ describe('Dönem sayısı — kalan süre kadar (sabit değil)', () => {
   it.each([3, 10, 22, 31])('kalan süre %i ise %i dönem üretir', (n) => {
     const r = computeDetailedUstHakki({ ...base, kalanSureYil: n });
     expect(r.years).toHaveLength(n);
+  });
+});
+
+describe('Zorunlu veri uyarıları', () => {
+  it('oda geliri girilmezse uyarır', () => {
+    const r = computeDetailedUstHakki({ ...base, rooms: [] });
+    expect(r.warnings.some((w) => w.includes('Oda Gelirleri'))).toBe(true);
+  });
+});
+
+describe('EXCEL GERÇEK GİRDİLERİYLE UÇTAN UCA DOĞRULAMA (2026-07-31 karşılaştırması)', () => {
+  it('Denizbank örneğiyle 1. ve 2. yıl toplam gelir/net kâr sayıları örtüşür', () => {
+    const kur = 45.96;
+    const r = computeDetailedUstHakki({
+      hotelName: '', ada: '', parsel: '', parcelArea: 111461.77, fromKml: false,
+      sureUnit: 'yil', kalanSureYil: 42, toplamSureYil: 49,
+      currency: 'USD', fxRate: kur,
+      rooms: [{ id: 'r1', name: 'Standart', count: 338, price: 170, occupancyPct: 70, days: 180 }],
+      roomGrowthPct: 2,
+      foodIncomeBase: 250000, otherIncomeBase: 300000, meetingIncomeBase: 0, shopIncomeBase: 0,
+      roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 10, energyPct: 7, repairPct: 2,
+      landUnitValue: 9500 / kur, buildings: [{ id: 'b1', type: 'Diğer', area: 26569, unitCost: 40500 / kur }],
+      buildingDepreciationPct: 25, showCostApproachInPdf: true,
+      operatorPremiumPct: 12, propertyTaxPct: 0.4, insurancePct: 0.3, renewalFundPct: 4,
+      ecrimisilBase: 0, ecrimisilGrowthPct: 0, ustHakkiOdemeBase: 0, ustHakkiOdemeGrowthPct: 0,
+      bayilikBase: 0, bayilikGrowthPct: 0,
+      discountRatePct: 9, donemSonuIndirgemePct: 0,
+    });
+    // Excel: Yıl1 Toplam Gelir ≈ 7.789.960 $, Yıl2 ≈ 7.945.760 $ (.000$ ölçekli kaynaktan ×1000)
+    expect(r.years[0].totalRevenue).toBeCloseTo(7789960, -3);
+    expect(r.years[1].totalRevenue).toBeCloseTo(7945760, -3);
   });
 });

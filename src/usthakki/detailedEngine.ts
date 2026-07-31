@@ -1,30 +1,38 @@
 /**
  * AYRINTILI ÜST HAKKI DEĞER ANALİZİ — motor (saf).
  *
- * Salih'in 27+16 maddelik talimatı (2026-07-30/31) ve Denizbank örnek
- * tablosuna göre kurulmuştur. Standart (basit) Üst Hakkı hesabından
- * (engine.ts) TAMAMEN AYRI bir modeldir — otel tarzı gelir/gider zinciri
- * kullanır.
+ * 2026-07-31 SON REVİZYON: Gelir modeli Denizbank Excel'inin GERÇEK
+ * formülleriyle birebir kuruldu (Salih onayı: "mantığı o excele göre
+ * kuralım, gerekirse değişiklik yaparak aynı sonuca ulaşalım").
  *
- * Gelir mantığı: Oda Geliri oda satırlarından (Adet×Fiyat×Doluluk×Gün) türetilir;
- * diğer dört kalem (Yiyecek/Diğer/Toplantı/Dükkan) TOPLAM GELİRİN yüzdesi olarak
- * girilir; Oda payı = 100 − diğerlerinin toplamı. Böylece toplam gelir Oda
- * Geliri'nden geriye türetilir: toplamGelir = odaGelir / (odaPct/100).
+ * ESKİ MODEL (artık kullanılmıyor): Yiyecek/Diğer/Toplantı/Dükkan gelirleri
+ * Toplam Gelirin yüzdesi olarak GİRİLİYOR, Toplam Gelir Oda Gelirinden
+ * GERİYE türetiliyordu.
  *
- * Maliyet Yaklaşımı (2026-07-31 revizyonu): Toplam Maliyet artık elle
- * girilen tek kutu DEĞİL — Arsa Değeri (Arsa Alanı × Arsa m² Birim Değeri)
- * + Yapı Maliyetleri (satır satır, Alan × Yapı Birim Maliyeti) toplamından
- * hesaplanır. Emlak Vergisi / Bina Sigortası / Yenileme Fonu (varsayılan %4)
- * bu Toplam Maliyet üzerinden % olarak hesaplanır — formülün kendisi
- * DEĞİŞMEDİ, yalnızca "Toplam Maliyet"in kaynağı elle girişten hesaplanmış
- * değere döndü.
+ * YENİ MODEL (Excel ile birebir): Her gelir kalemi (Oda dahil) kendi 1. yıl
+ * TUTARI olarak girilir; hepsi AYNI büyüme oranıyla (Oda Fiyat Artış Oranı)
+ * bileşik büyür; Toplam Gelir bunların TOPLAMIDIR (bölme değil, toplama).
+ * "Toplam Gelir İçerisindeki Oranı" (Excel'deki "Toplam Gelir İçerisinde
+ * Oranı" sütunuyla aynı) artık yalnız BİLGİ AMAÇLI, sonradan hesaplanan bir
+ * gösterimdir — girdi değildir, kullanıcı hâlâ her satırın tutarını serbestçe
+ * elle değiştirebilir.
  *
- * İskonto oranı TEK bir kutudur (2026-07-31: risksiz+prim ayrımı kaldırıldı,
- * kullanıcı kafası karışmasın diye — hesaba hiçbir etkisi yoktu, ikisinin
- * toplamı zaten tek bir orandı).
+ * Maliyet Yaklaşımı: Arsa Değeri (Arsa Alanı × Arsa m² Birim Değeri) +
+ * Yapı Değeri (Alan × Birim Maliyet, AŞINMASIZ toplam — "Sigortaya Esas
+ * Bina Değeri" ile aynı kavram) = Toplam Değer.
  *
- * İndirgeme: 1. DÖNEM İNDİRGENMEZ; 2. dönemden itibaren iskonto oranıyla
- * bugüne çekilir (üstel: dönem t için çarpan = (1+i)^-(t-1)).
+ * Emlak Vergisi, Bina Sigortası, Yenileme Fonu ve Basit Tamirat Excel'deki
+ * GERÇEK formülleriyle birebir hesaplanır:
+ *   - Bina Sigortası, Yenileme Fonu, Basit Tamirat → YALNIZ Yapı Değeri
+ *     üzerinden (arsa dahil değildir).
+ *   - Emlak Vergisi → "Emlak Vergisine Esas Değer" üzerinden = Arsa Değeri +
+ *     Yapı Değeri×(1 − Bina Aşınma Oranı%). Varsayılan %25, elle değiştirilebilir.
+ *   - Diğer Gider → (Diğer Gelir + Toplantı Geliri) × oran (Excel: AQ31=+(AQ21+AQ22)*AN31).
+ *
+ * İskonto oranı TEK bir kutudur. İndirgeme: 1. DÖNEM İNDİRGENMEZ; 2. dönemden
+ * itibaren iskonto oranıyla bugüne çekilir (üstel: dönem t için çarpan =
+ * (1+i)^-(t-1)) — Excel'in NAKİT AKIŞ NET BUGÜNKÜ DEĞER formülüyle
+ * (=NakitAkış/(1+i)^(Dönem-1)) birebir doğrulanmıştır.
  * Sonuç, girilen "Dönem Sonu Değer İndirgeme (%)" oranıyla bir kez azaltılır,
  * sonra en yakın 5.000'in katına yuvarlanır.
  */
@@ -74,12 +82,12 @@ export interface DetailedUstHakkiInput {
   fxRate: number;           // currency !== 'TL' iken kullanılır
 
   rooms: DetailedRoomRow[];
-  roomGrowthPct: number;    // "Oda Fiyat Artış Oranı" — tüm gelir kalemleri bu oranda büyür
+  roomGrowthPct: number;    // "Oda Fiyat Artış Oranı" — TÜM gelir kalemleri bu oranda büyür (Excel: tek BF11)
 
-  foodPct: number;          // Yiyecek/İçecek — toplam gelirin %'si
-  otherPct: number;         // Diğer Gelirler — toplam gelirin %'si
-  meetingPct: number;       // Toplantı/Salon — toplam gelirin %'si
-  shopPct: number;          // Dükkan Kira — toplam gelirin %'si
+  foodIncomeBase: number;      // Yiyecek/İçecek — 1. yıl tutarı (₺/$/€), Oran% ile DEĞİL doğrudan girilir
+  otherIncomeBase: number;     // Diğer Gelirler — 1. yıl tutarı
+  meetingIncomeBase: number;   // Toplantı/Salon — 1. yıl tutarı
+  shopIncomeBase: number;      // Dükkan Kira — 1. yıl tutarı
 
   roomExpensePct: number;   // Oda Gideri — oda geliri üzerinden
   foodExpensePct: number;   // Yiyecek Gideri — yiyecek geliri üzerinden
@@ -88,15 +96,16 @@ export interface DetailedUstHakkiInput {
   energyPct: number;        // Enerji — (oda+toplantı) üzerinden
   repairPct: number;        // Basit Tamirat — toplam gelir üzerinden
 
-  // Maliyet Yaklaşımı — Arsa Değeri + Yapı Maliyetleri'nden hesaplanır (elle Toplam Maliyet YOK)
+  // Maliyet Yaklaşımı — Arsa Değeri + Yapı Değeri'nden hesaplanır (elle Toplam Maliyet YOK)
   landUnitValue: number;         // Arsa m² Birim Değeri
   buildings: BuildingCostRow[];
+  buildingDepreciationPct: number;  // Bina Aşınma Oranı % — yalnız Emlak Vergisi tabanında kullanılır (Excel formülüyle)
   showCostApproachInPdf: boolean;
 
   operatorPremiumPct: number;   // İşletmeci Prim — brüt kâr üzerinden
-  propertyTaxPct: number;       // Emlak Vergisi — Toplam Maliyet üzerinden
-  insurancePct: number;         // Bina Sigortası — Toplam Maliyet üzerinden
-  renewalFundPct: number;       // Yenileme Fonu — Toplam Maliyet üzerinden (varsayılan %4)
+  propertyTaxPct: number;       // Emlak Vergisi — Emlak Vergisine Esas Değer üzerinden (Arsa + Yapı×(1-Aşınma%))
+  insurancePct: number;         // Bina Sigortası — Yapı Değeri üzerinden (yalnız bina, aşınmasız)
+  renewalFundPct: number;       // Yenileme Fonu — Yapı Değeri üzerinden (yalnız bina, aşınmasız)
 
   ecrimisilBase: number; ecrimisilGrowthPct: number;          // Ecrimisil — elle
   ustHakkiOdemeBase: number; ustHakkiOdemeGrowthPct: number;  // Üst Hakkı Ödemesi — elle
@@ -114,6 +123,8 @@ export interface DetailedPeriodRow {
   meetingIncome: number;
   shopIncome: number;
   totalRevenue: number;
+  /** Yalnız bilgi amaçlı — Excel'in "Toplam Gelir İçerisinde Oranı" sütunuyla aynı, girdi değil */
+  roomIncomePct: number;
 
   roomExpense: number;
   foodExpense: number;
@@ -144,9 +155,10 @@ export interface DetailedPeriodRow {
 
 export interface CostApproachResult {
   landValue: number;          // Arsa Alanı × Arsa m² Birim Değeri
-  buildingsCost: number;      // Σ (Alan × Yapı Birim Maliyeti)
-  totalCost: number;          // landValue + buildingsCost
+  buildingsCost: number;      // Σ (Alan × Yapı Birim Maliyeti) — aşınmasız ("Sigortaya Esas Bina Değeri")
+  totalCost: number;          // landValue + buildingsCost (yalnız gösterim: Toplam Değer)
   totalCostRounded: number;   // en yakın 5.000'e (yalnız PDF'de gösterim amaçlı)
+  propertyTaxBase: number;    // Emlak Vergisine Esas Değer = Arsa + Yapı×(1-Aşınma%) — Excel formülüyle birebir
 }
 
 export interface DetailedUstHakkiResult {
@@ -169,11 +181,15 @@ export function computeRoomIncome(rooms: DetailedRoomRow[]): number {
     s + Math.max(0, r.count) * Math.max(0, r.price) * Math.min(100, Math.max(0, r.occupancyPct)) / 100 * Math.max(0, r.days), 0));
 }
 
-export function computeCostApproach(input: Pick<DetailedUstHakkiInput, 'parcelArea' | 'landUnitValue' | 'buildings'>): CostApproachResult {
+export function computeCostApproach(
+  input: Pick<DetailedUstHakkiInput, 'parcelArea' | 'landUnitValue' | 'buildings' | 'buildingDepreciationPct'>,
+): CostApproachResult {
   const landValue = R(Math.max(0, input.parcelArea) * Math.max(0, input.landUnitValue));
   const buildingsCost = R(input.buildings.reduce((s, b) => s + Math.max(0, b.area) * Math.max(0, b.unitCost), 0));
   const totalCost = R(landValue + buildingsCost);
-  return { landValue, buildingsCost, totalCost, totalCostRounded: R5000(totalCost) };
+  const depreciation = Math.min(100, Math.max(0, input.buildingDepreciationPct)) / 100;
+  const propertyTaxBase = R(landValue + buildingsCost * (1 - depreciation));
+  return { landValue, buildingsCost, totalCost, totalCostRounded: R5000(totalCost), propertyTaxBase };
 }
 
 export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedUstHakkiResult {
@@ -181,11 +197,6 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
   const i = Math.max(0, input.discountRatePct) / 100;
   const n = Math.max(0, Math.round(input.kalanSureYil));
   if (n <= 0) warnings.push('Kalan süre 0 veya negatif; dönemsel tablo hesaplanamıyor.');
-
-  const otherPctSum = Math.max(0, input.foodPct) + Math.max(0, input.otherPct)
-    + Math.max(0, input.meetingPct) + Math.max(0, input.shopPct);
-  const roomPct = R(100 - otherPctSum);
-  if (roomPct <= 0) warnings.push('Diğer gelir oranlarının toplamı %100\'ü aşıyor; Oda Geliri payı sıfır veya negatif çıktı.');
 
   const baseRoomIncome = computeRoomIncome(input.rooms);
   if (baseRoomIncome <= 0) warnings.push('Oda Gelirleri girilmedi (Oda Sayısı/Fiyat/Doluluk/Gün); hesaplama için zorunludur.');
@@ -196,28 +207,32 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
   let sumPv = 0;
   for (let t = 1; t <= n; t++) {
     const growth = Math.pow(1 + g, t - 1);
+    // Excel mantığı: her gelir kalemi kendi 1. yıl tutarından AYNI oranla büyür, TOPLANIR (bölünmez)
     const roomIncome = R(baseRoomIncome * growth);
-    const totalRevenue = roomPct > 0 ? R(roomIncome / (roomPct / 100)) : 0;
-    const foodIncome = R(totalRevenue * input.foodPct / 100);
-    const otherIncome = R(totalRevenue * input.otherPct / 100);
-    const meetingIncome = R(totalRevenue * input.meetingPct / 100);
-    const shopIncome = R(totalRevenue * input.shopPct / 100);
+    const foodIncome = R(Math.max(0, input.foodIncomeBase) * growth);
+    const otherIncome = R(Math.max(0, input.otherIncomeBase) * growth);
+    const meetingIncome = R(Math.max(0, input.meetingIncomeBase) * growth);
+    const shopIncome = R(Math.max(0, input.shopIncomeBase) * growth);
+    const totalRevenue = R(roomIncome + foodIncome + otherIncome + meetingIncome + shopIncome);
+    const roomIncomePct = totalRevenue > 0 ? R((roomIncome / totalRevenue) * 100) : 0;
 
     const roomExpense = R(roomIncome * input.roomExpensePct / 100);
     const foodExpense = R(foodIncome * input.foodExpensePct / 100);
-    const otherExpense = R(otherIncome * input.otherExpensePct / 100);
+    const otherExpense = R((otherIncome + meetingIncome) * input.otherExpensePct / 100);   // Excel: =+(AQ21+AQ22)*AN31
     const generalMgmtExpense = R(totalRevenue * input.generalMgmtPct / 100);
     const energyExpense = R((roomIncome + meetingIncome) * input.energyPct / 100);
-    const repairExpense = R(totalRevenue * input.repairPct / 100);
+    const repairExpense = R(cost.buildingsCost * input.repairPct / 100 * growth);
     const totalOperatingExpense = R(roomExpense + foodExpense + otherExpense + generalMgmtExpense + energyExpense + repairExpense);
 
     const grossOperatingProfit = R(totalRevenue - totalOperatingExpense);
     const grossOperatingProfitPct = totalRevenue > 0 ? R((grossOperatingProfit / totalRevenue) * 100) : 0;
 
     const operatorPremium = R(grossOperatingProfit * input.operatorPremiumPct / 100);
-    const propertyTax = R(cost.totalCost * input.propertyTaxPct / 100);
-    const insurance = R(cost.totalCost * input.insurancePct / 100);
-    const renewalFund = R(cost.totalCost * input.renewalFundPct / 100);
+    // Excel: Emlak Vergisi/Sigorta/Yenileme Fonu 1. yıl tabandan hesaplanır, 2.+ yıl ÖNCEKİ YILDAN
+    // (1+g) ile büyütülür (=AQ41*(1+$BF$11) gibi) — sabit KALMAZ, her yıl büyür.
+    const propertyTax = R(cost.propertyTaxBase * input.propertyTaxPct / 100 * growth);
+    const insurance = R(cost.buildingsCost * input.insurancePct / 100 * growth);
+    const renewalFund = R(cost.buildingsCost * input.renewalFundPct / 100 * growth);
     const ecrimisil = R(input.ecrimisilBase * Math.pow(1 + input.ecrimisilGrowthPct / 100, t - 1));
     const ustHakkiOdeme = R(input.ustHakkiOdemeBase * Math.pow(1 + input.ustHakkiOdemeGrowthPct / 100, t - 1));
     const bayilik = R(input.bayilikBase * Math.pow(1 + input.bayilikGrowthPct / 100, t - 1));
@@ -232,7 +247,7 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
     sumPv += presentValue;
 
     years.push({
-      year: t, roomIncome, foodIncome, otherIncome, meetingIncome, shopIncome, totalRevenue,
+      year: t, roomIncome, foodIncome, otherIncome, meetingIncome, shopIncome, totalRevenue, roomIncomePct,
       roomExpense, foodExpense, otherExpense, generalMgmtExpense, energyExpense, repairExpense, totalOperatingExpense,
       grossOperatingProfit, grossOperatingProfitPct,
       operatorPremium, propertyTax, insurance, renewalFund, ecrimisil, ustHakkiOdeme, bayilik, totalFixedExpense,

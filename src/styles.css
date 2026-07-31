@@ -67,6 +67,40 @@
 .dcf-more { text-align: center; opacity: .6; font-style: italic; grid-template-columns: 1fr; }
 .year-label-input { width: 44px; padding: 1px 3px; font-size: 10.5px; border: 1px solid #c7cfdb; border-radius: 4px; text-align: center; }
 .pdf-toggle { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+
+/* v6: Açık/Koyu tema geçişi — mevcut tasarım korunur, yalnız değişkenler değişir */
+[data-theme="dark"] {
+  --navy-50: #16232f;
+  --accent-dim: #2c2418;
+  --green-dim: #16261c;
+  --red-dim: #2c1917;
+  --amber-dim: #2b2210;
+  --bg: #0e141b;
+  --surface: #171f29;
+  --line: #2a3543;
+  --line-2: #384454;
+  --text: #eef2f6;
+  --text-2: #b8c2cc;
+  --text-3: #8894a1;
+  --shadow: 0 1px 2px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.45);
+}
+[data-theme="dark"] body { background: var(--bg); color: var(--text); }
+[data-theme="dark"] .card, [data-theme="dark"] .step, [data-theme="dark"] .prop-card,
+[data-theme="dark"] .floor-card, [data-theme="dark"] .dcf-row:nth-child(even) { background: var(--surface); }
+[data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+  background: #1d2733; color: var(--text); border-color: var(--line-2);
+}
+[data-theme="dark"] .choice, [data-theme="dark"] .btn-ghost { background: var(--surface); color: var(--text); border-color: var(--line-2); }
+[data-theme="dark"] .brand-logo, [data-theme="dark"] .brand-logo--hero { background: #fff; }
+[data-theme="dark"] .pfield--ro b { color: #d9c48a; }
+
+.theme-toggle {
+  position: fixed; right: 16px; bottom: 16px; z-index: 999;
+  width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-2, #c8d2de);
+  background: var(--surface, #fff); box-shadow: var(--shadow, 0 4px 14px rgba(0,0,0,.15));
+  font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+@media print { .theme-toggle { display: none; } }
 @media (max-width: 700px) {
   .dcf-head, .dcf-row { grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr; font-size: 11px; gap: 4px; }
 }

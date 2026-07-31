@@ -14,6 +14,7 @@ import type { WholeValueResult, LandOnlyResult } from './simpleCostEngine';
 interface SimpleInput {
   hotelName: string; mahalle: string; ada: string; parsel: string; parcelArea: number; fromKml: boolean;
   currency: 'TL' | 'USD' | 'EUR';
+  sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const cur = (v: number, input: SimpleInput) => Math.round(v).toLocaleString('tr-TR') + ' ' + SYM[input.currency];
@@ -41,6 +42,8 @@ export async function buildSimpleUstHakkiPdf(
     doc.text(value, PW - M - 3, y, { align: 'right' });
     y += 6.5;
   }
+  const r = method === 'toplam' ? whole : land;
+  const sureBirimi = input.sureUnit === 'ay' ? 'Ay' : 'Yıl';
 
   sectionTitle('PARSEL BİLGİLERİ');
   if (input.hotelName) row('Otel Adı', input.hotelName);
@@ -50,7 +53,24 @@ export async function buildSimpleUstHakkiPdf(
   row('Parsel Alanı', `${input.parcelArea.toLocaleString('tr-TR')} m²` + (input.fromKml ? ' (KML)' : ''));
   y += 4;
 
-  if (method === 'arsa') {
+  sectionTitle('ÜST HAKKI HESAP BAŞLIĞI');
+  row('Yöntem', title);
+  row('Arsa Değeri', cur(r.cost.landValue, input));
+  row('Yapı Değeri', cur(r.cost.buildingValues, input));
+  row('Toplam Değer', cur(r.cost.totalValue, input), true);
+  y += 2;
+
+  sectionTitle('SÜRE');
+  row('Kalan Süre', `${input.kalanSure} ${sureBirimi}`);
+  row('Toplam Süre', `${input.toplamSure} ${sureBirimi}`);
+  row('Süre Birimi', sureBirimi);
+  y += 2;
+
+  if (method === 'toplam') {
+    sectionTitle('DAİMİ MÜSTAKİL HAK HESABI');
+    row('Daimi Müstakil Hak Değeri (Toplam Değer × 2/3)', cur(whole.permanentValue, input), true);
+    y += 2;
+  } else {
     sectionTitle('SONUÇ');
     row('Üst Hakkı Arsa Değeri', cur(land.ustHakkiArsaDegeri, input));
     row('+ Bina Değeri', cur(land.buildingValueAdded, input));

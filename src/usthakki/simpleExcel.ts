@@ -10,6 +10,7 @@ import type { WholeValueResult, LandOnlyResult } from './simpleCostEngine';
 interface SimpleInput {
   hotelName: string; mahalle: string; ada: string; parsel: string; parcelArea: number; fromKml: boolean;
   currency: 'TL' | 'USD' | 'EUR';
+  sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const NAVY = 'FF0F2A47';
@@ -24,12 +25,14 @@ export async function downloadSimpleUstHakkiExcel(
   wb.created = new Date();
   const logoId = wb.addImage({ base64: DORA_LOGO_PNG, extension: 'png' });
   const title = method === 'toplam' ? 'Toplam Degerden Ust Hakki Hesabi' : 'Sadece Arsa Degeri Uzerinden Ust Hakki Hesabi';
+  const r = method === 'toplam' ? whole : land;
+  const sureBirimi = input.sureUnit === 'ay' ? 'Ay' : 'Yil';
 
   const ws = wb.addWorksheet('Ust Hakki', {
     views: [{ showGridLines: false }],
     pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
-  ws.columns = [{ width: 3 }, { width: 30 }, { width: 22 }, { width: 3 }];
+  ws.columns = [{ width: 3 }, { width: 34 }, { width: 22 }, { width: 3 }];
 
   ws.mergeCells('A1:D2');
   const t = ws.getCell('A1');
@@ -76,7 +79,24 @@ export async function downloadSimpleUstHakkiExcel(
   kv('Parsel Alani', `${input.parcelArea.toLocaleString('tr-TR')} m²` + (input.fromKml ? ' (KML)' : ''));
   row++;
 
-  if (method === 'arsa') {
+  section('UST HAKKI HESAP BASLIGI');
+  kv('Yontem', title);
+  kv('Arsa Degeri', cur(r.cost.landValue));
+  kv('Yapi Degeri', cur(r.cost.buildingValues));
+  kv('Toplam Deger', cur(r.cost.totalValue), true);
+  row++;
+
+  section('SURE');
+  kv('Kalan Sure', `${input.kalanSure} ${sureBirimi}`);
+  kv('Toplam Sure', `${input.toplamSure} ${sureBirimi}`);
+  kv('Sure Birimi', sureBirimi);
+  row++;
+
+  if (method === 'toplam') {
+    section('DAIMI MUSTAKIL HAK HESABI');
+    kv('Daimi Mustakil Hak Degeri (Toplam Deger x 2/3)', cur(whole.permanentValue), true);
+    row++;
+  } else {
     section('SONUC');
     kv('Ust Hakki Arsa Degeri', cur(land.ustHakkiArsaDegeri));
     kv('+ Bina Degeri', cur(land.buildingValueAdded));

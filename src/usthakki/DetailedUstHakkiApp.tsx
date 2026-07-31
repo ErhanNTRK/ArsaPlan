@@ -25,9 +25,9 @@ const DEFAULT: DetailedUstHakkiInput & { sureUnit: 'yil' | 'ay' } = {
   sureUnit: 'yil', kalanSureYil: 31, toplamSureYil: 49,
   currency: 'TL', fxRate: 1,
   rooms: [DEFAULT_ROOM], roomGrowthPct: 3,
-  foodPct: 3.2, otherPct: 3.9, meetingPct: 0, shopPct: 0,
-  roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 10, energyPct: 5, repairPct: 2,
-  landUnitValue: 0, buildings: [DEFAULT_BUILDING], showCostApproachInPdf: true,
+  foodIncomeBase: 250000, otherIncomeBase: 300000, meetingIncomeBase: 0, shopIncomeBase: 0,
+  roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 10, energyPct: 7, repairPct: 2,
+  landUnitValue: 0, buildings: [DEFAULT_BUILDING], buildingDepreciationPct: 25, showCostApproachInPdf: true,
   operatorPremiumPct: 12, propertyTaxPct: 0.4, insurancePct: 0.3, renewalFundPct: 4,
   ecrimisilBase: 0, ecrimisilGrowthPct: 0,
   ustHakkiOdemeBase: 0, ustHakkiOdemeGrowthPct: 2,
@@ -54,9 +54,6 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
 
   const cur = CUR_SYM[state.currency];
   const TL = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ' + cur;
-
-  const otherPctSum = state.foodPct + state.otherPct + state.meetingPct + state.shopPct;
-  const roomPct = R2(100 - otherPctSum);
 
   async function onKml(f: File) {
     try {
@@ -174,19 +171,24 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="card">
-          <div className="card-title">Gelirler Tablosu (oranlar toplam gelirin %'sidir)</div>
+          <div className="card-title">Gelirler Tablosu <em style={{ fontWeight: 400, fontSize: 12, opacity: .7 }}>(1. yıl tutarı girilir, Oda Fiyat Artış Oranı ile birlikte büyür)</em></div>
           <div className="hrow-labeled">
-            <label className="pfield pfield--s"><span>Yiyecek/İçecek %</span>
-              <input type="number" step="0.5" value={state.foodPct || ''} onChange={(e) => patch({ foodPct: Number(e.target.value) || 0 })} /></label>
-            <label className="pfield pfield--s"><span>Diğer Gelirler %</span>
-              <input type="number" step="0.5" value={state.otherPct || ''} onChange={(e) => patch({ otherPct: Number(e.target.value) || 0 })} /></label>
-            <label className="pfield pfield--s"><span>Toplantı/Salon %</span>
-              <input type="number" step="0.5" value={state.meetingPct || ''} onChange={(e) => patch({ meetingPct: Number(e.target.value) || 0 })} /></label>
-            <label className="pfield pfield--s"><span>Dükkan Kira %</span>
-              <input type="number" step="0.5" value={state.shopPct || ''} onChange={(e) => patch({ shopPct: Number(e.target.value) || 0 })} /></label>
-            <div className="pfield pfield--ro"><span>Oda Payı (100 − diğerleri)</span><b className={roomPct <= 0 ? 'warn-text' : ''}>%{roomPct.toFixed(1)}</b></div>
+            <label className="pfield"><span>Yiyecek/İçecek Geliri ({cur}, 1. yıl)</span>
+              <input type="number" value={state.foodIncomeBase || ''} onChange={(e) => patch({ foodIncomeBase: Number(e.target.value) || 0 })} /></label>
+            <label className="pfield"><span>Diğer Gelirler ({cur}, 1. yıl)</span>
+              <input type="number" value={state.otherIncomeBase || ''} onChange={(e) => patch({ otherIncomeBase: Number(e.target.value) || 0 })} /></label>
+            <label className="pfield"><span>Toplantı/Salon Geliri ({cur}, 1. yıl)</span>
+              <input type="number" value={state.meetingIncomeBase || ''} onChange={(e) => patch({ meetingIncomeBase: Number(e.target.value) || 0 })} /></label>
+            <label className="pfield"><span>Dükkan Kira Geliri ({cur}, 1. yıl)</span>
+              <input type="number" value={state.shopIncomeBase || ''} onChange={(e) => patch({ shopIncomeBase: Number(e.target.value) || 0 })} /></label>
           </div>
-          {roomPct <= 0 && <div className="warn-line">Diğer gelir oranlarının toplamı %100'ü aşıyor.</div>}
+          <div className="hint">
+            Toplam Gelir İçindeki Oranlar (bilgi amaçlı, 1. yıl): Oda %{r.years[0]?.roomIncomePct.toFixed(1) ?? '—'} ·
+            Yiyecek %{r.years[0] ? (r.years[0].foodIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
+            Diğer %{r.years[0] ? (r.years[0].otherIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
+            Toplantı %{r.years[0] ? (r.years[0].meetingIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
+            Dükkan %{r.years[0] ? (r.years[0].shopIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}
+          </div>
         </div>
 
         <div className="card">
@@ -211,12 +213,15 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="card-title" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
             <span>Maliyet Yaklaşımı</span>
             <label className="pdf-toggle"><input type="checkbox" checked={state.showCostApproachInPdf}
-                     onChange={(e) => patch({ showCostApproachInPdf: e.target.checked })} /> PDF'de Göster</label>
+                     onChange={(e) => patch({ showCostApproachInPdf: e.target.checked })} /> PDF ve Excel'de Göster</label>
+          <div className="hint">İşaretliyse Maliyet Yaklaşımı hem PDF hem Excel çıktısında tam gösterilir; işaretsizse yalnız uygulama içinde hesaplanır, çıktılarda görünmez.</div>
           </div>
           <div className="hint">Arsa alanı Kimlik kartındaki değerle (KML varsa ondan) paylaşılır.</div>
           <div className="hrow-labeled" style={{ marginTop: 8 }}>
             <label className="pfield"><span>Arsa m² Birim Değeri ({cur})</span>
               <input type="number" value={state.landUnitValue || ''} onChange={(e) => patch({ landUnitValue: Number(e.target.value) || 0 })} /></label>
+            <label className="pfield pfield--s"><span>Bina Aşınma Oranı % <em title="Yalnız Emlak Vergisi tabanında kullanılır: Emlak Vergisi Esas Değer = Arsa + Yapı×(1-Aşınma%)">(yalnız Emlak Vergisi)</em></span>
+              <input type="number" step="1" value={state.buildingDepreciationPct || ''} onChange={(e) => patch({ buildingDepreciationPct: Number(e.target.value) || 0 })} /></label>
             <div className="pfield pfield--ro"><span>Arsa Değeri</span><b>{TL(r.cost.landValue)}</b></div>
           </div>
 
