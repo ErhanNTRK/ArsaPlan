@@ -100,7 +100,9 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
     row++;
     for (const cr of rows) {
       ws.getCell(row, 2).value = cr.name || '(isimsiz)';
-      ws.getCell(row, 3).value = `${cr.units.toLocaleString('tr-TR')} ${cr.kind === 'ekili' ? 'dönüm' : 'ağaç'}`;
+      ws.getCell(row, 3).value = cr.kind === 'ekili'
+        ? `${Math.round(cr.areaM2).toLocaleString('tr-TR')} m²`
+        : `${cr.units.toLocaleString('tr-TR')} ağaç`;
       ws.getCell(row, 4).value = `${cr.yieldPerUnit.toLocaleString('tr-TR')} kg`;
       ws.getCell(row, 5).value = cr.price;
       ws.getCell(row, 5).numFmt = '#,##0.00 "₺/kg"';

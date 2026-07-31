@@ -38,7 +38,7 @@ export function ZoningKmlCard({ input, upd }: {
           <ParcelSketch
             kml={p.kml}
             zoning={z}
-            width={380}
+            width={520}
             taksArea={z.mode === 'taks-kaks' && z.taks ? base * z.taks : undefined}
             onSelectFront={z.mode === 'cekme' ? (i) => upd('zoning', { cekmeFrontEdge: i }) : undefined}
           />

@@ -61,7 +61,7 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
       z = !z;
       doc.setFont('NTRK', 'normal'); doc.setFontSize(8.3); doc.setTextColor(...INK);
       doc.text(row.name || '(isimsiz)', C[0], y);
-      doc.text(row.units.toLocaleString('tr-TR') + (row.kind === 'ekili' ? ' dönüm' : ' ağaç'), C[1], y, { align: 'right' });
+      doc.text(row.kind === 'ekili' ? m2(row.areaM2) : row.units.toLocaleString('tr-TR') + ' ağaç', C[1], y, { align: 'right' });
       doc.text(row.yieldPerUnit.toLocaleString('tr-TR') + ' kg', C[2], y, { align: 'right' });
       doc.text(row.price.toLocaleString('tr-TR') + ' ₺/kg', C[3], y, { align: 'right' });
       doc.text('%' + row.expensePct.toLocaleString('tr-TR'), C[4], y, { align: 'right' });

@@ -17,9 +17,10 @@ import { downloadUstHakkiExcel } from './excel';
 
 const DRAFT = 'arsaplan-usthakki-draft-v1';
 const TL = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺';
+const R2 = (v: number) => Math.round(v * 100) / 100;
 
-const DEFAULT: UstHakkiInput & { startDate: string } = {
-  referenceValue: 0, ilkSureYil: 49, kalanSureYil: 31, startDate: '',
+const DEFAULT: UstHakkiInput & { startDate: string; sureUnit: 'yil' | 'ay' } = {
+  referenceValue: 0, ilkSureYil: 49, kalanSureYil: 31, startDate: '', sureUnit: 'yil',
   baseIncome: 0, incomeGrowthPct: 2,
   paymentEnabled: false, basePayment: 0, paymentGrowthPct: 2,
   ecrimisilEnabled: false, baseEcrimisil: 0, ecrimisilGrowthPct: 0,
@@ -68,11 +69,26 @@ export function UstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="hrow-labeled">
             <label className="pfield"><span>Üst Hakkı / İlk Tesis Tarihi <em>(opsiyonel)</em></span>
               <input type="date" value={state.startDate} onChange={(e) => patch({ startDate: e.target.value })} /></label>
-            <label className="pfield pfield--s"><span>İlk Süre (yıl)</span>
-              <input type="number" value={state.ilkSureYil || ''} onChange={(e) => patch({ ilkSureYil: Number(e.target.value) || 0 })} /></label>
-            <label className="pfield pfield--s"><span>Kalan Süre (yıl)</span>
-              <input type="number" value={state.kalanSureYil || ''}
-                     onChange={(e) => patch({ kalanSureYil: Number(e.target.value) || 0 })} /></label>
+            <label className="pfield pfield--s"><span>Süre Birimi</span>
+              <select value={state.sureUnit} onChange={(e) => patch({ sureUnit: e.target.value as 'yil' | 'ay' })}>
+                <option value="yil">Yıl</option>
+                <option value="ay">Ay</option>
+              </select></label>
+            <label className="pfield pfield--s"><span>İlk Süre ({state.sureUnit === 'ay' ? 'ay' : 'yıl'})</span>
+              <input type="number" value={state.sureUnit === 'ay' ? Math.round(state.ilkSureYil * 12) || '' : state.ilkSureYil || ''}
+                     onChange={(e) => {
+                       const v = Number(e.target.value) || 0;
+                       patch({ ilkSureYil: state.sureUnit === 'ay' ? R2(v / 12) : v });
+                     }} /></label>
+            <label className="pfield pfield--s"><span>Kalan Süre ({state.sureUnit === 'ay' ? 'ay' : 'yıl'})</span>
+              <input type="number" value={state.sureUnit === 'ay' ? Math.round(state.kalanSureYil * 12) || '' : state.kalanSureYil || ''}
+                     onChange={(e) => {
+                       const v = Number(e.target.value) || 0;
+                       patch({ kalanSureYil: state.sureUnit === 'ay' ? R2(v / 12) : v });
+                     }} /></label>
+            {state.sureUnit === 'ay' && (
+              <div className="pfield pfield--ro"><span>Yıl Karşılığı</span><b>{state.kalanSureYil.toFixed(2)} yıl</b></div>
+            )}
             {suggested != null && Math.abs(suggested - state.kalanSureYil) > 0.05 && (
               <button type="button" className="linklike" onClick={() => patch({ kalanSureYil: suggested })}>
                 ↺ Tarihten öner: {suggested} yıl

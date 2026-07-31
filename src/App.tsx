@@ -425,6 +425,7 @@ function ArsaApp() {
    ═══════════════════════════════════════════════════════════════ */
 type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'usthakki';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
+  const [ver, date] = BRAND.version.split(' · ');
   return (
     <div className="app">
       <div className="topbar">
@@ -433,10 +434,16 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
             <h1>{BRAND.appName}</h1>
             <p>{BRAND.tagline}</p>
           </div>
-          <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+          <img className="brand-logo brand-logo--hero" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
         </div>
       </div>
       <div className="step">
+        <div className="info-panel">
+          <div className="info-panel__item"><span>Sürüm</span><b>{ver}</b></div>
+          <div className="info-panel__item"><span>Son Güncelleme</span><b>{date}</b></div>
+          <div className="info-panel__item"><span>Modül Sayısı</span><b>5</b></div>
+          <div className="info-panel__item"><span>Geliştirici</span><b>{BRAND.company} · Erhan Öntürk</b></div>
+        </div>
         <div className="step-head">
           <div className="step-eyebrow">Başlangıç</div>
           <div className="step-title">Ne Hesaplamak İstiyorsunuz?</div>
