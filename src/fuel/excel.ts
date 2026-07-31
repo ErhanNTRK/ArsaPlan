@@ -100,6 +100,28 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
       if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' };
     }
     row++;
+
+    if (p.mode === 'cokyil') {
+      const vals = p.multiYearLiters.filter((v) => v > 0);
+      const labels = p.multiYearLabels ?? vals.map((_, i) => `${i + 1}. Yıl`);
+      p.multiYearLiters.forEach((v, i) => {
+        if (v <= 0) return;
+        ws.getCell(row, 2).value = `  ${labels[i] ?? `${i + 1}. Yıl`}`;
+        ws.getCell(row, 2).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
+        ws.getCell(row, 3).value = Math.round(v); ws.getCell(row, 3).numFmt = '#,##0 "Lt"';
+        ws.getCell(row, 3).alignment = { horizontal: 'right' };
+        ws.getCell(row, 4).value = v * p.unitPrice; ws.getCell(row, 4).numFmt = TL;
+        ws.getCell(row, 4).alignment = { horizontal: 'right' };
+        row++;
+      });
+      if (vals.length > 0) {
+        ws.getCell(row, 2).value = `  ${vals.length} Yıllık Ortalama`;
+        ws.getCell(row, 2).font = { name: 'Arial', size: 8.5, bold: true };
+        ws.getCell(row, 3).value = Math.round(p.yearlyLitersUsed); ws.getCell(row, 3).numFmt = '#,##0 "Lt"';
+        ws.getCell(row, 3).alignment = { horizontal: 'right' };
+        row++;
+      }
+    }
   }
   row++;
 

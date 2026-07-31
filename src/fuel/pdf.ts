@@ -54,6 +54,25 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
     doc.setFont('NTRK', 'bold'); doc.setTextColor(...GREEN);
     doc.text(tl(p.net), C[4], y, { align: 'right' });
     y += h;
+
+    if (p.mode === 'cokyil') {
+      const vals = p.multiYearLiters.filter((v) => v > 0);
+      const labels = p.multiYearLabels ?? vals.map((_, i) => `${i + 1}. Yıl`);
+      p.multiYearLiters.forEach((v, i) => {
+        if (v <= 0) return;
+        doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(...GRAY);
+        doc.text(`  ${labels[i] ?? `${i + 1}. Yıl`}`, C[0] + 2, y);
+        doc.text(Math.round(v).toLocaleString('tr-TR') + ' Lt', C[1], y, { align: 'right' });
+        doc.text(tl(v * p.unitPrice), C[2], y, { align: 'right' });
+        y += h - 1.4;
+      });
+      if (vals.length > 0) {
+        doc.setFont('NTRK', 'bold'); doc.setFontSize(7.4); doc.setTextColor(...INK);
+        doc.text(`  ${vals.length} Yıllık Ortalama`, C[0] + 2, y);
+        doc.text(Math.round(p.yearlyLitersUsed).toLocaleString('tr-TR') + ' Lt', C[1], y, { align: 'right' });
+        y += h - 1.4;
+      }
+    }
   }
   y += 4;
 
@@ -86,9 +105,6 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
     doc.text(`Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costBuildings)}`, M + halfW + 13, y + 25);
   }
   y += boxH + 6;
-
-  doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text('İki yöntem yan yana sunulur; nihai değer takdiri uzmana aittir.', M, y);
 
   drawFooter(doc, BRAND.version, 'Yöntem: Akaryakıt Gelir Hesabı · Tutarlar KDV hariçtir');
   return doc;

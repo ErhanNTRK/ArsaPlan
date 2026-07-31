@@ -18,6 +18,7 @@ export interface FuelProductInput {
   dailyLiters: number;          // gunluk
   yearlyLiters: number;         // yillik
   multiYearLiters: number[];    // cokyil: girilen yıl kadar ortalama
+  multiYearLabels?: string[];   // cokyil: her değerin ait olduğu takvim yılı (ör. "2023") — PDF'te ayrı satır göstermek için
   periodLiters: number;         // kismi: dönem toplam litre
   periodDays: number;           // kismi: dönem gün sayısı
   unitPrice: number;            // TL/Lt, KDV HARİÇ

@@ -114,9 +114,8 @@ function computeCekme(
     autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
   });
 
-  /* Asma kat(lar) — yalnızca karma varyantında; çekme yönteminde ortak mahal/kayıp
-   * uygulanmaz (satılabilir = alan), diğer iki yöntemle aynı öneri mantığı: alan
-   * elle girilmezse zemin katın asmaRate'i kadar önerilir. */
+  /* Asma kat(lar) — yalnızca karma varyantında; alan/satılabilir öneridir, ikisi de
+   * elle değiştirilebilir (ortak alan girişi dahil). */
   const asmaN = variant === 'karma' ? Math.max(0, Math.round(apt.asmaCount)) : 0;
   for (let i = 1; i <= asmaN; i++) {
     const aOv = apt.asmaAreas[i - 1];
@@ -244,7 +243,7 @@ export function computeApartment(
       area: zArea, saleable: R(Math.max(0, apt.zeminSaleable ?? 0)),
       autoArea: apt.zeminArea == null, autoSaleable: apt.zeminSaleable == null,
     });
-    /* Asma kat(lar) — yalnızca karma varyantında; alan elle (%40 öneri), satılabilir = alan */
+    /* Asma kat(lar) — yalnızca karma varyantında; alan/satılabilir öneridir, elle değiştirilebilir. */
     const asmaN = variant === 'karma' ? Math.max(0, Math.round(apt.asmaCount)) : 0;
     for (let i = 1; i <= asmaN; i++) {
       const aOv = apt.asmaAreas[i - 1];

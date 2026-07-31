@@ -65,6 +65,7 @@
 .dcf-row:nth-child(even) { background: rgba(15,42,71,.03); border-radius: 6px; }
 .dcf-row span:not(:first-child) { text-align: right; }
 .dcf-more { text-align: center; opacity: .6; font-style: italic; grid-template-columns: 1fr; }
+.year-label-input { width: 44px; padding: 1px 3px; font-size: 10.5px; border: 1px solid #c7cfdb; border-radius: 4px; text-align: center; }
 @media (max-width: 700px) {
   .dcf-head, .dcf-row { grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr; font-size: 11px; gap: 4px; }
 }

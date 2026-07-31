@@ -316,10 +316,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             )}
             {a.asmaCount > 0 && (
               <div className="note-box" style={{ marginBottom: 10 }}>
-                Asma kat alanı zemin katın <b>%{(a.asmaRate * 100).toFixed(0)}</b>'ı olarak önerilir;
-                kat tablosundan elle değiştirilebilir. Yasal asgari: bağımsız bölümün 1/3'ü
-                (Planlı Alanlar İmar Yönetmeliği m.4). Ortak mahal ve kayıp uygulanmaz:
-                satılabilir alan = kat alanı.
+                Asma kat alanı sistem tarafından otomatik oluşturulur. Gerekirse kat tablosundan değiştirilebilir.
               </div>
             )}
           </>

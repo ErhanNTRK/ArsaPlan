@@ -20,13 +20,19 @@ const PRODUCT_DEFS: { name: string; profit: number; hint: string }[] = [
   { name: 'Motorin', profit: 3, hint: 'Öneri %3 · 5-10bin Lt/gün %3,5 · 10bin+ %4' },
   { name: 'LPG (Otogaz)', profit: 5, hint: 'Öneri %5 · dağıtıcı sözleşmesine göre %6-7 olabilir' },
 ];
-const EXTRA_SUGGESTIONS = ['Oto Yıkama', 'Restoran / Lokanta', 'Market', 'Tekel', 'Kira Geliri'];
+const EXTRA_SUGGESTIONS = [
+  'Market Geliri', 'Restoran / Kafe Geliri', 'Oto Yıkama', 'LPG Geliri',
+  'Elektrikli Araç Şarj Geliri', 'ATM / Banka Kira Geliri', 'Reklam Geliri',
+  'Araç Bakım / Lastik Servisi', 'Tekel', 'Kira Geliri',
+];
 const EXTRA_PCT: Record<string, number> = { 'Restoran / Lokanta': 20, Market: 20, Tekel: 4 };
 
 function defProduct(i: number): FuelProductInput & { periodStart: string; periodEnd: string } {
   const d = PRODUCT_DEFS[i];
+  const y = new Date().getFullYear();
   return { id: uid(), name: d.name, mode: 'gunluk', dailyLiters: 0, yearlyLiters: 0,
-    multiYearLiters: [0, 0, 0], periodLiters: 0, periodDays: 0, unitPrice: 0, profitPct: d.profit,
+    multiYearLiters: [0, 0, 0], multiYearLabels: [String(y - 2), String(y - 1), String(y)],
+    periodLiters: 0, periodDays: 0, unitPrice: 0, profitPct: d.profit,
     periodStart: '', periodEnd: '' };
 }
 
@@ -117,7 +123,15 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                       <input type="number" value={s.yearlyLiters || ''} onChange={(e) => patchProd(pr.id, { yearlyLiters: Number(e.target.value) || 0 })} /></label>
                   )}
                   {s.mode === 'cokyil' && s.multiYearLiters.map((v, i) => (
-                    <label className="pfield pfield--s" key={i}><span>{i + 1}. Yıl Lt</span>
+                    <label className="pfield pfield--s" key={i}>
+                      <span>
+                        <input className="year-label-input" value={s.multiYearLabels?.[i] ?? String(i + 1)}
+                               onChange={(e) => {
+                                 const arr = [...(s.multiYearLabels ?? s.multiYearLiters.map((_, j) => String(j + 1)))];
+                                 arr[i] = e.target.value;
+                                 patchProd(pr.id, { multiYearLabels: arr });
+                               }} /> Yılı Lt
+                      </span>
                       <input type="number" value={v || ''} onChange={(e) => {
                         const arr = [...s.multiYearLiters]; arr[i] = Number(e.target.value) || 0;
                         patchProd(pr.id, { multiYearLiters: arr });

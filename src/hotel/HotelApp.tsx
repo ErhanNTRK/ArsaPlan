@@ -146,7 +146,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
             </>
           ) : (
             <>
-              <button className="btn btn-ghost" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>Geri</button>
+              <button className="btn btn-ghost" onClick={() => (step === 1 ? onBack() : setStep((s) => s - 1))}>Geri</button>
               <button className="btn btn-primary" disabled={!!stop} onClick={() => setStep((s) => s + 1)}>
                 {step === TOTAL ? 'Sonucu Gör' : 'Devam'}
               </button>

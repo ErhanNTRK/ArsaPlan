@@ -7,6 +7,7 @@ import { Choice } from './ui/fields';
 import { AgriApp } from './agri/AgriApp';
 import { FuelApp } from './fuel/FuelApp';
 import { UstHakkiApp } from './usthakki/UstHakkiApp';
+import { DetailedUstHakkiApp } from './usthakki/DetailedUstHakkiApp';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
@@ -139,7 +140,7 @@ function loadDraft(): ProjectInput {
 }
 
 /** ArsaPlan'ın mevcut "Arsa Gelir Projeksiyon Yöntemi" akışı — hiçbir satırı değiştirilmemiştir. */
-function ArsaApp() {
+function ArsaApp({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1);
   const [input, setInput] = useState<ProjectInput>(loadDraft);
 
@@ -406,7 +407,7 @@ function ArsaApp() {
             </>
           ) : (
             <>
-              <button className="btn btn-ghost" disabled={step === 1} onClick={() => setStep((s) => s - 1)}>Geri</button>
+              <button className="btn btn-ghost" onClick={() => (step === 1 ? onBack() : setStep((s) => s - 1))}>Geri</button>
               <button className="btn btn-primary" disabled={!!stop} onClick={() => setStep((s) => s + 1)}>
                 {step === TOTAL ? 'Sonucu Gör' : 'Devam'}
               </button>
@@ -423,7 +424,7 @@ function ArsaApp() {
    "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
-type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'usthakki';
+type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'usthakki' | 'usthakki-secim' | 'usthakki-detay';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   const [ver, date] = BRAND.version.split(' · ');
   return (
@@ -438,12 +439,6 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
         </div>
       </div>
       <div className="step">
-        <div className="info-panel">
-          <div className="info-panel__item"><span>Sürüm</span><b>{ver}</b></div>
-          <div className="info-panel__item"><span>Son Güncelleme</span><b>{date}</b></div>
-          <div className="info-panel__item"><span>Modül Sayısı</span><b>5</b></div>
-          <div className="info-panel__item"><span>Geliştirici</span><b>{BRAND.company} · Erhan Öntürk</b></div>
-        </div>
         <div className="step-head">
           <div className="step-eyebrow">Başlangıç</div>
           <div className="step-title">Ne Hesaplamak İstiyorsunuz?</div>
@@ -464,9 +459,13 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
                     desc="Ekili / Dikili / Karma ürün deseni · verim kataloğu · amorti yılı yaklaşımı"
                     onClick={() => onSelect('tarimsal')} />
             <Choice on={false} name="Üst Hakkı Değerleme"
-                    desc="Gelir İndirgeme (DCF) · dönem sayısı kalan süre kadar · Referans/Maliyet/Emsal karşılaştırması"
-                    onClick={() => onSelect('usthakki')} />
+                    desc="Standart Hesap veya Ayrıntılı (otel tarzı) Değer Analizi · dönem sayısı kalan süre kadar"
+                    onClick={() => onSelect('usthakki-secim')} />
           </div>
+        </div>
+        <div className="landing-footer">
+          <span>Sürüm {ver}</span><span>·</span><span>Son Güncelleme {date}</span>
+          <span>·</span><span>5 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
         </div>
       </div>
     </div>
@@ -475,7 +474,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
 
 function modeFromHash(): AppMode {
   const h = window.location.hash.replace('#', '');
-  return h === 'arsa' || h === 'otel' || h === 'tarimsal' || h === 'akaryakit' || h === 'usthakki' ? h : 'landing';
+  return (['arsa', 'otel', 'tarimsal', 'akaryakit', 'usthakki', 'usthakki-secim', 'usthakki-detay'] as const).includes(h as never) ? (h as AppMode) : 'landing';
 }
 
 export default function App() {
@@ -495,7 +494,36 @@ export default function App() {
   if (mode === 'otel') return <HotelApp onBack={back} />;
   if (mode === 'tarimsal') return <AgriApp onBack={back} />;
   if (mode === 'akaryakit') return <FuelApp onBack={back} />;
-  if (mode === 'usthakki') return <UstHakkiApp onBack={back} />;
-  if (mode === 'arsa') return <ArsaApp />;
+  if (mode === 'usthakki') return <UstHakkiApp onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
+  if (mode === 'usthakki-detay') return <DetailedUstHakkiApp onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
+  if (mode === 'usthakki-secim') return (
+    <div className="app">
+      <div className="topbar"><div className="topbar-inner">
+        <div><h1>{BRAND.appName}</h1><p>Üst Hakkı Değerleme</p></div>
+        <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
+      </div></div>
+      <div className="step">
+        <div className="step-head">
+          <div className="step-eyebrow">Üst Hakkı Değerleme</div>
+          <div className="step-title">Hangi Hesap Yöntemi?</div>
+          <div className="step-desc">Bir yöntem seçin. İkisi de kalan süreye göre otomatik dönem sayısı üretir.</div>
+        </div>
+        <div className="card">
+          <div className="choice-grid">
+            <Choice on={false} name="Standart Hesap"
+                    desc="Yıl yıl net gelir + büyüme oranı · Referans/Maliyet/Emsal karşılaştırması"
+                    onClick={() => { window.location.hash = 'usthakki'; }} />
+            <Choice on={false} name="Ayrıntılı Üst Hakkı Değer Analizi"
+                    desc="Otel tarzı gelir/gider zinciri · dönemsel tablo · döviz desteği"
+                    onClick={() => { window.location.hash = 'usthakki-detay'; }} />
+          </div>
+        </div>
+        <div className="card" style={{ marginTop: -4 }}>
+          <button type="button" className="btn-ghost" onClick={back}>← Ana Sayfaya Dön</button>
+        </div>
+      </div>
+    </div>
+  );
+  if (mode === 'arsa') return <ArsaApp onBack={back} />;
   return <Landing onSelect={choose} />;
 }

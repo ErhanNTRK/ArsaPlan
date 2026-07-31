@@ -33,6 +33,7 @@ export interface ByproductRef {
 export const BYPRODUCTS: ByproductRef[] = [
   { name: 'Saman (Buğday)', yieldPerUnit: 180, price: 7.2, expensePct: 15, source: 'Samsun Ticaret Borsası 2025', note: 'Dönüme ort. 4-8 balya × 20-25 kg' },
   { name: 'Saman (Arpa)', yieldPerUnit: 190, price: 7.5, expensePct: 15, source: 'sektör ort. 2025', note: 'Buğday samanından hafif proteinli' },
+  { name: 'Mısır Sapı / Koçanı', yieldPerUnit: 250, price: 3, expensePct: 20, source: 'silaj değeri — bölgesel', note: 'Fiyatlandırma bölgeye göre büyük farklılık gösterir, temkinli kullanın' },
   { name: 'Ayçiçeği Küspesi', yieldPerUnit: 60, price: 9, expensePct: 20, source: 'sektör ort. 2025', note: 'Yağ üretiminden kalan yan ürün' },
   { name: 'Pamuk Çiğit Küspesi', yieldPerUnit: 45, price: 14.5, expensePct: 20, source: 'Tariş 2025 (ton 14.500 TL)' },
 ];
@@ -40,7 +41,7 @@ export const BYPRODUCTS: ByproductRef[] = [
 export const FIELD_CROPS: CropRef[] = [
   { name: 'Buğday', yieldPerUnit: 350, price: 13.5, expensePct: 35, years: 3, source: 'TMO 2025 · Adana ÇB verim ort.', note: 'Desteklerle üretici eline ~16 TL/kg geçer', byproductHint: 'Saman (Buğday)' },
   { name: 'Arpa', yieldPerUnit: 300, price: 11, expensePct: 30, years: 3, source: 'TMO 2025', byproductHint: 'Saman (Arpa)' },
-  { name: 'Mısır', yieldPerUnit: 800, price: 10, expensePct: 40, years: 2, source: 'sektör ort. 2025' },
+  { name: 'Mısır', yieldPerUnit: 800, price: 10, expensePct: 40, years: 2, source: 'sektör ort. 2025', byproductHint: 'Mısır Sapı / Koçanı' },
   { name: 'Ayçiçeği', yieldPerUnit: 175, price: 25, expensePct: 35, years: 3, source: 'sektör ort. 2025', byproductHint: 'Ayçiçeği Küspesi' },
   { name: 'Pamuk', yieldPerUnit: 300, price: 30, expensePct: 45, years: 2, source: 'sektör ort. 2025', byproductHint: 'Pamuk Çiğit Küspesi' },
   { name: 'Domates', yieldPerUnit: 4000, price: 5, expensePct: 50, years: 2, source: 'hal ort. 2025' },

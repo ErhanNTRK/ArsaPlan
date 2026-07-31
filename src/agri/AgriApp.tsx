@@ -81,7 +81,11 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
   const treeSuggestion = suggestTreeCount(arableNow, spacing.a, spacing.b, spacing.edgeFull);
 
   function addByproduct(rowId: string) {
-    const b: Byproduct = { name: BYPRODUCTS[0].name, yieldPerUnit: BYPRODUCTS[0].yieldPerUnit, price: BYPRODUCTS[0].price, expensePct: BYPRODUCTS[0].expensePct };
+    const row = state.rows.find((x) => x.id === rowId);
+    const ref = row ? FIELD_CROPS.find((c) => c.name === row.name) : undefined;
+    const hinted = ref?.byproductHint ? BYPRODUCTS.find((b) => b.name === ref.byproductHint) : undefined;
+    const src = hinted ?? BYPRODUCTS[0];
+    const b: Byproduct = { name: src.name, yieldPerUnit: src.yieldPerUnit, price: src.price, expensePct: src.expensePct };
     patchRow(rowId, { byproduct: b });
   }
   const applyByproductCatalog = (rowId: string, name: string) => {
@@ -107,6 +111,10 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
       <div className="topbar no-print"><div className="topbar-inner">
         <img src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} className="topbar-logo" />
         <button type="button" className="btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
+        <button type="button" className="btn-ghost" title="Tüm alanları temizler"
+                onClick={() => { if (window.confirm('Sayfa sıfırlansın mı? Tüm girdiler silinecek.')) { localStorage.removeItem(DRAFT); setState(DEFAULT); } }}>
+          ↺ Sayfayı Sıfırla
+        </button>
       </div></div>
 
       <div className="step">
