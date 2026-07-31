@@ -188,6 +188,7 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
   if (roomPct <= 0) warnings.push('Diğer gelir oranlarının toplamı %100\'ü aşıyor; Oda Geliri payı sıfır veya negatif çıktı.');
 
   const baseRoomIncome = computeRoomIncome(input.rooms);
+  if (baseRoomIncome <= 0) warnings.push('Oda Gelirleri girilmedi (Oda Sayısı/Fiyat/Doluluk/Gün); hesaplama için zorunludur.');
   const g = input.roomGrowthPct / 100;
   const cost = computeCostApproach(input);
 

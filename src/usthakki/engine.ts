@@ -99,6 +99,7 @@ export function computeUstHakki(input: UstHakkiInput): UstHakkiResult {
   const n = Math.max(0, Math.round(input.kalanSureYil));
 
   if (n <= 0) warnings.push('Kalan süre 0 veya negatif; DCF hesaplanamıyor.');
+  if (input.baseIncome <= 0) warnings.push('1. Yıl Net İşletme Geliri girilmedi; hesaplama için zorunludur.');
   if (i <= 0) warnings.push('İskonto oranı 0; bugünkü değerler nominal akışlarla aynı olacak.');
 
   const years: DcfYear[] = [];

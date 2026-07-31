@@ -25,10 +25,10 @@ const DEFAULT: DetailedUstHakkiInput & { sureUnit: 'yil' | 'ay' } = {
   sureUnit: 'yil', kalanSureYil: 31, toplamSureYil: 49,
   currency: 'TL', fxRate: 1,
   rooms: [DEFAULT_ROOM], roomGrowthPct: 3,
-  foodPct: 4, otherPct: 4, meetingPct: 2, shopPct: 1,
-  roomExpensePct: 30, foodExpensePct: 45, otherExpensePct: 30, generalMgmtPct: 7, energyPct: 5, repairPct: 2,
+  foodPct: 3.2, otherPct: 3.9, meetingPct: 0, shopPct: 0,
+  roomExpensePct: 30, foodExpensePct: 40, otherExpensePct: 25, generalMgmtPct: 10, energyPct: 5, repairPct: 2,
   landUnitValue: 0, buildings: [DEFAULT_BUILDING], showCostApproachInPdf: true,
-  operatorPremiumPct: 5, propertyTaxPct: 0.4, insurancePct: 0.2, renewalFundPct: 4,
+  operatorPremiumPct: 12, propertyTaxPct: 0.4, insurancePct: 0.3, renewalFundPct: 4,
   ecrimisilBase: 0, ecrimisilGrowthPct: 0,
   ustHakkiOdemeBase: 0, ustHakkiOdemeGrowthPct: 2,
   bayilikBase: 0, bayilikGrowthPct: 0,
@@ -96,8 +96,8 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
 
       <div className="step">
         <div className="step-head">
-          <div className="step-eyebrow">Üst Hakkı Değerleme · Ayrıntılı Analiz</div>
-          <div className="step-title">Ayrıntılı Üst Hakkı Değer Analizi</div>
+          <div className="step-eyebrow">Üst Hakkı Değerleme</div>
+          <div className="step-title">Toplam Gelir Üzerinden Üst Hakkı Hesabı</div>
           <div className="step-desc">
             Otel tarzı gelir/gider zinciriyle kalan süre kadar dönemsel DCF. 1. dönem indirgenmez.
             Tüm oranlar yönlendiricidir, serbestçe değiştirilir.
@@ -174,7 +174,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="card">
-          <div className="card-title">Gelirler Tablosu <em style={{ fontWeight: 400, fontSize: 12, opacity: .7 }}>(oranlar toplam gelirin %'sidir)</em></div>
+          <div className="card-title">Gelirler Tablosu (oranlar toplam gelirin %'sidir)</div>
           <div className="hrow-labeled">
             <label className="pfield pfield--s"><span>Yiyecek/İçecek %</span>
               <input type="number" step="0.5" value={state.foodPct || ''} onChange={(e) => patch({ foodPct: Number(e.target.value) || 0 })} /></label>
@@ -314,7 +314,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · Ayrıntılı Üst Hakkı Değer Analizi</div>
+        <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · Toplam Gelir Üzerinden Üst Hakkı Hesabı</div>
       </div>
     </div>
   );
