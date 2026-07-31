@@ -1,21 +1,27 @@
 /**
  * AYRINTILI ÜST HAKKI DEĞER ANALİZİ — motor (saf).
  *
- * Salih'in 27 maddelik talimatı (2026-07-30, madde 24-40) ve Denizbank örnek
- * tablosuna göre kurulmuştur. Standart (basit) Üst Hakkı hesabından (engine.ts)
- * TAMAMEN AYRI bir modeldir — otel tarzı gelir/gider zinciri kullanır.
+ * Salih'in 27+16 maddelik talimatı (2026-07-30/31) ve Denizbank örnek
+ * tablosuna göre kurulmuştur. Standart (basit) Üst Hakkı hesabından
+ * (engine.ts) TAMAMEN AYRI bir modeldir — otel tarzı gelir/gider zinciri
+ * kullanır.
  *
  * Gelir mantığı: Oda Geliri oda satırlarından (Adet×Fiyat×Doluluk×Gün) türetilir;
  * diğer dört kalem (Yiyecek/Diğer/Toplantı/Dükkan) TOPLAM GELİRİN yüzdesi olarak
  * girilir; Oda payı = 100 − diğerlerinin toplamı. Böylece toplam gelir Oda
  * Geliri'nden geriye türetilir: toplamGelir = odaGelir / (odaPct/100).
- * Tüm kalemler böylece aynı büyüme oranıyla (Oda Fiyat Artış Oranı) büyür.
  *
- * Giderler: Oda/Yiyecek/Diğer kendi gelirlerinin yüzdesi; Genel Yönetim ve
- * Basit Tamirat toplam gelirin yüzdesi; Enerji (Oda+Toplantı) toplamının yüzdesi.
- * Sabit giderlerden İşletmeci Primi brüt kârın, Emlak Vergisi ve Bina Sigortası
- * Toplam Maliyet referansının yüzdesidir; Ecrimisil/Üst Hakkı Ödemesi/Bayilik/
- * Yenileme Fonu elle (başlangıç + yıllık artış) girilir.
+ * Maliyet Yaklaşımı (2026-07-31 revizyonu): Toplam Maliyet artık elle
+ * girilen tek kutu DEĞİL — Arsa Değeri (Arsa Alanı × Arsa m² Birim Değeri)
+ * + Yapı Maliyetleri (satır satır, Alan × Yapı Birim Maliyeti) toplamından
+ * hesaplanır. Emlak Vergisi / Bina Sigortası / Yenileme Fonu (varsayılan %4)
+ * bu Toplam Maliyet üzerinden % olarak hesaplanır — formülün kendisi
+ * DEĞİŞMEDİ, yalnızca "Toplam Maliyet"in kaynağı elle girişten hesaplanmış
+ * değere döndü.
+ *
+ * İskonto oranı TEK bir kutudur (2026-07-31: risksiz+prim ayrımı kaldırıldı,
+ * kullanıcı kafası karışmasın diye — hesaba hiçbir etkisi yoktu, ikisinin
+ * toplamı zaten tek bir orandı).
  *
  * İndirgeme: 1. DÖNEM İNDİRGENMEZ; 2. dönemden itibaren iskonto oranıyla
  * bugüne çekilir (üstel: dönem t için çarpan = (1+i)^-(t-1)).
@@ -30,6 +36,27 @@ export interface DetailedRoomRow {
   price: number;          // günlük ortalama fiyat
   occupancyPct: number;   // doluluk %
   days: number;            // faaliyet gün sayısı
+}
+
+/** Yapı türü kataloğu — Salih'in listesi; ileride kolayca genişletilebilir. */
+export const BUILDING_TYPES: string[] = [
+  'Diğer', 'Tüm Yapılar',
+  'Standart Bloklar', 'Süit ve Rezidans Binası', 'Villalar', 'Personel Lojmanı',
+  'Lobi ve Resepsiyon Binası', 'Butik', 'Market', 'Kuaför', 'Hediyelik Eşya Dükkanı',
+  'Kapalı Yeraltı Otoparkı', 'Açık Misafir Otoparkı', 'Vale Alanı', 'Mal Kabul Otoparkı',
+  'Fitness Salonu', 'Tenis Kortları', 'Çok Amaçlı Spor Sahası', 'Yoga ve Pilates Stüdyosu',
+  'Su Sporları Merkezi', 'Ana Açık Havuz', 'Kapalı Isıtmalı Havuz', 'Aquapark',
+  'Çocuk Havuzu', 'Sonsuzluk Havuzu', 'Türk Hamamı', 'Sauna', 'Masaj Odaları', 'Dinlenme Alanı',
+  'Ana Açık Büfe Restoran', 'A La Carte Restoranlar', 'Havuz ve Sahil Barları', 'Gece Kulübü',
+  'Amfitiyatro', 'Mini Kulüp', 'Çocuk Parkı', 'Yönetim Ofisleri', 'Ana Depolar',
+  'Merkezi Çamaşırhane', 'Trafo ve Jeneratör Odası', 'Kazan Dairesi',
+];
+
+export interface BuildingCostRow {
+  id: string;
+  type: string;    // BUILDING_TYPES'tan biri, ya da serbest metin
+  area: number;
+  unitCost: number;
 }
 
 export interface DetailedUstHakkiInput {
@@ -61,18 +88,21 @@ export interface DetailedUstHakkiInput {
   energyPct: number;        // Enerji — (oda+toplantı) üzerinden
   repairPct: number;        // Basit Tamirat — toplam gelir üzerinden
 
-  totalCost: number;            // "Toplam Maliyet" referansı (emlak vergisi/sigorta tabanı)
-  operatorPremiumPct: number;   // İşletmeci Prim — brüt kâr üzerinden
-  propertyTaxPct: number;       // Emlak Vergisi — toplam maliyet üzerinden
-  insurancePct: number;         // Bina Sigortası — toplam maliyet üzerinden
+  // Maliyet Yaklaşımı — Arsa Değeri + Yapı Maliyetleri'nden hesaplanır (elle Toplam Maliyet YOK)
+  landUnitValue: number;         // Arsa m² Birim Değeri
+  buildings: BuildingCostRow[];
+  showCostApproachInPdf: boolean;
 
-  renewalFundBase: number; renewalFundGrowthPct: number;      // Yenileme Fonu — elle
+  operatorPremiumPct: number;   // İşletmeci Prim — brüt kâr üzerinden
+  propertyTaxPct: number;       // Emlak Vergisi — Toplam Maliyet üzerinden
+  insurancePct: number;         // Bina Sigortası — Toplam Maliyet üzerinden
+  renewalFundPct: number;       // Yenileme Fonu — Toplam Maliyet üzerinden (varsayılan %4)
+
   ecrimisilBase: number; ecrimisilGrowthPct: number;          // Ecrimisil — elle
   ustHakkiOdemeBase: number; ustHakkiOdemeGrowthPct: number;  // Üst Hakkı Ödemesi — elle
   bayilikBase: number; bayilikGrowthPct: number;              // Bayilik Ödemeleri — elle
 
-  riskFreeRatePct: number;
-  riskPremiumPct: number;
+  discountRatePct: number;         // tek iskonto oranı (2026-07-31: risksiz+prim ayrımı kaldırıldı)
   donemSonuIndirgemePct: number;   // "Dönem Sonu Değer İndirgeme (%)" — nihai sonuca bir kez uygulanan haircut
 }
 
@@ -112,9 +142,17 @@ export interface DetailedPeriodRow {
   presentValue: number;    // "Nakit Akış Net Bugünkü Değer"
 }
 
+export interface CostApproachResult {
+  landValue: number;          // Arsa Alanı × Arsa m² Birim Değeri
+  buildingsCost: number;      // Σ (Alan × Yapı Birim Maliyeti)
+  totalCost: number;          // landValue + buildingsCost
+  totalCostRounded: number;   // en yakın 5.000'e (yalnız PDF'de gösterim amaçlı)
+}
+
 export interface DetailedUstHakkiResult {
   discountRate: number;
   baseRoomIncome: number;
+  cost: CostApproachResult;
   years: DetailedPeriodRow[];
   sumPresentValue: number;
   propertyValueLocal: number;     // dönem sonu indirgeme sonrası, seçilen para biriminde
@@ -131,9 +169,16 @@ export function computeRoomIncome(rooms: DetailedRoomRow[]): number {
     s + Math.max(0, r.count) * Math.max(0, r.price) * Math.min(100, Math.max(0, r.occupancyPct)) / 100 * Math.max(0, r.days), 0));
 }
 
+export function computeCostApproach(input: Pick<DetailedUstHakkiInput, 'parcelArea' | 'landUnitValue' | 'buildings'>): CostApproachResult {
+  const landValue = R(Math.max(0, input.parcelArea) * Math.max(0, input.landUnitValue));
+  const buildingsCost = R(input.buildings.reduce((s, b) => s + Math.max(0, b.area) * Math.max(0, b.unitCost), 0));
+  const totalCost = R(landValue + buildingsCost);
+  return { landValue, buildingsCost, totalCost, totalCostRounded: R5000(totalCost) };
+}
+
 export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedUstHakkiResult {
   const warnings: string[] = [];
-  const i = Math.max(0, input.riskFreeRatePct + input.riskPremiumPct) / 100;
+  const i = Math.max(0, input.discountRatePct) / 100;
   const n = Math.max(0, Math.round(input.kalanSureYil));
   if (n <= 0) warnings.push('Kalan süre 0 veya negatif; dönemsel tablo hesaplanamıyor.');
 
@@ -144,6 +189,7 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
 
   const baseRoomIncome = computeRoomIncome(input.rooms);
   const g = input.roomGrowthPct / 100;
+  const cost = computeCostApproach(input);
 
   const years: DetailedPeriodRow[] = [];
   let sumPv = 0;
@@ -168,9 +214,9 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
     const grossOperatingProfitPct = totalRevenue > 0 ? R((grossOperatingProfit / totalRevenue) * 100) : 0;
 
     const operatorPremium = R(grossOperatingProfit * input.operatorPremiumPct / 100);
-    const propertyTax = R(input.totalCost * input.propertyTaxPct / 100);
-    const insurance = R(input.totalCost * input.insurancePct / 100);
-    const renewalFund = R(input.renewalFundBase * Math.pow(1 + input.renewalFundGrowthPct / 100, t - 1));
+    const propertyTax = R(cost.totalCost * input.propertyTaxPct / 100);
+    const insurance = R(cost.totalCost * input.insurancePct / 100);
+    const renewalFund = R(cost.totalCost * input.renewalFundPct / 100);
     const ecrimisil = R(input.ecrimisilBase * Math.pow(1 + input.ecrimisilGrowthPct / 100, t - 1));
     const ustHakkiOdeme = R(input.ustHakkiOdemeBase * Math.pow(1 + input.ustHakkiOdemeGrowthPct / 100, t - 1));
     const bayilik = R(input.bayilikBase * Math.pow(1 + input.bayilikGrowthPct / 100, t - 1));
@@ -201,7 +247,7 @@ export function computeDetailedUstHakki(input: DetailedUstHakkiInput): DetailedU
   const propertyValueTl = input.currency === 'TL' ? propertyValueRounded : R5000(propertyValueRounded * fx);
 
   return {
-    discountRate: i, baseRoomIncome, years, sumPresentValue: sumPv,
+    discountRate: i, baseRoomIncome, cost, years, sumPresentValue: sumPv,
     propertyValueLocal, propertyValueRounded, propertyValueTl, warnings,
   };
 }

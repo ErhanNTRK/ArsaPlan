@@ -9,7 +9,8 @@ import { NAVY, INK, GRAY, FAINT, GOLD, M, PW, W, tl } from '../export/pdf';
 import { drawHeader, drawFooter, loadFonts } from '../export/pdf';
 import type { DetailedUstHakkiInput, DetailedUstHakkiResult } from './detailedEngine';
 
-const CUR = (input: DetailedUstHakkiInput) => (input.currency === 'TL' ? '₺' : input.currency);
+const SYM: Record<DetailedUstHakkiInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
+const CUR = (input: DetailedUstHakkiInput) => SYM[input.currency];
 /** Seçilen para biriminde biçimlendirir — TL sabit ₺ değil, seçilen birimin sembolüyle. */
 const cur = (v: number, input: DetailedUstHakkiInput) =>
   Math.round(v).toLocaleString('tr-TR') + ' ' + CUR(input);
@@ -53,6 +54,22 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   row('Para Birimi', input.currency + (input.currency !== 'TL' ? ` (kur: ${input.fxRate} ₺)` : ''));
   row('1. Yıl Oda Geliri', cur(r.baseRoomIncome, input) + ' (taban)');
   y += 2;
+
+  if (input.showCostApproachInPdf) {
+    sectionTitle('MALİYET YAKLAŞIMI');
+    row('Arsa Alanı', `${input.parcelArea.toLocaleString('tr-TR')} m²` + (input.fromKml ? ' (KML)' : ''));
+    row('Arsa m² Birim Değeri', cur(input.landUnitValue, input));
+    row('Arsa Değeri', cur(r.cost.landValue, input));
+    for (const b of input.buildings) {
+      if (b.area > 0 || b.unitCost > 0) {
+        row(`  ${b.type} (${b.area.toLocaleString('tr-TR')} m²)`, cur(b.area * b.unitCost, input));
+      }
+    }
+    row('Toplam Yapı Maliyeti', cur(r.cost.buildingsCost, input), true);
+    row('TOPLAM MALİYET', cur(r.cost.totalCost, input), true);
+    row('Toplam Maliyet (en yakın 5.000\'e yuvarlanmış)', cur(r.cost.totalCostRounded, input));
+    y += 2;
+  }
 
   sectionTitle(`DÖNEMSEL GELİR-GİDER TABLOSU (${r.years.length} DÖNEM)`);
   const h = 5.4;

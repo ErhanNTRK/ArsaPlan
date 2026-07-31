@@ -15,8 +15,9 @@ const LINEC = 'FFDCE3EB';
 const THIN = { style: 'thin' as const, color: { argb: LINEC } };
 const BOX = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
+const SYM: Record<DetailedUstHakkiInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const curFmt = (input: DetailedUstHakkiInput) =>
-  input.currency === 'TL' ? TL : `#,##0 "${input.currency}";[Red]-#,##0 "${input.currency}";"–"`;
+  input.currency === 'TL' ? TL : `#,##0 "${SYM[input.currency]}";[Red]-#,##0 "${SYM[input.currency]}";"–"`;
 
 export async function downloadDetailedUstHakkiExcel(input: DetailedUstHakkiInput, r: DetailedUstHakkiResult) {
   const wb = new ExcelJS.Workbook();
@@ -31,7 +32,7 @@ export async function downloadDetailedUstHakkiExcel(input: DetailedUstHakkiInput
     pageSetup: { paperSize: 9, orientation: 'landscape', fitToPage: true, fitToWidth: 1, fitToHeight: 0, margins: { left: 0.4, right: 0.4, top: 0.5, bottom: 0.5, header: 0.3, footer: 0.3 } },
   });
   ws.columns = [{ width: 3 }, { width: 8 }, { width: 15 }, { width: 15 }, { width: 15 },
-    { width: 15 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 15 }, { width: 3 }];
+    { width: 20 }, { width: 15 }, { width: 15 }, { width: 15 }, { width: 12 }, { width: 15 }, { width: 3 }];
 
   ws.mergeCells('A1:K2');
   const t = ws.getCell('A1');
@@ -80,6 +81,20 @@ export async function downloadDetailedUstHakkiExcel(input: DetailedUstHakkiInput
   kv('Iskonto Orani', r.discountRate, '0.0%');
   kv('Para Birimi', input.currency);
   row++;
+
+  if (input.showCostApproachInPdf) {
+    section('MALIYET YAKLASIMI');
+    kv('Arsa Alani', `${input.parcelArea.toLocaleString('tr-TR')} m²` + (input.fromKml ? ' (KML)' : ''));
+    kv('Arsa m² Birim Degeri', input.landUnitValue, curFmt(input));
+    kv('Arsa Degeri', r.cost.landValue, curFmt(input));
+    for (const b of input.buildings) {
+      if (b.area > 0 || b.unitCost > 0) kv(`  ${b.type} (${b.area.toLocaleString('tr-TR')} m²)`, b.area * b.unitCost, curFmt(input));
+    }
+    kv('Toplam Yapi Maliyeti', r.cost.buildingsCost, curFmt(input));
+    kv('TOPLAM MALIYET', r.cost.totalCost, curFmt(input));
+    kv('Toplam Maliyet (5.000\'e yuvarlanmis)', r.cost.totalCostRounded, curFmt(input));
+    row++;
+  }
 
   section(`DONEMSEL TABLO (${r.years.length} DONEM)`, 'B:K');
   const heads = ['Yıl', 'Toplam Gelir', 'Toplam Gider', 'Brüt Kâr', 'Brüt Kâr %', 'Sabit Gider', 'Net Kâr', 'Net Kâr %', 'Bugünkü Değer'];
