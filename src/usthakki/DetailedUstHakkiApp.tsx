@@ -214,8 +214,8 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
             <span>Maliyet Yaklaşımı</span>
             <label className="pdf-toggle"><input type="checkbox" checked={state.showCostApproachInPdf}
                      onChange={(e) => patch({ showCostApproachInPdf: e.target.checked })} /> PDF ve Excel'de Göster</label>
-          <div className="hint">İşaretliyse Maliyet Yaklaşımı hem PDF hem Excel çıktısında tam gösterilir; işaretsizse yalnız uygulama içinde hesaplanır, çıktılarda görünmez.</div>
           </div>
+          <div className="hint">İşaretliyse Maliyet Yaklaşımı hem PDF hem Excel çıktısında tam gösterilir; işaretsizse yalnız uygulama içinde hesaplanır, çıktılarda görünmez.</div>
           <div className="hint">Arsa alanı Kimlik kartındaki değerle (KML varsa ondan) paylaşılır.</div>
           <div className="hrow-labeled" style={{ marginTop: 8 }}>
             <label className="pfield"><span>Arsa m² Birim Değeri ({cur})</span>

@@ -131,14 +131,16 @@ export async function buildHotelPdf(
     );
   }
 
-  sectionTitle('Yıllık Projeksiyon Tablosu');
-  table(
-    ['Yıl', 'Toplam Gelir', 'İşletme Gideri', 'NOI', 'Kapitalizasyon Değeri'],
-    r.projectionTable.map((row) => [
-      String(row.year), tl(row.totalRevenue), tl(row.totalExpense), tl(row.noi), tl(row.capitalizedValue),
-    ]),
-    [20, 45, 40, 40, 45],
-  );
+  if (input.finalMethod === 'ina') {
+    sectionTitle('Yıllık Projeksiyon Tablosu');
+    table(
+      ['Yıl', 'Toplam Gelir', 'İşletme Gideri', 'NOI', 'Kapitalizasyon Değeri'],
+      r.projectionTable.map((row) => [
+        String(row.year), tl(row.totalRevenue), tl(row.totalExpense), tl(row.noi), tl(row.capitalizedValue),
+      ]),
+      [20, 45, 40, 40, 45],
+    );
+  }
 
   sectionTitle('Değerlendirme Özeti');
   pageBreak(20);
