@@ -119,7 +119,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} />}
+        {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} input={input} setInput={setInput} />}
         {step === 2 && <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} />}
         {step === 3 && (<>
           <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />
@@ -175,11 +175,28 @@ function HotelSummaryBar({ result }: { result: ReturnType<typeof analyzeHotel> }
 }
 
 /* ─────────────────── Adım 1 — Genel Bilgiler ─────────────────── */
-function StepGeneral({ general, setGeneral }: {
+function StepGeneral({ general, setGeneral, input, setInput }: {
   general: HotelIncomeInput['general']; setGeneral: (p: Partial<HotelIncomeInput['general']>) => void;
+  input: HotelIncomeInput; setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
 }) {
+  const cur = input.currency ?? 'TRY';
   return (
     <div className="cols step-cols">
+      <div className="card">
+        <div className="card-title">Para Birimi</div>
+        <div className="hint" style={{ marginBottom: 8 }}>Seçilen para birimi tüm hesap, ekran ve rapor çıktılarına uygulanır.</div>
+        <div className="grid-2">
+          <Field label="Para Birimi">
+            <Sel value={cur} onChange={(v) => setInput((p) => ({ ...p, currency: v as HotelIncomeInput['currency'], fxRate: v === 'TRY' ? null : (p.fxRate ?? 1) }))}
+                 options={[{ value: 'TRY', label: 'TL (₺)' }, { value: 'USD', label: 'USD ($)' }, { value: 'EUR', label: 'EUR (€)' }]} />
+          </Field>
+          {cur !== 'TRY' && (
+            <Field label={`Kur (1 ${cur} = ? ₺)`}>
+              <Num value={input.fxRate ?? 1} onChange={(n) => setInput((p) => ({ ...p, fxRate: n }))} />
+            </Field>
+          )}
+        </div>
+      </div>
       <div className="card">
         <div className="card-title">Tesis Bilgileri</div>
         <Field label="Tesis Adı"><Txt value={general.facilityName} onChange={(v) => setGeneral({ facilityName: v })} placeholder="Örn. Örnek Resort & Spa" /></Field>
