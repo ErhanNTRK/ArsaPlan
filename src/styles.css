@@ -108,6 +108,12 @@
   font-size: 13px; font-weight: 700; cursor: pointer;
 }
 @media print { .lang-toggle-fab { display: none; } }
+.en-partial-note {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 998;
+  background: #3a2c10; color: #f6efe3; font-size: 12px; text-align: center;
+  padding: 6px 70px 6px 12px;
+}
+@media print { .en-partial-note { display: none; } }
 @media (max-width: 700px) {
   .dcf-head, .dcf-row { grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr; font-size: 11px; gap: 4px; }
 }

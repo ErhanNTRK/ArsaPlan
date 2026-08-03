@@ -528,7 +528,13 @@ export default function App() {
   else if (mode === 'arsa') content = <ArsaApp onBack={back} />;
   else content = <Landing onSelect={choose} />;
 
-  return (<>{content}<ThemeToggle /><button type="button" className="lang-toggle-fab no-print"
+  return (<>{content}<ThemeToggle />
+    {lang === 'en' && (
+      <div className="en-partial-note no-print">
+        This version does not yet fully support English — some sections remain in Turkish.
+      </div>
+    )}
+    <button type="button" className="lang-toggle-fab no-print"
     title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
     onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
     {lang === 'tr' ? '🌐 EN' : '🌐 TR'}

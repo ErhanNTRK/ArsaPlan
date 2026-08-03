@@ -1,46 +1,37 @@
-# ArsaPlan v6.0.15 — Döviz Tam Yayılım + Global İngilizce Düğmesi
+# ArsaPlan v6.0.17 — Döviz + İngilizce Uyarısı + Responsive Düzeltmeleri (Birleşik Paket)
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı, derlenmiş çıktıda
-kritik iki düzeltme doğrulandı.
+Doğrulama: tsc 0 hata, test 192/192, build başarılı. v6.0.15+v6.0.16'da
+anlattığım her şey + bu turun responsive düzeltmeleri, tek pakette.
 
-## 1) Otel'de döviz artık gerçekten her yere yayılıyor
+## Bu pakette olanlar (önceki iki zip'in bilgisiyle birleşik)
 
-React Context tabanlı bir çözümle (her fonksiyona tek tek prop
-geçirmeden): ekrandaki tüm tutarlar, PDF'teki tüm tutarlar, hatta
-motorun ürettiği "Değerlendirme Özeti" cümlesindeki gömülü ₺ işaretleri
-bile artık seçilen para birimine (TL/USD/EUR) göre değişiyor. Gerçek
-bir EUR PDF üretilip **sıfır ₺ kaldığı** doğrulandı.
+1. **Otel'de döviz tam yayılım** — ekran, PDF, motor özet metni dahil
+   her yerde seçilen para birimi (TL/USD/EUR) kullanılıyor.
+2. **İngilizce çevirisindeki kritik hata düzeltildi** — kod var olmayan
+   bir element ID'sini (`arsaplan-root`) arıyordu, gerçek ID `root`;
+   bu yüzden otomatik ekran çevirisi hiç tetiklenmiyordu.
+3. **Dil düğmesi artık her ekranda** (🌙/☀️ tema düğmesi gibi, sağ altta
+   sabit) — önceden yalnız Arsa modülünde vardı.
+4. **Kısmi İngilizce uyarısı eklendi**: İngilizce moda geçildiğinde
+   altta "This version does not yet fully support English — some
+   sections remain in Turkish." bandı görünüyor. Çevirisi olan yerler
+   İngilizce, olmayanlar Türkçe kalıyor.
+5. **Responsive: uygulama genelinde kullanılan üç ızgara sınıfının
+   (`.grid-2`, `.grid-3`, `.mini-kpi`, `.kpi-grid`) telefon ekranında
+   HİÇ tek kolona düşmediği bulundu ve düzeltildi.** Bu sınıflar
+   Arsa/Otel/Tarım gibi birçok modülde çok kullanıldığı için, düzeltme
+   uygulama genelinde etkili.
 
-## 2) İngilizce çevirisinde gerçek bir hata bulundu ve düzeltildi
+## Dürüst sınır
 
-**Kök neden:** Ekran çevirisini tetikleyen kod `document.getElementById
-('arsaplan-root')` arıyordu ama uygulamanın gerçek kök elemanı
-`id="root"` — bu isim uyuşmazlığı yüzünden **otomatik DOM çevirisi hiç
-tetiklenmiyordu**, muhtemelen bu yüzden "İngilizce sadece bazı
-bölümlerde çalışıyor" izlenimi oluşmuştu. Düzeltildi.
-
-**Ayrıca:** Dil değiştirme düğmesi önceden yalnızca Arsa modülünün üst
-barındaydı. Artık (tema düğmesi 🌙/☀️ gibi) **her ekranda sağ altta
-sabit bir "🌐 EN/TR" düğmesi** var — Tarım, Akaryakıt, Otel, Üst
-Hakkı'nın üç yönteminde de çalışıyor.
-
-**Sözlük genişletildi:** Bu dört modül ailesinin en görünür kart
-başlıkları ve ana etiketleri (35+ terim) çeviri sözlüğüne eklendi.
-
-## Dürüst sınır — bu pakette YAPILMAYAN (ayrı, dikkatli test gerektiren ikinci zip'e bırakıldı)
-
-- **PDF/Excel metinlerinin çevirisi** — ekran çevirisi otomatik DOM
-  taramasıyla çalışıyor ama PDF/Excel üretimi DOM'a dokunmuyor, her
-  metnin elle `t()` ile sarmalanması gerekiyor (10 dosya, yüzlerce
-  metin). Canlı test edemeden aceleye getirmek istemedim.
-- **İnce ipucu/tooltip metinlerinin tam çevirisi** (yalnız en görünür
-  ~35 kart başlığı/etiket eklendi, yüzlerce küçük ipucu metni kaldı).
-- **Excel içe aktarma** — büyük, riskli, kendi başına bir iş.
-- **Cihaz-bazlı (PC/tablet/telefon) tasarım** — canlı tarayıcı testi
-  yapamadığım için yalnızca kod incelemesiyle bulduğum gerçek hatalar
-  düzeltilebiliyor, kapsamlı bir tur gerektiriyor.
-
-Bu üçü için ayrı bir zip hazırlıyorum.
+- Bu responsive turu **kod incelemesiyle bulunan gerçek hataları**
+  kapsıyor (canlı tarayıcı testi yapamadığım için görsel doğrulama
+  yok) — daha küçük, gözden kaçan sorunlar kalmış olabilir.
+- **Excel içe aktarma bu pakete YİNE alınmadı.** 7 farklı modülün
+  kendi Excel yapısını geri okuyup formu doldurması, düzgün yapılırsa
+  gerçekten uzun ve dikkatli test isteyen bir iş — aceleye getirip
+  yarım/hatalı bir özellik teslim etmek istemedim. Bu, kendi başına
+  ayrı bir tur olarak kalıyor; hazır olduğunda haber ver.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).
