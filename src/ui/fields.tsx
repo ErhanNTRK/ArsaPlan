@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { LOC } from '../i18n';
 
 export const fmtTL = (v: number) =>
@@ -34,15 +34,27 @@ export function Txt({ value, onChange, placeholder }: {
 export function Num({ value, onChange, suffix, step, placeholder }: {
   value: number; onChange: (v: number) => void; suffix?: string; step?: string; placeholder?: string;
 }) {
+  const [focused, setFocused] = useState(false);
+  const [raw, setRaw] = useState('');
+  useEffect(() => { if (!focused) setRaw(value === 0 ? '' : String(value)); }, [value, focused]);
+
+  const display = focused ? raw : (value === 0 ? '' : value.toLocaleString(LOC(), { maximumFractionDigits: 2 }));
+
   return (
     <div className="suffix-wrap">
       <input
-        type="number"
+        type="text"
         inputMode="decimal"
-        step={step ?? 'any'}
         placeholder={placeholder}
-        value={value === 0 ? '' : String(value)}
-        onChange={(e) => onChange(e.target.value === '' ? 0 : Number(e.target.value))}
+        title={step ? `Adım: ${step}` : undefined}
+        value={display}
+        onFocus={() => { setFocused(true); setRaw(value === 0 ? '' : String(value)); }}
+        onChange={(e) => setRaw(e.target.value.replace(/[^\d.,-]/g, ''))}
+        onBlur={() => {
+          setFocused(false);
+          const n = parseFloat(raw.replace(',', '.')) || 0;
+          onChange(n);
+        }}
       />
       {suffix && <span className="suffix">{suffix}</span>}
     </div>

@@ -70,7 +70,8 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
       y += h;
       if (row.byproductResult) {
         doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
-        doc.text(`  + Yan ürün: ${row.byproductResult.name} -> ${tl(row.byproductResult.net)}`, C[0], y);
+        doc.text(`  + Yan ürün: ${row.byproductResult.name}`, C[0], y);
+        doc.text(tl(row.byproductResult.net), C[5], y, { align: 'right' });
         y += h - 1;
       }
     }

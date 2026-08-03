@@ -125,8 +125,8 @@ export async function buildHotelPdf(
   if (r.leaseRows.length > 0) {
     sectionTitle('Ticari Kira Tablosu');
     table(
-      ['Alan Adı', 'Kiracı', 'Aylık Kira', 'Yıllık Kira'],
-      r.leaseRows.map((row) => [row.areaName || '—', row.tenant || '—', tl(row.monthlyAmount), tl(row.annualAmount)]),
+      ['Alan Türü', 'Kiracı', 'Aylık Kira', 'Yıllık Kira'],
+      r.leaseRows.map((row) => [row.areaType || '—', row.tenant || '—', tl(row.monthlyAmount), tl(row.annualAmount)]),
       [55, 55, 35, 35],
     );
   }

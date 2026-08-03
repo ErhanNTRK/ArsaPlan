@@ -325,7 +325,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
                          value={state.amortYears || ''} onChange={(e) => patch({ amortYears: Number(e.target.value) || 0 })} /></label>
                 <div className="pfield pfield--ro pfield--big"><span>Yaklaşık Değer</span><b>{TL(result.value)}</b></div>
               </div>
-              <div className="hint">Değer = yıllık net gelir × amorti yılı (kiralanabilir dükkan mantığı), en yakın 5.000 TL'ye yuvarlanmıştır.</div>
+              <div className="hint">Değer = yıllık net gelir × amorti yılı, en yakın 5.000 TL'ye yuvarlanmıştır.</div>
               <div className="export-row no-print">
                 <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
                 <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>

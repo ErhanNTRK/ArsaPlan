@@ -261,7 +261,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             <Field label={'Zemin Kat Alan Kaybı \u24D8'}
                    hint={(() => {
                      const zf = c.floors.find((f) => f.kind === 'zemin');
-                     const base = 'Bina girişi, kapıcı dairesi, sığınak koridoru gibi satılamayan kısımların payı (genelde %10-20).';
+                     const base = 'Bina girişi, kapıcı dairesi, sığınak koridoru gibi satılamayan kısımların payı.';
                      if (!zf || zf.area <= 0) return base;
                      return `${base} Bu katta: ${fmtM2(zf.area)} kat alanının %${(a.zeminLossRate * 100).toFixed(0)}'ı düşer → satılabilir ${fmtM2(zf.saleable)}.`;
                    })()}>
@@ -270,7 +270,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             <Field label={'Normal Kat Ortak Mahal Payı \u24D8'}
                    hint={(() => {
                      const nf = c.floors.find((f) => f.kind === 'normal');
-                     const base = 'Merdiven, asansör ve kat holü payı (genelde %15-25); satılabilir daire alanının üstüne eklenir.';
+                     const base = 'Merdiven, asansör ve kat holü payı; satılabilir daire alanının üstüne eklenir.';
                      if (!nf || nf.saleable <= 0) return base;
                      return `${base} Bu projede: ${fmtM2(nf.saleable)} satılabilir alana %${(a.normalCommonRate * 100).toFixed(0)} eklenir → kat alanı ${fmtM2(nf.area)}.`;
                    })()}>
@@ -432,6 +432,12 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         {taksKaks && c.poolRemainder > 0.5 && (
           <div className="leftover" style={{ marginTop: 8 }}>
             Elle girişler nedeniyle <b>{fmtM2(c.poolRemainder)}</b> satılabilir alan hakkı dağıtılmadı.
+          </div>
+        )}
+        {taksKaks && c.poolRemainder < -0.5 && (
+          <div className="warn-line" style={{ marginTop: 8 }}>
+            Elle girilen alanlar toplamı, KAKS/TAKS'tan türeyen satılabilir alan hakkını <b>{fmtM2(Math.abs(c.poolRemainder))}</b> aşıyor
+            (örn. KAKS sonradan küçültüldüyse). Kat tablosunu gözden geçirin.
           </div>
         )}
       </div>

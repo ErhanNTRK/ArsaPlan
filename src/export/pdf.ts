@@ -306,7 +306,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       let wdt = propW(r.area);
       let x = cxm - wdt / 2;
       const commercial = r.kind === 'zemin' || r.kind === 'asma';
-      if (r.kind === 'asma') { wdt *= 0.6; x = cxm - propW(r.area) / 2; }  // asma: zemine sola yaslı uzantı
+      if (r.kind === 'asma') { wdt *= 0.6; x = cxm - wdt / 2; }  // asma: zemine göre daraltılmış, MERKEZLİ
       doc.setDrawColor(...NAVY);
       if (r.kind === 'piyes') {                      // çatı: saçaklı üçgen-trapez
         const pw = Math.max(propW(r.area), BW2 * 0.5);
@@ -536,6 +536,11 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   if (apt) {
     section('KAT TABLOSU');
     floorTable();
+    if (apt.poolRemainder > 0.5) {
+      paragraph(`Not: Elle girişler nedeniyle ${m2(apt.poolRemainder)} satılabilir alan hakkı dağıtılmadı.`, 8, GRAY);
+    } else if (apt.poolRemainder < -0.5) {
+      paragraph(`Uyarı: Elle girilen alanlar toplamı, KAKS/TAKS'tan türeyen satılabilir alan hakkını ${m2(Math.abs(apt.poolRemainder))} aşıyor.`, 8, RED);
+    }
     if (apt.mode === 'taks-kaks') {
       row('Taban Oturumu Limiti (parsel × TAKS)', m2(apt.footprintArea));
       if (apt.extraSaleableArea > 0) row('İlave Satılabilir Alan (emsal dışı)', m2(apt.extraSaleableArea));

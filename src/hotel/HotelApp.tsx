@@ -348,16 +348,13 @@ function StepLeases({ leases, setLeases, result }: {
           return (
             <div className="isletme-row" key={l.id}>
               <div className="isletme-row-head">
-                <b>{l.areaName || `Kira Alanı ${i + 1}`}</b>
+                <b>{l.tenant ? `${l.areaType} — ${l.tenant}` : (l.areaType || `Kira Alanı ${i + 1}`)}</b>
                 <button type="button" className="link-btn" onClick={() => del(i)}>Satırı sil</button>
               </div>
-              <div className="grid-2">
-                <Field label="Alan Adı"><Txt value={l.areaName} onChange={(v) => upd(i, { areaName: v })} placeholder="Örn. Zemin Kat Market" /></Field>
-                <Field label="Alan Türü">
-                  <Sel value={l.areaType} onChange={(v) => upd(i, { areaType: v })}
-                       options={TICARI_KIRA_KATALOGU.map((t) => ({ value: t, label: t }))} />
-                </Field>
-              </div>
+              <Field label="Alan Türü">
+                <Sel value={l.areaType} onChange={(v) => upd(i, { areaType: v })}
+                     options={TICARI_KIRA_KATALOGU.map((t) => ({ value: t, label: t }))} />
+              </Field>
               <Field label="Kiracı"><Txt value={l.tenant} onChange={(v) => upd(i, { tenant: v })} /></Field>
               <Field label="Kira Girişi">
                 <Seg value={l.inputMode} onChange={(v) => upd(i, { inputMode: v })}
@@ -426,7 +423,7 @@ function StepProjection({ projection, setProjection, result }: {
         <div className="card-title">Projeksiyon Parametreleri</div>
         <div className="grid-2">
           <Field label="Başlangıç Yılı"><Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></Field>
-          <Field label="Projeksiyon Süresi" hint="3-25 yıl arası">
+          <Field label="Projeksiyon Süresi">
             <Num value={projection.years}
                  onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" />
           </Field>

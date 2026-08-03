@@ -472,7 +472,7 @@ export function Step4(props: P) {
           </button>
         )}
         <div className="grid-2" style={{ marginTop: 10 }}>
-          <Field label="Peyzaj Birim Maliyeti" hint="Tipik 800-2.500 ₺/m²">
+          <Field label="Peyzaj Birim Maliyeti">
             <Num value={s.landscapeUnitCost} onChange={(n) => upd('site', { landscapeUnitCost: n })} suffix="₺/m²" />
           </Field>
           <Field label="Bahçe Satış Değeri" hint="0 → fiyata dahil">
@@ -508,7 +508,7 @@ export function Step5({ input, upd, setTop }: P) {
     <div className="cols">
       <div className="card">
         <div className="card-title">Kâr ve Finansman</div>
-        <Field label="Müteahhit Kâr Oranı" hint="Hasılat üzerinden; piyasa uygulaması %15-30">
+        <Field label="Müteahhit Kâr Oranı" hint="Hasılat üzerinden.">
           <Pct value={r.profitRate} onChange={(n) => upd('residual', { profitRate: n })} />
         </Field>
         <Field label="Finansman Gideri" hint="Toplam maliyetin yüzdesi. Kredi yoksa %0 bırakın.">
@@ -527,7 +527,7 @@ export function Step5({ input, upd, setTop }: P) {
           <input type="number" min={0} className="input" value={r.projectMonths ?? 0}
                  onChange={(e) => upd('residual', { projectMonths: Math.max(0, Number(e.target.value) || 0) })} />
         </Field>
-        <Field label="Yıllık İndirgeme Oranı" hint="Süre > 0 iken kullanılır; piyasa uygulaması %10-20.">
+        <Field label="Yıllık İndirgeme Oranı" hint="Süre > 0 iken kullanılır.">
           <Pct value={r.timeDiscountRate ?? 0} onChange={(n) => upd('residual', { timeDiscountRate: n })} />
         </Field>
       </div>
