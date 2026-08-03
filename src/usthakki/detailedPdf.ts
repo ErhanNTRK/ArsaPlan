@@ -67,7 +67,7 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
     }
     row('Toplam Yapı Maliyeti', cur(r.cost.buildingsCost, input), true);
     row('TOPLAM MALİYET', cur(r.cost.totalCost, input), true);
-    row('Toplam Maliyet (en yakın 5.000\'e yuvarlanmış)', cur(r.cost.totalCostRounded, input));
+    row('Toplam Maliyet', cur(r.cost.totalCostRounded, input));
     y += 2;
   }
 

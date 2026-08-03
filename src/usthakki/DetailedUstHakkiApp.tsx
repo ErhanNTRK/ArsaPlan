@@ -183,19 +183,17 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="hrow-labeled">
             <label className="pfield"><span>Yiyecek/İçecek Geliri ({cur}, 1. yıl)</span>
               <Num value={state.foodIncomeBase} onChange={(n) => patch({ foodIncomeBase: n })} /></label>
+            <div className="pct-badge" title="Toplam gelir içindeki payı">%{r.years[0] ? (r.years[0].foodIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}</div>
             <label className="pfield"><span>Diğer Gelirler ({cur}, 1. yıl)</span>
               <Num value={state.otherIncomeBase} onChange={(n) => patch({ otherIncomeBase: n })} /></label>
+            <div className="pct-badge" title="Toplam gelir içindeki payı">%{r.years[0] ? (r.years[0].otherIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}</div>
             <label className="pfield"><span>Toplantı/Salon Geliri ({cur}, 1. yıl)</span>
               <Num value={state.meetingIncomeBase} onChange={(n) => patch({ meetingIncomeBase: n })} /></label>
+            <div className="pct-badge" title="Toplam gelir içindeki payı">%{r.years[0] ? (r.years[0].meetingIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}</div>
             <label className="pfield"><span>Dükkan Kira Geliri ({cur}, 1. yıl)</span>
               <Num value={state.shopIncomeBase} onChange={(n) => patch({ shopIncomeBase: n })} /></label>
-          </div>
-          <div className="hint">
-            Toplam Gelir İçindeki Oranlar (bilgi amaçlı, 1. yıl): Oda %{r.years[0]?.roomIncomePct.toFixed(1) ?? '—'} ·
-            Yiyecek %{r.years[0] ? (r.years[0].foodIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
-            Diğer %{r.years[0] ? (r.years[0].otherIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
-            Toplantı %{r.years[0] ? (r.years[0].meetingIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'} ·
-            Dükkan %{r.years[0] ? (r.years[0].shopIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}
+            <div className="pct-badge" title="Toplam gelir içindeki payı">%{r.years[0] ? (r.years[0].shopIncome / r.years[0].totalRevenue * 100).toFixed(1) : '—'}</div>
+            <div className="pct-badge pct-badge--room" title="Oda Gelirinin toplam gelir içindeki payı (kalan)">Oda %{r.years[0]?.roomIncomePct.toFixed(1) ?? '—'}</div>
           </div>
         </div>
 
@@ -204,16 +202,22 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="hrow-labeled">
             <label className="pfield pfield--s"><span>Oda Gideri %</span>
               <Num step="0.5" value={state.roomExpensePct} onChange={(n) => patch({ roomExpensePct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].roomExpense) : '—'}</div>
             <label className="pfield pfield--s"><span>Yiyecek Gideri %</span>
               <Num step="0.5" value={state.foodExpensePct} onChange={(n) => patch({ foodExpensePct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].foodExpense) : '—'}</div>
             <label className="pfield pfield--s"><span>Diğer Gider %</span>
               <Num step="0.5" value={state.otherExpensePct} onChange={(n) => patch({ otherExpensePct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].otherExpense) : '—'}</div>
             <label className="pfield pfield--s"><span>Genel Yönetim %</span>
               <Num step="0.5" value={state.generalMgmtPct} onChange={(n) => patch({ generalMgmtPct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].generalMgmtExpense) : '—'}</div>
             <label className="pfield pfield--s"><span>Enerji %</span>
               <Num step="0.5" value={state.energyPct} onChange={(n) => patch({ energyPct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].energyExpense) : '—'}</div>
             <label className="pfield pfield--s"><span>Basit Tamirat %</span>
               <Num step="0.5" value={state.repairPct} onChange={(n) => patch({ repairPct: n })} /></label>
+            <div className="pct-badge" title="1. yıl karşılığı">{r.years[0] ? TL(r.years[0].repairExpense) : '—'}</div>
           </div>
         </div>
 

@@ -152,7 +152,7 @@ export async function buildHotelPdf(
       [
         ['Arsa Değeri', cur(r.cost.landValue)],
         ['Yapı Değerleri', cur(r.cost.buildingsValue)],
-        ['Maliyet Yaklaşımı Değeri (5.000\'e yuvarlanmış)', cur(r.cost.totalValueRounded)],
+        ['Maliyet Yaklaşımı Değeri', cur(r.cost.totalValueRounded)],
       ],
       [110, 70],
     );

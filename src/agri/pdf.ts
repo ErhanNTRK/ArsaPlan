@@ -103,7 +103,7 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
   y += 32;
 
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text('Değer = yıllık net gelir × amorti yılı, en yakın 5.000 TL\'ye yuvarlanmıştır.', M, y);
+  doc.text('Değer = yıllık net gelir × amorti yılı.', M, y);
 
   drawFooter(doc, BRAND.version, 'Yöntem: Tarımsal Ürün Gelir Hesabı · Tutarlar KDV hariçtir');
   return doc;

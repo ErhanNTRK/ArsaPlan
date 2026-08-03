@@ -470,8 +470,14 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
         <Field label="Kapitalizasyon Oranı" hint="Direkt Kapitalizasyon Yöntemi: NOI ÷ Kapitalizasyon Oranı">
           <Pct value={projection.capRate} onChange={(n) => setProjection({ capRate: n })} />
         </Field>
+      </div>
 
-        <div className="card-title" style={{ marginTop: 18 }}>İNA (İndirgenmiş Nakit Akımı) — opsiyonel</div>
+      <div className="card card-optional">
+        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          İNA (İndirgenmiş Nakit Akımı)
+          <span className="optional-badge">OPSİYONEL</span>
+        </div>
+        <div className="hint" style={{ marginBottom: 8 }}>Boş bırakılırsa hesaba dahil edilmez, yalnız Direkt Kapitalizasyon kullanılır.</div>
         <div className="grid-2">
           <Field label="Risksiz Getiri Oranı" hint="Örn. %7,5">
             <Pct value={projection.riskFreeRate ?? 0} onChange={(n) => {

@@ -108,6 +108,17 @@
   font-size: 13px; font-weight: 700; cursor: pointer;
 }
 @media print { .lang-toggle-fab { display: none; } }
+.pct-badge {
+  display: inline-flex; align-items: center; padding: 6px 10px; margin-top: 20px;
+  background: rgba(15,42,71,.07); border-radius: 8px; font-size: 12.5px; font-weight: 700;
+  color: var(--navy, #0f2a47); white-space: nowrap; align-self: flex-end;
+}
+.pct-badge--room { background: rgba(178,141,66,.16); }
+.card-optional { border: 1.5px dashed var(--line-2, #c8d2de); background: rgba(15,42,71,.02); }
+.optional-badge {
+  font-size: 10px; font-weight: 800; letter-spacing: .05em; color: var(--accent, #b4884b);
+  background: rgba(178,141,66,.14); border-radius: 5px; padding: 3px 7px;
+}
 .en-partial-note {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 998;
   background: #3a2c10; color: #f6efe3; font-size: 12px; text-align: center;

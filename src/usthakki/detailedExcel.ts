@@ -129,7 +129,7 @@ export async function downloadDetailedUstHakkiExcel(input: DetailedUstHakkiInput
     }
     kv('Toplam Yapi Maliyeti', r.cost.buildingsCost, curFmt(input));
     kv('TOPLAM MALIYET', r.cost.totalCost, curFmt(input));
-    kv('Toplam Maliyet (5.000\'e yuvarlanmis)', r.cost.totalCostRounded, curFmt(input));
+    kv('Toplam Maliyet', r.cost.totalCostRounded, curFmt(input));
     row++;
   }
 

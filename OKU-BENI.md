@@ -1,49 +1,54 @@
-# ArsaPlan v7.0.1 — Üst Hakkı: Geniş Matris Excel + Diğer Düzeltmeler
+# ArsaPlan v7.0.2 — Checkbox Kök Hatası + 5 Düzeltme
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı. Geniş matris Excel
-gerçek verilerle üretilip LibreOffice ile render edilerek **sıfır ####
-hatası** doğrulandı; referans banka şablonuyla yapı/oran karşılaştırması
-yapıldı (Oda Gelirleri %92,9 gibi oranlar birebir örtüşüyor).
+Doğrulama: tsc 0 hata, test 192/192, build başarılı. Checkbox CSS
+düzeltmesi derlenmiş çıktıda doğrulandı; "5.000'e yuvarlanmış" metninin
+kalktığı, formül cümlesinin kaldığı gerçek PDF'le doğrulandı.
 
-## 1) Toplam Değerden Üst Hakkı Hesabı — sonuç gösterimi sadeleşti
+## 1) Checkbox'lar artık gerçekten çalışıyor — kök neden bulundu
 
-"Daimi Müstakil Hak Değeri (2/3)" ara satırı kaldırıldı. Artık yalnız
-**"Taşınmazın Değeri"** (Arsa+Yapı) ve **"Üst Hakkı Değeri"** (nihai)
-gösteriliyor — ekranda, PDF'te, Excel'de.
+**Uygulama genelini etkileyen bir CSS hatasıydı.** Genel
+`input, select, textarea { width:100%; appearance:none; ... }` kuralı
+checkbox'ları da kapsıyordu — tarayıcının normal checkbox görünümünü
+(kare + tik işareti) tamamen siliyor, geniş boş bir dikdörtgene
+dönüştürüyordu. Bu yüzden hem Üst Hakkı'daki "PDF ve Excel'de Göster"
+hem Otel'deki "Gelir/İNA/Maliyet" checkbox'ları çalışmıyormuş gibi
+görünüyordu. Tek bir CSS düzeltmesiyle **her ikisi de dahil, uygulama
+genelindeki tüm checkbox'lar** düzeldi.
 
-## 2) Üst Hakkı modülünde binlik ayırıcı eksikliği düzeltildi
+## 2) "En yakın 5.000'e yuvarlanmış" ifadesi 6 yerden kaldırıldı
 
-Modülün **tüm** sayısal girdi kutuları (39 alan, iki dosyada) artık
-paylaşılan `Num` bileşenini kullanıyor — "60000" yerine "60.000"
-görünüyor. Gelirler Tablosu'ndaki (Yiyecek/Diğer/Toplantı/Dükkan)
-alanlar dahil, ekran görüntünde işaret ettiğin tam yer.
+Tarımsal Ürün (uygulama içi + PDF + Excel), Üst Hakkı Toplam Gelir
+Üzerinden (PDF + Excel), Otel (PDF) — hepsinde bu açıklayıcı ifade
+kaldırıldı. Rakamın kendisi hâlâ 5.000'e yuvarlanmış olarak
+hesaplanıyor (yöntem değişmedi), yalnız bunu anlatan metin gitti.
 
-## 3) Nihai değer artık her yerde çift para birimli
+## 3) Gelirler Tablosu oranları artık her alanın yanında belirgin rozet
 
-Üç yöntemin de (Toplam Değerden, Sadece Arsa, Toplam Gelir Üzerinden)
-**yalnız nihai sonucu** — ara hücreler değil — hem seçilen dövizde hem
-TL karşılığında gösteriyor: ekranda, PDF'te, Excel'de.
+Önceden tek bir küçük, gri ipucu cümlesindeydi. Şimdi her gelir kalemi
+(Yiyecek, Diğer, Toplantı, Dükkan) kutusunun hemen yanında, canlı
+güncellenen bir rozet var; Oda Gelirinin payı da ayrı, altın renkli bir
+rozetle vurgulanıyor.
 
-## 4) Excel'in Dönemsel Tablosu geniş matrise dönüştürüldü
+## 4) İşletme Giderleri yüzdelerinin yanına döviz karşılığı eklendi
 
-Referans banka şablonundaki gibi: her gelir/gider kalemi bir **satır**
-(Oda Gelirleri, Yiyecek/İçecek Gelirleri, Diğer Gelirler, Toplantı/Salon
-Kiralama Gelirleri, Dükkan Kira Gelirleri, Toplam Gelirler, ardından
-işletme ve sabit gider kalemleri), dönemler (1'den kalan süreye kadar)
-yatayda **sütun**. Her gelir satırının yanında **"Toplam Gelir
-İçerisinde Oranı"** sütunu var (karışım her yıl sabit kaldığından tek
-kez hesaplanıyor, referans tabloyla aynı mantık). Sütun sayısı kalan
-süreye göre otomatik genişliyor (49 yıla kadar test edildi).
+"Oda Gideri %30" gibi her yüzde kutusunun yanında, 1. yıl için o
+yüzdenin karşılık geldiği gerçek tutar (rozet olarak) görünüyor.
 
-**PDF mevcut yıl-satırlı hâliyle kaldı** (zaten sayfalama ile tam
-listeyi veriyordu, konuştuğumuz gibi). **Ekran önizlemesi** kısaltılmış
-kalmaya devam ediyor (ilk 6 dönem + "PDF/Excel'de tam liste" notu).
+## 5) Otel'de İNA bölümü artık görsel olarak ayrı, belirgin "OPSİYONEL" rozetli
 
-**Bu değişiklik sırasında yakaladığım ve düzelttiğim bir yan hata:**
-sütun düzeni değişince, "TAŞINMAZ DEĞERİ" ve "TL Karşılığı" sonuç
-satırları eski (artık dar kalan) bir sütuna yazmaya devam ediyordu,
-`####` hatası veriyordu — bunu bulup düzelttim, gerçek Excel'le
-doğruladım.
+Önceden Projeksiyon Parametreleri ile aynı kartın içinde, yalnız bir
+alt başlıkla ayrılıyordu. Artık **kesikli çerçeveli, ayrı bir kart**
+içinde, üstünde net bir "OPSİYONEL" rozeti ve "boş bırakılırsa hesaba
+dahil edilmez" açıklamasıyla.
+
+## Bulduğum ama bu pakete EKLEMEDİĞİM bir eksiklik
+
+**Otel modülünde hiç Excel export özelliği yok** — yalnız PDF var. Bu
+yüzden "PDF ve Excel'de Göster" yerine yalnız "PDF'te gösterilecek
+yöntemler" yazıyor; tutarsızlık değil, gerçek bir eksiklik. Bunu
+sessizce eklemek yerine sana soruyorum: Otel'e de (Tarımsal Ürün/Üst
+Hakkı gibi) tam bir Excel export ekleyelim mi? Onaylarsan ayrı bir
+turda ele alırım.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).

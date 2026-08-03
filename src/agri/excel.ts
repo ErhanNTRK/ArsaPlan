@@ -160,7 +160,7 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   row += 2;
 
   ws.mergeCells(`B${row}:F${row}`);
-  ws.getCell(`B${row}`).value = 'Değer = yıllık net gelir × amorti yılı, en yakın 5.000 TL\'ye yuvarlanmıştır.';
+  ws.getCell(`B${row}`).value = 'Değer = yıllık net gelir × amorti yılı.';
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FF8C98A5' } };
   row += 2;
   ws.mergeCells(`B${row}:F${row}`);
