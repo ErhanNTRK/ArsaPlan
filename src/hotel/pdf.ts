@@ -6,7 +6,7 @@
 import { jsPDF } from 'jspdf';
 import {
   loadFonts, drawHeader, drawFooter,
-  NAVY, GOLD, INK, GRAY, FAINT, LINE, M, PW, W, tl, pct,
+  NAVY, GOLD, INK, GRAY, FAINT, LINE, M, PW, W, pct,
 } from '../export/pdf';
 import { triggerDownload } from '../export/excel';
 import { BRAND } from '../brand/brand';
@@ -17,6 +17,9 @@ export async function buildHotelPdf(
 ): Promise<{ doc: jsPDF; name: string }> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   await loadFonts(doc);
+  const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
+  const sym = CUR_SYM[input.currency ?? 'TRY'] ?? '₺';
+  const cur = (v: number) => (isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ' + sym : '–');
 
   let y = 0;
   const tarih = new Date().toLocaleDateString('tr-TR');
@@ -52,7 +55,7 @@ export async function buildHotelPdf(
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
   doc.text('GELİR YAKLAŞIMINA GÖRE PİYASA DEĞERİ', M + 5, y + 7);
   doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
-  doc.text(tl(r.capitalizedValue), M + 5, y + 18.5);
+  doc.text(cur(r.capitalizedValue), M + 5, y + 18.5);
   const cx = M + W * 0.58;
   doc.setDrawColor(58, 88, 124);
   doc.line(cx - 4, y + 4.5, cx - 4, y + H - 4.5);
@@ -62,7 +65,7 @@ export async function buildHotelPdf(
     doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
     doc.text(val, cx, sy + 5.2);
   };
-  stat('NET İŞLETME GELİRİ (NOI)', tl(r.noi), y + 10.5);
+  stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 10.5);
   stat('KAPİTALİZASYON ORANI', pct(input.projection.capRate), y + 21.5);
   y += H + 8;
 
@@ -101,12 +104,12 @@ export async function buildHotelPdf(
   table(
     ['Gelir Kalemi', 'Yıllık Tutar'],
     [
-      ['Toplam Oda Geliri', tl(r.totalRoomRevenue)],
-      ['Toplam Yardımcı İşletme Geliri', tl(r.totalAncillaryRevenue)],
-      ['Toplam Ticari Kira Geliri', tl(r.totalLeaseRevenue)],
-      ['TOPLAM BRÜT GELİR', tl(r.totalGrossRevenue)],
-      ['İşletme Gideri', `%${Math.round(input.opex.expenseRate * 100)} · ${tl(r.totalExpense)}`],
-      ['NET İŞLETME GELİRİ (NOI)', tl(r.noi)],
+      ['Toplam Oda Geliri', cur(r.totalRoomRevenue)],
+      ['Toplam Yardımcı İşletme Geliri', cur(r.totalAncillaryRevenue)],
+      ['Toplam Ticari Kira Geliri', cur(r.totalLeaseRevenue)],
+      ['TOPLAM BRÜT GELİR', cur(r.totalGrossRevenue)],
+      ['İşletme Gideri', `%${Math.round(input.opex.expenseRate * 100)} · ${cur(r.totalExpense)}`],
+      ['NET İŞLETME GELİRİ (NOI)', cur(r.noi)],
     ],
     [110, 70],
   );
@@ -116,7 +119,7 @@ export async function buildHotelPdf(
     table(
       ['Oda Tipi', 'Adet', 'Fiyat', 'Doluluk', 'Yıllık Gelir'],
       r.roomRows.map((row) => [
-        row.roomType, String(row.roomCount), tl(row.adr), pct(row.occupancy, 0), tl(row.annualRevenue),
+        row.roomType, String(row.roomCount), cur(row.adr), pct(row.occupancy, 0), cur(row.annualRevenue),
       ]),
       [55, 20, 35, 30, 40],
     );
@@ -126,7 +129,7 @@ export async function buildHotelPdf(
     sectionTitle('Ticari Kira Tablosu');
     table(
       ['Alan Türü', 'Kiracı', 'Aylık Kira', 'Yıllık Kira'],
-      r.leaseRows.map((row) => [row.areaType || '—', row.tenant || '—', tl(row.monthlyAmount), tl(row.annualAmount)]),
+      r.leaseRows.map((row) => [row.areaType || '—', row.tenant || '—', cur(row.monthlyAmount), cur(row.annualAmount)]),
       [55, 55, 35, 35],
     );
   }
@@ -136,7 +139,7 @@ export async function buildHotelPdf(
     table(
       ['Yıl', 'Toplam Gelir', 'İşletme Gideri', 'NOI', 'Kapitalizasyon Değeri'],
       r.projectionTable.map((row) => [
-        String(row.year), tl(row.totalRevenue), tl(row.totalExpense), tl(row.noi), tl(row.capitalizedValue),
+        String(row.year), cur(row.totalRevenue), cur(row.totalExpense), cur(row.noi), cur(row.capitalizedValue),
       ]),
       [20, 45, 40, 40, 45],
     );
@@ -147,9 +150,9 @@ export async function buildHotelPdf(
     table(
       ['Kalem', 'Değer'],
       [
-        ['Arsa Değeri', tl(r.cost.landValue)],
-        ['Yapı Değerleri', tl(r.cost.buildingsValue)],
-        ['Maliyet Yaklaşımı Değeri (5.000\'e yuvarlanmış)', tl(r.cost.totalValueRounded)],
+        ['Arsa Değeri', cur(r.cost.landValue)],
+        ['Yapı Değerleri', cur(r.cost.buildingsValue)],
+        ['Maliyet Yaklaşımı Değeri (5.000\'e yuvarlanmış)', cur(r.cost.totalValueRounded)],
       ],
       [110, 70],
     );

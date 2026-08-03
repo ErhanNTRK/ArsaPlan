@@ -154,17 +154,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
     setInput((prev) => ({ ...prev, [key]: { ...(prev[key] as object), ...(patch as object) } }));
   const setTop: SetTop = (key, value) => setInput((prev) => ({ ...prev, [key]: value }));
 
-  const [lang, setLangState] = useState<Lang>(getLang());
-  function switchLang(l: Lang) {
-    setLang(l);
-    setLangState(l);
-  }
-  useEffect(() => {
-    const root = document.getElementById('arsaplan-root');
-    if (root && lang === 'en') startDomTranslation(root);
-    else stopDomTranslation();
-    return () => stopDomTranslation();
-  }, [lang, step]);
+  const lang = getLang();
 
   const isIsletme = input.assetType === 'ticari' && input.ticariMode === 'isletme';
 
@@ -347,11 +337,6 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
             <button type="button" className="link-btn topbar-link"
                     onClick={() => { window.location.hash = ''; }}
                     title="Yöntem seçim ekranına dön">← Başlangıç</button>
-            <button type="button" className="link-btn topbar-link lang-toggle"
-                    title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
-                    onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
-              {lang === 'tr' ? '🌐 English' : '🌐 Türkçe'}
-            </button>
             <button type="button" className="link-btn topbar-link" onClick={exportDraft}
                     title="Analiz girişlerini .json dosyası olarak kaydeder">💾 Taslağı Kaydet</button>
             <label className="link-btn topbar-link" title="Kaydedilmiş .json taslağını geri yükler">
@@ -483,6 +468,16 @@ export default function App() {
   // açılışta her zaman yöntem seçim ekranı gelir.
   const [mode, setMode] = useState<AppMode>(modeFromHash);
 
+  const [lang, setLangState] = useState<Lang>(getLang());
+  function switchLang(l: Lang) { setLang(l); setLangState(l); }
+  useEffect(() => {
+    // Not: kök eleman id'si "root" — önceden yanlışlıkla "arsaplan-root" aranıyordu, çeviri hiç tetiklenmiyordu.
+    const root = document.getElementById('root');
+    if (root && lang === 'en') startDomTranslation(root);
+    else stopDomTranslation();
+    return () => stopDomTranslation();
+  }, [lang, mode]);
+
   useEffect(() => {
     const onHash = () => setMode(modeFromHash());
     window.addEventListener('hashchange', onHash);
@@ -533,5 +528,9 @@ export default function App() {
   else if (mode === 'arsa') content = <ArsaApp onBack={back} />;
   else content = <Landing onSelect={choose} />;
 
-  return (<>{content}<ThemeToggle /></>);
+  return (<>{content}<ThemeToggle /><button type="button" className="lang-toggle-fab no-print"
+    title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
+    onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
+    {lang === 'tr' ? '🌐 EN' : '🌐 TR'}
+  </button></>);
 }

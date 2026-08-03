@@ -162,21 +162,21 @@ export function buildWarnings(input: HotelIncomeInput, result: {
 export function buildSummaryText(r: {
   totalGrossRevenue: number; totalExpense: number; noi: number;
   capitalizedValue: number; capRate: number;
-}): string {
+}, sym = '₺'): string {
   if (r.totalGrossRevenue <= 0) {
     return 'Gelir verileri henüz tamamlanmadığı için değerlendirme metni oluşturulamamıştır.';
   }
   return (
     `Yapılan gelir yöntemi analizinde taşınmazın yıllık toplam işletme geliri ` +
-    `${fmtTLShort(r.totalGrossRevenue)} olarak hesaplanmış; işletme giderleri ` +
-    `(${fmtTLShort(r.totalExpense)}) düşüldükten sonra net işletme geliri ` +
-    `${fmtTLShort(r.noi)} olarak belirlenmiştir. %${(r.capRate * 100).toFixed(1).replace('.', ',')} ` +
+    `${fmtTLShort(r.totalGrossRevenue, sym)} olarak hesaplanmış; işletme giderleri ` +
+    `(${fmtTLShort(r.totalExpense, sym)}) düşüldükten sonra net işletme geliri ` +
+    `${fmtTLShort(r.noi, sym)} olarak belirlenmiştir. %${(r.capRate * 100).toFixed(1).replace('.', ',')} ` +
     `kapitalizasyon oranı uygulanarak, taşınmazın gelir yaklaşımına göre piyasa değeri ` +
-    `${fmtTLShort(r.capitalizedValue)} olarak tespit edilmiştir.`
+    `${fmtTLShort(r.capitalizedValue, sym)} olarak tespit edilmiştir.`
   );
 }
-function fmtTLShort(v: number): string {
-  return Math.round(v).toLocaleString('tr-TR') + ' ₺';
+function fmtTLShort(v: number, sym = '₺'): string {
+  return Math.round(v).toLocaleString('tr-TR') + ' ' + sym;
 }
 
 /* ─────────────────── Orkestratör — tek çağrıda tüm analizi üretir ─────────────────── */
@@ -196,9 +196,10 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const ina = computeIna(projectionTable, input.projection);
 
   const warnings = buildWarnings(input, { totalRoomRevenue: roomCalc.total, totalGrossRevenue, noi });
+  const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
   const summaryText = buildSummaryText({
     totalGrossRevenue, totalExpense, noi, capitalizedValue, capRate: input.projection.capRate,
-  });
+  }, CUR_SYM[input.currency ?? 'TRY'] ?? '₺');
 
   const costLandValue = R((input.costParcelArea ?? 0) * (input.costLandUnitValue ?? 0));
   const costBuildingsValue = R((input.costBuildings ?? []).reduce((s, b) =>

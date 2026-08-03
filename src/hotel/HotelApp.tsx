@@ -5,9 +5,16 @@
  * birebir kullanır; mevcut App.tsx / engine / ui dosyalarının hiçbirini değiştirmez.
  * Kendi state'ini, kendi localStorage taslağını ve kendi adım akışını yönetir.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { BRAND } from '../brand/brand';
-import { Field, Txt, Num, Pct, Sel, Seg, fmtTL } from '../ui/fields';
+import { Field, Txt, Num, Pct, Sel, Seg } from '../ui/fields';
+
+const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
+const CurrencyCtx = createContext<string>('TRY');
+function useFmt() {
+  const cur = useContext(CurrencyCtx);
+  return (v: number) => (isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ' + (CUR_SYM[cur] ?? '₺') : '–');
+}
 import {
   analyzeHotel, createDefaultHotelInput, newId,
 } from './engine';
@@ -88,6 +95,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
   const stop = blocker();
 
   return (
+    <CurrencyCtx.Provider value={input.currency ?? 'TRY'}>
     <div className="app" id="arsaplan-otel-root">
       <div className="topbar">
         <div className="topbar-inner">
@@ -157,18 +165,20 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
         </div>
       </div>
     </div>
+    </CurrencyCtx.Provider>
   );
 }
 
 /* ─────────────────── Sabit Özet Paneli ─────────────────── */
 function HotelSummaryBar({ result }: { result: ReturnType<typeof analyzeHotel> }) {
+  const fmt = useFmt();
   return (
     <div className="hotel-summary-sticky no-print">
       <div className="hotel-summary-inner">
-        <div><span>Toplam Gelir</span><b>{fmtTL(result.totalGrossRevenue)}</b></div>
-        <div><span>Gider</span><b>{fmtTL(result.totalExpense)}</b></div>
-        <div><span>NOI</span><b>{fmtTL(result.noi)}</b></div>
-        <div><span>Kapitalizasyon Değeri</span><b>{fmtTL(result.capitalizedValue)}</b></div>
+        <div><span>Toplam Gelir</span><b>{fmt(result.totalGrossRevenue)}</b></div>
+        <div><span>Gider</span><b>{fmt(result.totalExpense)}</b></div>
+        <div><span>NOI</span><b>{fmt(result.noi)}</b></div>
+        <div><span>Kapitalizasyon Değeri</span><b>{fmt(result.capitalizedValue)}</b></div>
       </div>
     </div>
   );
@@ -222,6 +232,7 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
 function StepRooms({ rooms, setRooms, result }: {
   rooms: RoomRevenueRow[]; setRooms: (r: RoomRevenueRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
+  const fmt = useFmt();
   const add = () => setRooms([...rooms, {
     id: newId(), roomType: ODA_TIPLERI[0], roomCount: 0, adr: 0, occupancy: 0, operatingDays: 365,
   }]);
@@ -249,7 +260,7 @@ function StepRooms({ rooms, setRooms, result }: {
               <div className="b-cell"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></div>
               <div className="b-cell"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></div>
               <div className="b-cell"><Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" /></div>
-              <div className="b-cell b-cost">{calc ? fmtTL(calc.annualRevenue) : '—'}</div>
+              <div className="b-cell b-cost">{calc ? fmt(calc.annualRevenue) : '—'}</div>
               <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
             </div>
           );
@@ -264,7 +275,7 @@ function StepRooms({ rooms, setRooms, result }: {
         {rooms.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
             <div><span>Toplam Oda Sayısı</span><b>{result.performance.totalRoomCount}</b></div>
-            <div><span>Toplam Oda Geliri</span><b>{fmtTL(result.totalRoomRevenue)}</b></div>
+            <div><span>Toplam Oda Geliri</span><b>{fmt(result.totalRoomRevenue)}</b></div>
           </div>
         )}
       </div>
@@ -273,9 +284,9 @@ function StepRooms({ rooms, setRooms, result }: {
         <div className="card result-preview">
           <div className="card-title">Otomatik Performans Göstergeleri</div>
           <div className="mini-kpi three">
-            <div><span>ADR</span><b>{fmtTL(result.performance.blendedAdr)}</b></div>
+            <div><span>ADR</span><b>{fmt(result.performance.blendedAdr)}</b></div>
             <div><span>Doluluk</span><b>%{Math.round(result.performance.blendedOccupancy * 100)}</b></div>
-            <div><span>RevPAR</span><b>{fmtTL(result.performance.revPar)}</b></div>
+            <div><span>RevPAR</span><b>{fmt(result.performance.revPar)}</b></div>
           </div>
         </div>
       )}
@@ -287,6 +298,7 @@ function StepRooms({ rooms, setRooms, result }: {
 function StepAncillary({ ancillary, setAncillary, result }: {
   ancillary: AncillaryIncomeRow[]; setAncillary: (a: AncillaryIncomeRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
+  const fmt = useFmt();
   const add = () => setAncillary([...ancillary, { id: newId(), name: YARDIMCI_GELIR_KATALOGU[0], annualIncome: 0, note: '' }]);
   useEffect(() => {
     if (ancillary.length === 0) add();
@@ -321,7 +333,7 @@ function StepAncillary({ ancillary, setAncillary, result }: {
                 : <Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix="₺" />}
             </div>
             <div className="b-cell b-cost">
-              {(() => { const c = result.ancillaryRows?.[i]; return c ? fmtTL(c.effectiveIncome) : fmtTL(a.annualIncome); })()}
+              {(() => { const c = result.ancillaryRows?.[i]; return c ? fmt(c.effectiveIncome) : fmt(a.annualIncome); })()}
             </div>
             <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
           </div>
@@ -336,7 +348,7 @@ function StepAncillary({ ancillary, setAncillary, result }: {
         {ancillary.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
             <div><span>Kalem Sayısı</span><b>{ancillary.length}</b></div>
-            <div><span>Toplam Yardımcı Gelir</span><b>{fmtTL(result.totalAncillaryRevenue)}</b></div>
+            <div><span>Toplam Yardımcı Gelir</span><b>{fmt(result.totalAncillaryRevenue)}</b></div>
           </div>
         )}
       </div>
@@ -348,6 +360,7 @@ function StepAncillary({ ancillary, setAncillary, result }: {
 function StepLeases({ leases, setLeases, result }: {
   leases: CommercialLeaseRow[]; setLeases: (l: CommercialLeaseRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
+  const fmt = useFmt();
   const add = () => setLeases([...leases, {
     id: newId(), areaName: '', areaType: TICARI_KIRA_KATALOGU[0], tenant: '', inputMode: 'aylik', amount: 0, note: '',
   }]);
@@ -384,7 +397,7 @@ function StepLeases({ leases, setLeases, result }: {
               </Field>
               {calc && (
                 <div className="note-box" style={{ marginTop: 8 }}>
-                  Aylık {fmtTL(calc.monthlyAmount)} · Yıllık <b>{fmtTL(calc.annualAmount)}</b>
+                  Aylık {fmt(calc.monthlyAmount)} · Yıllık <b>{fmt(calc.annualAmount)}</b>
                 </div>
               )}
             </div>
@@ -395,7 +408,7 @@ function StepLeases({ leases, setLeases, result }: {
         {leases.length > 0 && (
           <div className="mini-kpi" style={{ marginTop: 14 }}>
             <div><span>Alan Sayısı</span><b>{leases.length}</b></div>
-            <div><span>Toplam Kira Geliri</span><b>{fmtTL(result.totalLeaseRevenue)}</b></div>
+            <div><span>Toplam Kira Geliri</span><b>{fmt(result.totalLeaseRevenue)}</b></div>
           </div>
         )}
       </div>
@@ -407,6 +420,7 @@ function StepLeases({ leases, setLeases, result }: {
 function StepOpex({ opex, setOpex, result }: {
   opex: HotelIncomeInput['opex']; setOpex: (p: Partial<HotelIncomeInput['opex']>) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
+  const fmt = useFmt();
   return (
     <div className="cols">
       <div className="card">
@@ -419,11 +433,11 @@ function StepOpex({ opex, setOpex, result }: {
           <Pct value={opex.expenseRate} onChange={(n) => setOpex({ expenseRate: n })} />
         </Field>
         <div className="note-box" style={{ marginTop: 8 }}>
-          {fmtTL(result.totalGrossRevenue)} × %{Math.round(opex.expenseRate * 100)} = {fmtTL(result.totalExpense)} gider
+          {fmt(result.totalGrossRevenue)} × %{Math.round(opex.expenseRate * 100)} = {fmt(result.totalExpense)} gider
         </div>
         <div className="mini-kpi" style={{ marginTop: 14 }}>
-          <div><span>Toplam Brüt Gelir (yıllık)</span><b>{fmtTL(result.totalGrossRevenue)}</b></div>
-          <div><span>Net İşletme Geliri (NOI)</span><b>{fmtTL(result.noi)}</b></div>
+          <div><span>Toplam Brüt Gelir (yıllık)</span><b>{fmt(result.totalGrossRevenue)}</b></div>
+          <div><span>Net İşletme Geliri (NOI)</span><b>{fmt(result.noi)}</b></div>
         </div>
       </div>
     </div>
@@ -437,6 +451,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
   result: ReturnType<typeof analyzeHotel>;
   input: HotelIncomeInput; setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
 }) {
+  const fmt = useFmt();
   return (
     <div className="cols">
       <div className="card">
@@ -489,7 +504,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
         </div>
         {result.ina && (
           <div className="note-box" style={{ marginTop: 10 }}>
-            İNA sonucu: Terminal {fmtTL(result.ina.terminalValue)} · <b>NBD {fmtTL(result.ina.npv)}</b>
+            İNA sonucu: Terminal {fmt(result.ina.terminalValue)} · <b>NBD {fmt(result.ina.npv)}</b>
           </div>
         )}
       </div>
@@ -550,8 +565,8 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
 
         {result.cost && (
           <div className="note-box" style={{ marginTop: 10 }}>
-            Arsa {fmtTL(result.cost.landValue)} + Yapılar {fmtTL(result.cost.buildingsValue)} =
-            <b> Maliyet Yaklaşımı Değeri: {fmtTL(result.cost.totalValueRounded)}</b>
+            Arsa {fmt(result.cost.landValue)} + Yapılar {fmt(result.cost.buildingsValue)} =
+            <b> Maliyet Yaklaşımı Değeri: {fmt(result.cost.totalValueRounded)}</b>
           </div>
         )}
       </div>
@@ -567,10 +582,10 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
               {result.projectionTable.map((row) => (
                 <tr key={row.year}>
                   <td>{row.year}</td>
-                  <td>{fmtTL(row.totalRevenue)}</td>
-                  <td>{fmtTL(row.totalExpense)}</td>
-                  <td>{fmtTL(row.noi)}</td>
-                  <td>{fmtTL(row.capitalizedValue)}</td>
+                  <td>{fmt(row.totalRevenue)}</td>
+                  <td>{fmt(row.totalExpense)}</td>
+                  <td>{fmt(row.noi)}</td>
+                  <td>{fmt(row.capitalizedValue)}</td>
                 </tr>
               ))}
             </tbody>
@@ -586,6 +601,7 @@ function HotelResult({ input, result, setFinal }: {
   input: HotelIncomeInput; result: ReturnType<typeof analyzeHotel>;
   setFinal: (p: Partial<HotelIncomeInput>) => void;
 }) {
+  const fmt = useFmt();
   const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
     : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
     : result.capitalizedValue;
@@ -596,13 +612,13 @@ function HotelResult({ input, result, setFinal }: {
         <div className="dual-values">
           <div className={`dual-box${(input.finalMethod ?? 'direkt') === 'direkt' ? ' dual-box--chosen' : ''}`}>
             <span>DİREKT KAPİTALİZASYON</span>
-            <b>{fmtTL(result.capitalizedValue)}</b>
+            <b>{fmt(result.capitalizedValue)}</b>
             <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</em>
           </div>
           {result.ina && (
             <div className={`dual-box${input.finalMethod === 'ina' ? ' dual-box--chosen' : ''}`}>
               <span>İNA (NBD)</span>
-              <b>{fmtTL(result.ina.npv)}</b>
+              <b>{fmt(result.ina.npv)}</b>
               <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
             </div>
           )}
@@ -620,21 +636,21 @@ function HotelResult({ input, result, setFinal }: {
               <input type="number" value={input.finalManualValue ?? ''}
                      onChange={(e) => setFinal({ finalManualValue: Number(e.target.value) || 0 })} /></label>
           )}
-          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmtTL(finalValue)}</b></div>
+          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmt(finalValue)}</b></div>
         </div>
         <div className="kpi-grid" style={{ marginTop: 12 }}>
-          <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmtTL(result.totalGrossRevenue)}</div></div>
-          <div className="kpi"><div className="kpi-label">Toplam İşletme Gideri</div><div className="kpi-value">{fmtTL(result.totalExpense)}</div></div>
-          <div className="kpi"><div className="kpi-label">Net İşletme Geliri</div><div className="kpi-value">{fmtTL(result.noi)}</div></div>
+          <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmt(result.totalGrossRevenue)}</div></div>
+          <div className="kpi"><div className="kpi-label">Toplam İşletme Gideri</div><div className="kpi-value">{fmt(result.totalExpense)}</div></div>
+          <div className="kpi"><div className="kpi-label">Net İşletme Geliri</div><div className="kpi-value">{fmt(result.noi)}</div></div>
         </div>
       </div>
 
       <div className="card">
         <div className="card-title">Gelir Kırılımı</div>
-        <div className="row"><span className="row-label">Toplam Oda Geliri</span><span className="row-value">{fmtTL(result.totalRoomRevenue)}</span></div>
-        <div className="row"><span className="row-label">Toplam Yardımcı Gelir</span><span className="row-value">{fmtTL(result.totalAncillaryRevenue)}</span></div>
-        <div className="row"><span className="row-label">Toplam Ticari Kira Geliri</span><span className="row-value">{fmtTL(result.totalLeaseRevenue)}</span></div>
-        <div className="row total"><span className="row-label">TOPLAM BRÜT GELİR</span><span className="row-value">{fmtTL(result.totalGrossRevenue)}</span></div>
+        <div className="row"><span className="row-label">Toplam Oda Geliri</span><span className="row-value">{fmt(result.totalRoomRevenue)}</span></div>
+        <div className="row"><span className="row-label">Toplam Yardımcı Gelir</span><span className="row-value">{fmt(result.totalAncillaryRevenue)}</span></div>
+        <div className="row"><span className="row-label">Toplam Ticari Kira Geliri</span><span className="row-value">{fmt(result.totalLeaseRevenue)}</span></div>
+        <div className="row total"><span className="row-label">TOPLAM BRÜT GELİR</span><span className="row-value">{fmt(result.totalGrossRevenue)}</span></div>
       </div>
 
       {result.warnings.length > 0 && (

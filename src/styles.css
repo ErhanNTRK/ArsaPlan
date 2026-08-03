@@ -101,6 +101,13 @@
   font-size: 19px; cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 @media print { .theme-toggle { display: none; } }
+.lang-toggle-fab {
+  position: fixed; right: 68px; bottom: 16px; z-index: 999;
+  height: 44px; padding: 0 14px; border-radius: 22px; border: 1px solid var(--line-2, #c8d2de);
+  background: var(--surface, #fff); box-shadow: var(--shadow, 0 4px 14px rgba(0,0,0,.15));
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+@media print { .lang-toggle-fab { display: none; } }
 @media (max-width: 700px) {
   .dcf-head, .dcf-row { grid-template-columns: 0.4fr 1fr 1fr 1fr 1fr; font-size: 11px; gap: 4px; }
 }

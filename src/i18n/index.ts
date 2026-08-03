@@ -34,6 +34,30 @@ export const LOC = () => (lang === 'en' ? 'en-US' : 'tr-TR');
 
 /* ═══════════ SÖZLÜK ═══════════ */
 const D: Record<string, string> = {
+  /* — Tarım / Akaryakıt / Otel / Üst Hakkı — kart başlıkları (2026-08-03) — */
+  'Akaryakıt Satışları': 'Fuel Sales', 'Ağaç Aralığından Adet Önerisi': 'Tree Count Suggestion from Spacing',
+  'Değerlendirme Özeti': 'Valuation Summary', 'Dönemsel Tablo': 'Period Table',
+  'Gelir Kırılımı': 'Income Breakdown', 'Gelirler Tablosu': 'Income Table', 'Kimlik': 'Identity',
+  'Maliyet Yaklaşımı': 'Cost Approach', 'Maliyet Yaklaşımı (opsiyonel — ikinci değer)': 'Cost Approach (optional — secondary value)',
+  'Maliyet Yaklaşımı — opsiyonel': 'Cost Approach — optional', 'Ne Tür Bir Arazi?': 'What Type of Land?',
+  'Oda Gelirleri': 'Room Revenue', 'Oda Tipleri': 'Room Types', 'Otomatik Performans Göstergeleri': 'Automatic Performance Indicators',
+  'Para Birimi': 'Currency', 'Projeksiyon Parametreleri': 'Projection Parameters', 'Rapor': 'Report',
+  'Sabit Giderler': 'Fixed Expenses', 'Sonuç': 'Result', 'Sonuç — Değerleme': 'Result — Valuation',
+  'Taşınmaz Kimliği': 'Property Identity', 'Tesis Bilgileri': 'Facility Information',
+  'Ticari Alan Kira Gelirleri': 'Commercial Lease Income',
+  'Yardımcı İşletme Gelirleri': 'Ancillary Operating Income',
+  'Yıllık Projeksiyon Tablosu': 'Annual Projection Table', 'Ürün Satırları': 'Product Rows',
+  'Üst Hakkı Süresi': 'Right of Superficies Term', 'İNA (İndirgenmiş Nakit Akımı) — opsiyonel': 'DCF (Discounted Cash Flow) — optional',
+  'İlave Gelir Getiriciler': 'Additional Income Generators', 'İskonto ve Dönem Sonu': 'Discount Rate & Terminal',
+  'İşletme Gideri': 'Operating Expense', 'İşletme Giderleri': 'Operating Expenses',
+  'Toplam Değerden Üst Hakkı Hesabı': 'Right of Superficies from Total Value',
+  'Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı': 'Right of Superficies from Land Value Only',
+  'Toplam Gelir Üzerinden Üst Hakkı Hesabı': 'Right of Superficies from Total Income',
+  'Tarımsal Ürün Gelir Hesabı': 'Agricultural Product Income Calculation',
+  'Akaryakıt Gelir Hesabı': 'Fuel Station Income Calculation', 'Otel Gelir Hesabı': 'Hotel Income Calculation',
+  'Üst Hakkı Değerleme': 'Right of Superficies Valuation', 'Ekili Ürün': 'Field Crop', 'Dikili Ürün': 'Orchard Crop',
+  'Karma': 'Mixed', 'PDF İndir': 'Download PDF', 'Excel İndir': 'Download Excel',
+  'Sayfayı Sıfırla': 'Reset Page', 'Ana Sayfaya Dön': 'Back to Home',
   /* — Genel / düğmeler — */
   'Devam': 'Continue', 'Geri': 'Back', 'Sonucu Gör': 'View Result',
   'Yeni Analiz': 'New Analysis', 'Düzenle': 'Edit',
