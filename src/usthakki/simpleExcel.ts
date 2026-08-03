@@ -10,7 +10,7 @@ import type { WholeValueResult, LandOnlyResult } from './simpleCostEngine';
 
 interface SimpleInput {
   hotelName: string; mahalle: string; ada: string; parsel: string; parcelArea: number; fromKml: boolean;
-  currency: 'TL' | 'USD' | 'EUR';
+  currency: 'TL' | 'USD' | 'EUR'; fxRate?: number;
   sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
@@ -94,8 +94,8 @@ export async function downloadSimpleUstHakkiExcel(
   row++;
 
   if (method === 'toplam') {
-    section('DAIMI MUSTAKIL HAK HESABI');
-    kv('Daimi Mustakil Hak Degeri (Toplam Deger x 2/3)', cur(whole.permanentValue), true);
+    section('TASINMAZIN DEGERI');
+    kv('Tasinmazin Degeri', cur(whole.cost.totalValue), true);
     row++;
   } else {
     section('SONUC');
@@ -115,7 +115,12 @@ export async function downloadSimpleUstHakkiExcel(
   ws.getCell(`C${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   ws.getCell(`C${row}`).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
   ws.getRow(row).height = 20;
-  row += 3;
+  row++;
+  if (input.currency !== 'TL') {
+    const finalValue = method === 'toplam' ? whole.ustHakkiValue : land.nihaiUstHakkiDegeri;
+    kv('TL Karsiligi', `${Math.round(finalValue * (input.fxRate ?? 1)).toLocaleString('tr-TR')} ₺`, false);
+  }
+  row += 2;
   ws.mergeCells(`B${row}:C${row}`);
   ws.getCell(`B${row}`).value = `${BRAND.preparedBy} · ${BRAND.developerLine} · ${title}`;
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };

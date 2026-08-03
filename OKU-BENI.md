@@ -1,45 +1,49 @@
-# ArsaPlan v7.0.0 — Excel İçe Aktarma (5 Modül)
+# ArsaPlan v7.0.1 — Üst Hakkı: Geniş Matris Excel + Diğer Düzeltmeler
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı. Mekanizma önce
-bağımsız test edildi, sonra **gerçek dışa aktarma → içe aktarma
-round-trip'i** iki farklı modülde (Tarımsal Ürün — basit, ve Toplam
-Gelir Üzerinden Üst Hakkı — iç içe diziler içeren en karmaşık yapı)
-birebir eşleşme ile doğrulandı.
+Doğrulama: tsc 0 hata, test 192/192, build başarılı. Geniş matris Excel
+gerçek verilerle üretilip LibreOffice ile render edilerek **sıfır ####
+hatası** doğrulandı; referans banka şablonuyla yapı/oran karşılaştırması
+yapıldı (Oda Gelirleri %92,9 gibi oranlar birebir örtüşüyor).
 
-## Nasıl çalışıyor
+## 1) Toplam Değerden Üst Hakkı Hesabı — sonuç gösterimi sadeleşti
 
-Kırılgan bir yaklaşımdan (Excel'deki "güzel" formatlı sayıları — binlik
-ayırıcı, para birimi sembolü dahil — geri ayrıştırmaya çalışmak) kasıtlı
-olarak kaçınıldı. Bunun yerine: her Excel dosyasına **gizli bir veri
-sayfası** ekleniyor, bu sayfa girdinin ham JSON'unu taşıyor. "Excel
-Yükle" düğmesi bu gizli sayfayı okuyup formu **birebir** dolduruyor —
-görünür/bankaya sunulan sayfa hiç etkilenmiyor, kullanıcı normal
-Excel'i gördüğü gibi görmeye devam ediyor.
+"Daimi Müstakil Hak Değeri (2/3)" ara satırı kaldırıldı. Artık yalnız
+**"Taşınmazın Değeri"** (Arsa+Yapı) ve **"Üst Hakkı Değeri"** (nihai)
+gösteriliyor — ekranda, PDF'te, Excel'de.
 
-**Sınır (bilerek):** Kullanıcı Excel'deki görünen bir sayıyı elle
-değiştirip geri yüklerse bu değişiklik yansımaz — yalnızca ilk dışa
-aktarma anındaki veri geri gelir. Senin isteğin ("excel alıp başkasına
-iletmek, yeni kullanıcı yükleyince verileri birebir görmek") tam olarak
-bu.
+## 2) Üst Hakkı modülünde binlik ayırıcı eksikliği düzeltildi
 
-## Eklenen modüller (5)
+Modülün **tüm** sayısal girdi kutuları (39 alan, iki dosyada) artık
+paylaşılan `Num` bileşenini kullanıyor — "60000" yerine "60.000"
+görünüyor. Gelirler Tablosu'ndaki (Yiyecek/Diğer/Toplantı/Dükkan)
+alanlar dahil, ekran görüntünde işaret ettiğin tam yer.
 
-- **Tarımsal Ürün Gelir Hesabı**
-- **Akaryakıt Gelir Hesabı**
-- **Toplam Değerden Üst Hakkı Hesabı**
-- **Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı**
-- **Toplam Gelir Üzerinden Üst Hakkı Hesabı**
+## 3) Nihai değer artık her yerde çift para birimli
 
-Her birinde artık "↺ Sayfayı Sıfırla" düğmesinin yanında **"📂 Excel
-Yükle"** var — daha önce o modülden indirilen bir .xlsx dosyasını
-seçince form birebir doluyor.
+Üç yöntemin de (Toplam Değerden, Sadece Arsa, Toplam Gelir Üzerinden)
+**yalnız nihai sonucu** — ara hücreler değil — hem seçilen dövizde hem
+TL karşılığında gösteriyor: ekranda, PDF'te, Excel'de.
 
-## Bu pakette YAPILMAYAN (dürüst sınır)
+## 4) Excel'in Dönemsel Tablosu geniş matrise dönüştürüldü
 
-**Arsa Gelir Projeksiyonu ve Otel Gelir Hesabı'na eklenmedi.** Bu ikisi
-çok daha büyük/karmaşık veri modellerine sahip (çok adımlı sihirbaz,
-onlarca iç içe alan) — aynı güvenilirlikte round-trip testi yapmadan
-eklemek istemedim. Ayrı bir tur olarak kalıyor, istersen ele alalım.
+Referans banka şablonundaki gibi: her gelir/gider kalemi bir **satır**
+(Oda Gelirleri, Yiyecek/İçecek Gelirleri, Diğer Gelirler, Toplantı/Salon
+Kiralama Gelirleri, Dükkan Kira Gelirleri, Toplam Gelirler, ardından
+işletme ve sabit gider kalemleri), dönemler (1'den kalan süreye kadar)
+yatayda **sütun**. Her gelir satırının yanında **"Toplam Gelir
+İçerisinde Oranı"** sütunu var (karışım her yıl sabit kaldığından tek
+kez hesaplanıyor, referans tabloyla aynı mantık). Sütun sayısı kalan
+süreye göre otomatik genişliyor (49 yıla kadar test edildi).
+
+**PDF mevcut yıl-satırlı hâliyle kaldı** (zaten sayfalama ile tam
+listeyi veriyordu, konuştuğumuz gibi). **Ekran önizlemesi** kısaltılmış
+kalmaya devam ediyor (ilk 6 dönem + "PDF/Excel'de tam liste" notu).
+
+**Bu değişiklik sırasında yakaladığım ve düzelttiğim bir yan hata:**
+sütun düzeni değişince, "TAŞINMAZ DEĞERİ" ve "TL Karşılığı" sonuç
+satırları eski (artık dar kalan) bir sütuna yazmaya devam ediyordu,
+`####` hatası veriyordu — bunu bulup düzelttim, gerçek Excel'le
+doğruladım.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).

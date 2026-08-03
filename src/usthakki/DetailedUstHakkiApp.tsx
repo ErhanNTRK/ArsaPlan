@@ -10,6 +10,7 @@ import { computeDetailedUstHakki, BUILDING_TYPES, type DetailedUstHakkiInput, ty
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
+import { Num } from '../ui/fields';
 import { downloadDetailedUstHakkiPdf } from './detailedPdf';
 import { downloadDetailedUstHakkiExcel } from './detailedExcel';
 
@@ -70,11 +71,8 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
 
   const sureField = (label: string, key: 'kalanSureYil' | 'toplamSureYil') => (
     <label className="pfield pfield--s"><span>{label} ({state.sureUnit === 'ay' ? 'ay' : 'yıl'})</span>
-      <input type="number" value={state.sureUnit === 'ay' ? Math.round(state[key] * 12) || '' : state[key] || ''}
-             onChange={(e) => {
-               const v = Number(e.target.value) || 0;
-               patch({ [key]: state.sureUnit === 'ay' ? R2(v / 12) : v } as Partial<S>);
-             }} /></label>
+      <Num value={state.sureUnit === 'ay' ? Math.round(state[key] * 12) : state[key]}
+           onChange={(n) => patch({ [key]: state.sureUnit === 'ay' ? R2(n / 12) : n } as Partial<S>)} /></label>
   );
 
   const busyRef = useRef(false);
@@ -121,7 +119,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
             <label className="pfield pfield--s"><span>Parsel</span>
               <input value={state.parsel} placeholder="—" onChange={(e) => patch({ parsel: e.target.value })} /></label>
             <label className="pfield"><span>Parsel Alanı m² {state.fromKml && <em>(KML)</em>}</span>
-              <input type="number" value={state.parcelArea || ''} onChange={(e) => patch({ parcelArea: Number(e.target.value) || 0, fromKml: false })} /></label>
+              <Num value={state.parcelArea} onChange={(n) => patch({ parcelArea: n, fromKml: false })} /></label>
             <label className="pfield"><span>KML (TKGM)</span>
               <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>Dosya Yükle</button>
               <input ref={fileRef} type="file" accept=".kml" hidden
@@ -145,7 +143,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
               </select></label>
             {state.currency !== 'TL' && (
               <label className="pfield pfield--s"><span>Kur (1 {state.currency} = ? ₺)</span>
-                <input type="number" value={state.fxRate || ''} onChange={(e) => patch({ fxRate: Number(e.target.value) || 0 })} /></label>
+                <Num value={state.fxRate} onChange={(n) => patch({ fxRate: n })} /></label>
             )}
           </div>
           <div className="hint">DCF tablosu tam <b>{Math.max(0, Math.round(state.kalanSureYil))} dönem</b> içerir.</div>
@@ -159,13 +157,13 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
                 <label className="pfield"><span>Oda Tipi</span>
                   <input value={rm.name} onChange={(e) => patchRoom(rm.id, { name: e.target.value })} /></label>
                 <label className="pfield pfield--s"><span>Oda Sayısı</span>
-                  <input type="number" value={rm.count || ''} onChange={(e) => patchRoom(rm.id, { count: Number(e.target.value) || 0 })} /></label>
+                  <Num value={rm.count} onChange={(n) => patchRoom(rm.id, { count: n })} /></label>
                 <label className="pfield pfield--s"><span>Günlük Ort. Fiyat ({cur})</span>
-                  <input type="number" value={rm.price || ''} onChange={(e) => patchRoom(rm.id, { price: Number(e.target.value) || 0 })} /></label>
+                  <Num value={rm.price} onChange={(n) => patchRoom(rm.id, { price: n })} /></label>
                 <label className="pfield pfield--s"><span>Doluluk %</span>
-                  <input type="number" value={rm.occupancyPct || ''} onChange={(e) => patchRoom(rm.id, { occupancyPct: Number(e.target.value) || 0 })} /></label>
+                  <Num value={rm.occupancyPct} onChange={(n) => patchRoom(rm.id, { occupancyPct: n })} /></label>
                 <label className="pfield pfield--s"><span>Faaliyet Gün</span>
-                  <input type="number" value={rm.days || ''} onChange={(e) => patchRoom(rm.id, { days: Number(e.target.value) || 0 })} /></label>
+                  <Num value={rm.days} onChange={(n) => patchRoom(rm.id, { days: n })} /></label>
                 {state.rooms.length > 1 && (
                   <button type="button" className="b-del" onClick={() => patch({ rooms: state.rooms.filter((x) => x.id !== rm.id) })}>✕</button>
                 )}
@@ -176,7 +174,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="hrow-labeled" style={{ marginTop: 10 }}>
             <div className="pfield pfield--ro"><span>1. Yıl Oda Geliri</span><b>{TL(r.baseRoomIncome)}</b></div>
             <label className="pfield pfield--s"><span>Oda Fiyat Artış Oranı %</span>
-              <input type="number" step="0.5" value={state.roomGrowthPct || ''} onChange={(e) => patch({ roomGrowthPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.roomGrowthPct} onChange={(n) => patch({ roomGrowthPct: n })} /></label>
           </div>
         </div>
 
@@ -184,13 +182,13 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="card-title">Gelirler Tablosu <em style={{ fontWeight: 400, fontSize: 12, opacity: .7 }}>(1. yıl tutarı girilir, Oda Fiyat Artış Oranı ile birlikte büyür)</em></div>
           <div className="hrow-labeled">
             <label className="pfield"><span>Yiyecek/İçecek Geliri ({cur}, 1. yıl)</span>
-              <input type="number" value={state.foodIncomeBase || ''} onChange={(e) => patch({ foodIncomeBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.foodIncomeBase} onChange={(n) => patch({ foodIncomeBase: n })} /></label>
             <label className="pfield"><span>Diğer Gelirler ({cur}, 1. yıl)</span>
-              <input type="number" value={state.otherIncomeBase || ''} onChange={(e) => patch({ otherIncomeBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.otherIncomeBase} onChange={(n) => patch({ otherIncomeBase: n })} /></label>
             <label className="pfield"><span>Toplantı/Salon Geliri ({cur}, 1. yıl)</span>
-              <input type="number" value={state.meetingIncomeBase || ''} onChange={(e) => patch({ meetingIncomeBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.meetingIncomeBase} onChange={(n) => patch({ meetingIncomeBase: n })} /></label>
             <label className="pfield"><span>Dükkan Kira Geliri ({cur}, 1. yıl)</span>
-              <input type="number" value={state.shopIncomeBase || ''} onChange={(e) => patch({ shopIncomeBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.shopIncomeBase} onChange={(n) => patch({ shopIncomeBase: n })} /></label>
           </div>
           <div className="hint">
             Toplam Gelir İçindeki Oranlar (bilgi amaçlı, 1. yıl): Oda %{r.years[0]?.roomIncomePct.toFixed(1) ?? '—'} ·
@@ -205,17 +203,17 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="card-title">İşletme Giderleri</div>
           <div className="hrow-labeled">
             <label className="pfield pfield--s"><span>Oda Gideri %</span>
-              <input type="number" step="0.5" value={state.roomExpensePct || ''} onChange={(e) => patch({ roomExpensePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.roomExpensePct} onChange={(n) => patch({ roomExpensePct: n })} /></label>
             <label className="pfield pfield--s"><span>Yiyecek Gideri %</span>
-              <input type="number" step="0.5" value={state.foodExpensePct || ''} onChange={(e) => patch({ foodExpensePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.foodExpensePct} onChange={(n) => patch({ foodExpensePct: n })} /></label>
             <label className="pfield pfield--s"><span>Diğer Gider %</span>
-              <input type="number" step="0.5" value={state.otherExpensePct || ''} onChange={(e) => patch({ otherExpensePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.otherExpensePct} onChange={(n) => patch({ otherExpensePct: n })} /></label>
             <label className="pfield pfield--s"><span>Genel Yönetim %</span>
-              <input type="number" step="0.5" value={state.generalMgmtPct || ''} onChange={(e) => patch({ generalMgmtPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.generalMgmtPct} onChange={(n) => patch({ generalMgmtPct: n })} /></label>
             <label className="pfield pfield--s"><span>Enerji %</span>
-              <input type="number" step="0.5" value={state.energyPct || ''} onChange={(e) => patch({ energyPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.energyPct} onChange={(n) => patch({ energyPct: n })} /></label>
             <label className="pfield pfield--s"><span>Basit Tamirat %</span>
-              <input type="number" step="0.5" value={state.repairPct || ''} onChange={(e) => patch({ repairPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.repairPct} onChange={(n) => patch({ repairPct: n })} /></label>
           </div>
         </div>
 
@@ -229,9 +227,9 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="hint">Arsa alanı Kimlik kartındaki değerle (KML varsa ondan) paylaşılır.</div>
           <div className="hrow-labeled" style={{ marginTop: 8 }}>
             <label className="pfield"><span>Arsa m² Birim Değeri ({cur})</span>
-              <input type="number" value={state.landUnitValue || ''} onChange={(e) => patch({ landUnitValue: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.landUnitValue} onChange={(n) => patch({ landUnitValue: n })} /></label>
             <label className="pfield pfield--s"><span>Bina Aşınma Oranı % <em title="Yalnız Emlak Vergisi tabanında kullanılır: Emlak Vergisi Esas Değer = Arsa + Yapı×(1-Aşınma%)">(yalnız Emlak Vergisi)</em></span>
-              <input type="number" step="1" value={state.buildingDepreciationPct || ''} onChange={(e) => patch({ buildingDepreciationPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="1" value={state.buildingDepreciationPct} onChange={(n) => patch({ buildingDepreciationPct: n })} /></label>
             <div className="pfield pfield--ro"><span>Arsa Değeri</span><b>{TL(r.cost.landValue)}</b></div>
           </div>
 
@@ -244,9 +242,9 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
                     {BUILDING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select></label>
                 <label className="pfield pfield--s"><span>Alan m²</span>
-                  <input type="number" value={b.area || ''} onChange={(e) => patchBuilding(b.id, { area: Number(e.target.value) || 0 })} /></label>
+                  <Num value={b.area} onChange={(n) => patchBuilding(b.id, { area: n })} /></label>
                 <label className="pfield pfield--s"><span>Birim Maliyet ({cur})</span>
-                  <input type="number" value={b.unitCost || ''} onChange={(e) => patchBuilding(b.id, { unitCost: Number(e.target.value) || 0 })} /></label>
+                  <Num value={b.unitCost} onChange={(n) => patchBuilding(b.id, { unitCost: n })} /></label>
                 <div className="pfield pfield--ro"><span>Toplam Yapı Maliyeti</span><b>{TL(Math.max(0, b.area) * Math.max(0, b.unitCost))}</b></div>
                 {state.buildings.length > 1 && (
                   <button type="button" className="b-del" onClick={() => patch({ buildings: state.buildings.filter((x) => x.id !== b.id) })}>✕</button>
@@ -267,21 +265,21 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="card-title">Sabit Giderler</div>
           <div className="hrow-labeled">
             <label className="pfield pfield--s"><span>İşletmeci Prim % <em title="Brüt İşletme Kârı üzerinden">(brüt kâr)</em></span>
-              <input type="number" step="0.5" value={state.operatorPremiumPct || ''} onChange={(e) => patch({ operatorPremiumPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.operatorPremiumPct} onChange={(n) => patch({ operatorPremiumPct: n })} /></label>
             <label className="pfield pfield--s"><span>Emlak Vergisi % <em>(Toplam Maliyet)</em></span>
-              <input type="number" step="0.1" value={state.propertyTaxPct || ''} onChange={(e) => patch({ propertyTaxPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.1" value={state.propertyTaxPct} onChange={(n) => patch({ propertyTaxPct: n })} /></label>
             <label className="pfield pfield--s"><span>Bina Sigortası % <em>(Toplam Maliyet)</em></span>
-              <input type="number" step="0.1" value={state.insurancePct || ''} onChange={(e) => patch({ insurancePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.1" value={state.insurancePct} onChange={(n) => patch({ insurancePct: n })} /></label>
             <label className="pfield pfield--s"><span>Yenileme Fonu % <em>(Toplam Maliyet)</em></span>
-              <input type="number" step="0.5" value={state.renewalFundPct || ''} onChange={(e) => patch({ renewalFundPct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.renewalFundPct} onChange={(n) => patch({ renewalFundPct: n })} /></label>
           </div>
           <div className="hrow-labeled" style={{ marginTop: 10 }}>
             <label className="pfield pfield--s"><span>Ecrimisil ({cur}, 1. yıl)</span>
-              <input type="number" value={state.ecrimisilBase || ''} onChange={(e) => patch({ ecrimisilBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.ecrimisilBase} onChange={(n) => patch({ ecrimisilBase: n })} /></label>
             <label className="pfield pfield--s"><span>Üst Hakkı Ödemesi ({cur}, 1. yıl)</span>
-              <input type="number" value={state.ustHakkiOdemeBase || ''} onChange={(e) => patch({ ustHakkiOdemeBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.ustHakkiOdemeBase} onChange={(n) => patch({ ustHakkiOdemeBase: n })} /></label>
             <label className="pfield pfield--s"><span>Bayilik Ödemesi ({cur}, 1. yıl)</span>
-              <input type="number" value={state.bayilikBase || ''} onChange={(e) => patch({ bayilikBase: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.bayilikBase} onChange={(n) => patch({ bayilikBase: n })} /></label>
           </div>
         </div>
 
@@ -289,9 +287,9 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           <div className="card-title">İskonto ve Dönem Sonu</div>
           <div className="hrow-labeled">
             <label className="pfield pfield--s"><span>İskonto Oranı %</span>
-              <input type="number" step="0.5" value={state.discountRatePct || ''} onChange={(e) => patch({ discountRatePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.discountRatePct} onChange={(n) => patch({ discountRatePct: n })} /></label>
             <label className="pfield pfield--s"><span>Dönem Sonu Değer İndirgeme %</span>
-              <input type="number" step="0.5" value={state.donemSonuIndirgemePct || ''} onChange={(e) => patch({ donemSonuIndirgemePct: Number(e.target.value) || 0 })} /></label>
+              <Num step="0.5" value={state.donemSonuIndirgemePct} onChange={(n) => patch({ donemSonuIndirgemePct: n })} /></label>
           </div>
           <div className="hint">1. dönem indirgenmez; 2. dönemden itibaren iskonto oranıyla bugüne çekilir.</div>
         </div>

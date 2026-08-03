@@ -13,7 +13,7 @@ import type { WholeValueResult, LandOnlyResult } from './simpleCostEngine';
 
 interface SimpleInput {
   hotelName: string; mahalle: string; ada: string; parsel: string; parcelArea: number; fromKml: boolean;
-  currency: 'TL' | 'USD' | 'EUR';
+  currency: 'TL' | 'USD' | 'EUR'; fxRate?: number;
   sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
@@ -68,7 +68,7 @@ export async function buildSimpleUstHakkiPdf(
 
   if (method === 'toplam') {
     sectionTitle('DAİMİ MÜSTAKİL HAK HESABI');
-    row('Daimi Müstakil Hak Değeri (Toplam Değer × 2/3)', cur(whole.permanentValue, input), true);
+    row('Taşınmazın Değeri', cur(whole.cost.totalValue, input), true);
     y += 2;
   } else {
     sectionTitle('SONUÇ');
@@ -77,7 +77,7 @@ export async function buildSimpleUstHakkiPdf(
     y += 2;
   }
 
-  const boxH = 24;
+  const boxH = input.currency !== 'TL' ? 32 : 24;
   doc.setFillColor(...NAVY);
   doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
   doc.setFillColor(...GOLD);
@@ -87,6 +87,10 @@ export async function buildSimpleUstHakkiPdf(
   doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
   const finalValue = method === 'toplam' ? whole.ustHakkiValue : land.nihaiUstHakkiDegeri;
   doc.text(cur(finalValue, input), M + 5, y + 19);
+  if (input.currency !== 'TL') {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(196, 212, 229);
+    doc.text(`TL Karşılığı: ${Math.round(finalValue * (input.fxRate ?? 1)).toLocaleString('tr-TR')} ₺`, M + 5, y + 27);
+  }
   y += boxH + 8;
 
   drawFooter(doc, BRAND.version, `Yöntem: ${title} · Tutarlar KDV hariçtir`);

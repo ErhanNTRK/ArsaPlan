@@ -12,6 +12,7 @@ import {
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
+import { Num } from '../ui/fields';
 import { downloadSimpleUstHakkiPdf } from './simplePdf';
 import { downloadSimpleUstHakkiExcel } from './simpleExcel';
 
@@ -117,7 +118,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
             <label className="pfield pfield--s"><span>Parsel <em>(opsiyonel)</em></span>
               <input value={state.parsel} placeholder="—" onChange={(e) => patch({ parsel: e.target.value })} /></label>
             <label className="pfield"><span>Parsel Alanı m² <b style={{ color: '#c0392b' }}>*zorunlu</b> {state.fromKml && <em>(KML)</em>}</span>
-              <input type="number" value={state.parcelArea || ''} onChange={(e) => patch({ parcelArea: Number(e.target.value) || 0, fromKml: false })} /></label>
+              <Num value={state.parcelArea} onChange={(n) => patch({ parcelArea: n, fromKml: false })} /></label>
             <label className="pfield"><span>KML (TKGM)</span>
               <button type="button" className="btn-ghost" onClick={() => fileRef.current?.click()}>Dosya Yükle</button>
               <input ref={fileRef} type="file" accept=".kml" hidden
@@ -136,10 +137,10 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
               </select></label>
             {state.currency !== 'TL' && (
               <label className="pfield pfield--s"><span>Kur (1 {state.currency} = ? ₺)</span>
-                <input type="number" value={state.fxRate || ''} onChange={(e) => patch({ fxRate: Number(e.target.value) || 0 })} /></label>
+                <Num value={state.fxRate} onChange={(n) => patch({ fxRate: n })} /></label>
             )}
             <label className="pfield"><span>Arsa m² Birim Değeri ({cur})</span>
-              <input type="number" value={state.landUnitValue || ''} onChange={(e) => patch({ landUnitValue: Number(e.target.value) || 0 })} /></label>
+              <Num value={state.landUnitValue} onChange={(n) => patch({ landUnitValue: n })} /></label>
             <div className="pfield pfield--ro"><span>Arsa Değeri</span><b>{TL(r.cost.landValue)}</b></div>
           </div>
 
@@ -152,11 +153,11 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
                     {BUILDING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select></label>
                 <label className="pfield pfield--s"><span>Yapı Alanı m²</span>
-                  <input type="number" value={b.area || ''} onChange={(e) => patchBuilding(b.id, { area: Number(e.target.value) || 0 })} /></label>
+                  <Num value={b.area} onChange={(n) => patchBuilding(b.id, { area: n })} /></label>
                 <label className="pfield pfield--s"><span>Birim Maliyet ({cur})</span>
-                  <input type="number" value={b.unitCost || ''} onChange={(e) => patchBuilding(b.id, { unitCost: Number(e.target.value) || 0 })} /></label>
+                  <Num value={b.unitCost} onChange={(n) => patchBuilding(b.id, { unitCost: n })} /></label>
                 <label className="pfield pfield--s"><span>Amortisman %</span>
-                  <input type="number" value={b.depreciationPct || ''} onChange={(e) => patchBuilding(b.id, { depreciationPct: Number(e.target.value) || 0 })} /></label>
+                  <Num value={b.depreciationPct} onChange={(n) => patchBuilding(b.id, { depreciationPct: n })} /></label>
                 <div className="pfield pfield--ro"><span>Yapı Değeri</span>
                   <b>{TL(Math.max(0, b.area) * Math.max(0, b.unitCost) * Math.min(100, Math.max(0, b.depreciationPct)) / 100)}</b></div>
                 {state.buildings.length > 1 && (
@@ -181,9 +182,9 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
                 <option value="yil">Yıl</option><option value="ay">Ay</option>
               </select></label>
             <label className="pfield pfield--s"><span>Kalan Süre ({state.sureUnit === 'ay' ? 'ay' : 'yıl'})</span>
-              <input type="number" value={state.kalanSure || ''} onChange={(e) => patch({ kalanSure: R2(Number(e.target.value) || 0) })} /></label>
+              <Num value={state.kalanSure} onChange={(n) => patch({ kalanSure: R2(n) })} /></label>
             <label className="pfield pfield--s"><span>Toplam Süre ({state.sureUnit === 'ay' ? 'ay' : 'yıl'})</span>
-              <input type="number" value={state.toplamSure || ''} onChange={(e) => patch({ toplamSure: R2(Number(e.target.value) || 0) })} /></label>
+              <Num value={state.toplamSure} onChange={(n) => patch({ toplamSure: R2(n) })} /></label>
           </div>
           {r.warnings.map((w, i) => <div className="warn-line" key={i}>{w}</div>)}
         </div>
@@ -192,14 +193,20 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
           <div className="card-title">Sonuç</div>
           {method === 'toplam' ? (
             <div className="hrow-labeled">
-              <div className="pfield pfield--ro"><span>Daimi Müstakil Hak Değeri</span><b>{TL(whole.permanentValue)}</b></div>
+              <div className="pfield pfield--ro"><span>Taşınmazın Değeri</span><b>{TL(whole.cost.totalValue)}</b></div>
               <div className="pfield pfield--ro pfield--big"><span>ÜST HAKKI DEĞERİ</span><b>{TL(whole.ustHakkiValue)}</b></div>
+              {state.currency !== 'TL' && (
+                <div className="pfield pfield--ro"><span>TL Karşılığı</span><b>{Math.round(whole.ustHakkiValue * (state.fxRate || 1)).toLocaleString('tr-TR')} ₺</b></div>
+              )}
             </div>
           ) : (
             <div className="hrow-labeled">
               <div className="pfield pfield--ro"><span>Üst Hakkı Arsa Değeri</span><b>{TL(land.ustHakkiArsaDegeri)}</b></div>
               <div className="pfield pfield--ro"><span>+ Bina Değeri</span><b>{TL(land.buildingValueAdded)}</b></div>
               <div className="pfield pfield--ro pfield--big"><span>NİHAİ ÜST HAKKI DEĞERİ</span><b>{TL(land.nihaiUstHakkiDegeri)}</b></div>
+              {state.currency !== 'TL' && (
+                <div className="pfield pfield--ro"><span>TL Karşılığı</span><b>{Math.round(land.nihaiUstHakkiDegeri * (state.fxRate || 1)).toLocaleString('tr-TR')} ₺</b></div>
+              )}
             </div>
           )}
           <div className="export-row no-print">
