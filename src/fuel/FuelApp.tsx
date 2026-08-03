@@ -91,7 +91,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
         </button>
       </div></div>
 
-      <div className="step">
+      <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Akaryakıt Gelir Hesabı</div>
           <div className="step-title">İstasyon Satışları ve Değerleme</div>
@@ -310,6 +310,12 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · Akaryakıt Gelir Modülü</div>
+      </div>
+
+      <div className="navbar no-print">
+        <div className="navbar-inner">
+          <button type="button" className="btn btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
+        </div>
       </div>
     </div>
   );

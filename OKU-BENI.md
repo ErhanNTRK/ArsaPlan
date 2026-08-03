@@ -1,31 +1,34 @@
-# ArsaPlan v6.0.11 — İki Hızlı Hata Düzeltmesi
+# ArsaPlan v6.0.12 — Her Sayfanın Altına Sabit Geri Bar'ı
 
 Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **192/192** · `npm run
-build` → başarılı · oxlint → 0 hata. İkinci düzeltme gerçek PDF üretilerek
-(Direkt Kapitalizasyon vs İNA senaryoları ayrı ayrı) doğrulandı.
+build` → başarılı · oxlint → 0 hata.
 
-## 1) "PDF ve Excel'de Göster" anahtarı artık tıklanabiliyor
+## Tek ekranlı dört modüle sabit alt "← Ana Sayfaya Dön" bar'ı eklendi
 
-**Kök neden bulundu:** Toplam Gelir Üzerinden Üst Hakkı Hesabı modülünde,
-"Maliyet Yaklaşımı" kartının altındaki açıklama metni (`.hint`)
-yanlışlıkla checkbox'ı içeren flex kutusunun **içine** yerleşmişti (bir
-kapanış `</div>` yanlış satırdaydı). Uzun açıklama metni, flex düzeninde
-checkbox'ın üzerine görsel olarak biniyor, tıklamayı engelliyordu. Kapanış
-etiketi doğru yere taşındı — anahtar artık tıklanabiliyor, işaretini
-değiştirebiliyorsunuz.
+Arsa ve Otel modülleri (çok adımlı sihirbaz) zaten Geri/Devam bar'ına
+sahipti — o ikisine dokunulmadı. Tek ekranlı modüllerde bu pratiklik
+eksikti (yalnızca en üstte küçük bir bağlantı vardı, uzun bir sayfada
+en yukarı kaydırmak gerekiyordu). Şimdi **Tarımsal Ürün, Akaryakıt, ve
+Üst Hakkı'nın üç yöntemi** (Toplam Değerden, Sadece Arsa Değeri
+Üzerinden, Toplam Gelir Üzerinden) sayfanın en altında, ekranda sabit
+kalan (kaydırmadan bağımsız) bir "← Ana Sayfaya Dön" bar'ı kazandı —
+Arsa/Otel'deki bar ile aynı görsel dil.
 
-## 2) Otel Gelir Hesabı: İNA seçili değilse PDF'te projeksiyon tablosu artık gösterilmiyor
+**Teknik not:** Sabit bar alttaki içeriğin üzerine binmesin diye her
+dört sayfaya da yeterli alt boşluk eklendi; PDF/Excel çıktılarını
+etkilemez (yalnız ekranda görünür, `no-print` sınıfı sayesinde
+yazdırmada/PDF'te hiç yer kaplamaz).
 
-Daha önce "Yıllık Projeksiyon Tablosu" PDF'te seçilen nihai yöntem ne
-olursa olsun (Direkt Kapitalizasyon bile seçilse) her zaman basılıyordu.
-Artık yalnızca **İNA** seçiliyken gösteriliyor — çünkü yalnız İNA yöntemi
-bu projeksiyonu değere gerçekten yansıtıyor; Direkt Kapitalizasyon
-seçiliyken projeksiyonun sonuca hiçbir etkisi yok, göstermek kafa
-karıştırıyordu.
+## Merak ettiğin soru — "kaç zipte tamamlanacak"
 
-Gerçek PDF'lerle doğrulandı: Direkt Kapitalizasyon senaryosunda tablo
-**0 kez**, İNA senaryosunda **1 kez** görünüyor; her iki durumda da
-sayfa akışı ("Değerlendirme Özeti" bölümü) sorunsuz devam ediyor.
+Dürüst tahminim: elimde hâlâ **4 büyük, kendi başına ayrı tur gerektiren
+iş** var — (1) Otel Maliyet Yaklaşımı + döviz + KML + 5.000 yuvarlama +
+PDF içerik seçimi, (2) tüm modüllerde Excel içe aktarma, (3) tam
+İngilizce (ekran+PDF+Excel), (4) cihaz-bazlı (PC/tablet/telefon)
+arayüz uyarlaması. Her biri gerçekten "yeni özellik" boyutunda, tek
+turda bitmesi gerçekçi değil — muhtemelen **3-5 zip daha** (bazı küçük
+maddeleri büyük turların yanına ekleyerek birleştirebilirim, bu sayıyı
+kesinleştirir). Netleşen notların geldikçe daha kesin söyleyebilirim.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).

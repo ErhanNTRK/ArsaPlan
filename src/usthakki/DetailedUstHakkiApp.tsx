@@ -91,7 +91,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
         </button>
       </div></div>
 
-      <div className="step">
+      <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Üst Hakkı Değerleme</div>
           <div className="step-title">Toplam Gelir Üzerinden Üst Hakkı Hesabı</div>
@@ -320,6 +320,12 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · Toplam Gelir Üzerinden Üst Hakkı Hesabı</div>
+      </div>
+
+      <div className="navbar no-print">
+        <div className="navbar-inner">
+          <button type="button" className="btn btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
+        </div>
       </div>
     </div>
   );

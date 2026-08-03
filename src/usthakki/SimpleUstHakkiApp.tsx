@@ -88,7 +88,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
         </button>
       </div></div>
 
-      <div className="step">
+      <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Üst Hakkı Değerleme</div>
           <div className="step-title">{title}</div>
@@ -199,6 +199,12 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
         </div>
 
         <div className="stamp">{BRAND.preparedBy}<br />{BRAND.developerLine} · {title}</div>
+      </div>
+
+      <div className="navbar no-print">
+        <div className="navbar-inner">
+          <button type="button" className="btn btn-ghost" onClick={onBack}>← Ana Sayfaya Dön</button>
+        </div>
       </div>
     </div>
   );
