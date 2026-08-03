@@ -128,6 +128,15 @@ export interface HotelIncomeInput {
   /** Hesap para birimi ve TL kuru (yalnız gösterim; 'TRY' → kur 1) */
   currency?: 'TRY' | 'USD' | 'EUR';
   fxRate?: number | null;
+  /** Maliyet Yaklaşımı — opsiyonel, istenirse hesaplanır */
+  costParcelArea?: number;
+  costFromKml?: boolean;
+  costLandUnitValue?: number;
+  costBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
+  /** PDF'te hangi yöntemlerin gösterileceği (varsayılan hepsi açık) */
+  showIncomeInPdf?: boolean;
+  showInaInPdf?: boolean;
+  showCostInPdf?: boolean;
   /** Nihai değer seçimi: uzman takdiri */
   finalMethod?: HotelFinalMethod;
   finalManualValue?: number | null;
@@ -202,6 +211,8 @@ export interface HotelIncomeResult {
   projectionTable: HotelProjectionYear[];
   /** İNA sonucu (discountRate girilmişse) */
   ina: HotelInaResult | null;
+  /** Maliyet Yaklaşımı sonucu (bina/arsa girilmişse) */
+  cost: { landValue: number; buildingsValue: number; totalValue: number; totalValueRounded: number } | null;
 
   warnings: HotelWarning[];
   summaryText: string;

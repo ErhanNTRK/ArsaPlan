@@ -200,6 +200,14 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     totalGrossRevenue, totalExpense, noi, capitalizedValue, capRate: input.projection.capRate,
   });
 
+  const costLandValue = R((input.costParcelArea ?? 0) * (input.costLandUnitValue ?? 0));
+  const costBuildingsValue = R((input.costBuildings ?? []).reduce((s, b) =>
+    s + Math.max(0, b.area) * Math.max(0, b.unitCost) * (b.depreciationPct > 0 ? Math.min(100, b.depreciationPct) / 100 : 1), 0));
+  const costTotal = R(costLandValue + costBuildingsValue);
+  const cost = (costLandValue > 0 || costBuildingsValue > 0)
+    ? { landValue: costLandValue, buildingsValue: costBuildingsValue, totalValue: costTotal, totalValueRounded: Math.round(costTotal / 5000) * 5000 }
+    : null;
+
   return {
     roomRows: roomCalc.rows,
     totalRoomRevenue: roomCalc.total,
@@ -210,10 +218,11 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     totalGrossRevenue,
     totalExpense,
     noi,
-    capitalizedValue,
+    capitalizedValue: Math.round(capitalizedValue / 5000) * 5000,
     performance,
     projectionTable,
     ina,
+    cost,
     warnings,
     summaryText,
   };

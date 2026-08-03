@@ -18,6 +18,8 @@ import type {
   HotelIncomeInput, RoomRevenueRow, AncillaryIncomeRow, CommercialLeaseRow,
 } from './types';
 import { downloadHotelPdf } from './pdf';
+import { parseKml } from '../geo/kml';
+import { BUILDING_TYPES } from '../usthakki/detailedEngine';
 
 const DRAFT_KEY = 'arsaplan-otel-taslak-v1';
 
@@ -125,7 +127,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
         </>)}
         {step === 4 && (<>
           <StepOpex opex={input.opex} setOpex={setOpex} result={result} />
-          <StepProjection projection={input.projection} setProjection={setProjection} result={result} />
+          <StepProjection projection={input.projection} setProjection={setProjection} result={result} input={input} setInput={setInput} />
         </>)}
         {isResult && <HotelResult input={input} result={result} setFinal={(p) => setInput((x) => ({ ...x, ...p }))} />}
 
@@ -413,9 +415,10 @@ function StepOpex({ opex, setOpex, result }: {
 
 /* ─────────────────── Adım 6 — Projeksiyon ─────────────────── */
 
-function StepProjection({ projection, setProjection, result }: {
+function StepProjection({ projection, setProjection, result, input, setInput }: {
   projection: HotelIncomeInput['projection']; setProjection: (p: Partial<HotelIncomeInput['projection']>) => void;
   result: ReturnType<typeof analyzeHotel>;
+  input: HotelIncomeInput; setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
 }) {
   return (
     <div className="cols">
@@ -470,6 +473,68 @@ function StepProjection({ projection, setProjection, result }: {
         {result.ina && (
           <div className="note-box" style={{ marginTop: 10 }}>
             İNA sonucu: Terminal {fmtTL(result.ina.terminalValue)} · <b>NBD {fmtTL(result.ina.npv)}</b>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <div className="card-title">Maliyet Yaklaşımı — opsiyonel</div>
+        <div className="hint" style={{ marginBottom: 8 }}>Arsa Değeri + Yapı Değerleri toplanarak hesaplanır. Boş bırakılırsa hesaba dahil edilmez.</div>
+        <div className="grid-2">
+          <Field label="Arsa Alanı m²">
+            <Num value={input.costParcelArea ?? 0} onChange={(n) => setInput((p) => ({ ...p, costParcelArea: n, costFromKml: false }))} suffix="m²" />
+          </Field>
+          <Field label="Arsa m² Birim Değeri">
+            <Num value={input.costLandUnitValue ?? 0} onChange={(n) => setInput((p) => ({ ...p, costLandUnitValue: n }))} suffix="₺/m²" />
+          </Field>
+        </div>
+        <label className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer', marginTop: 4 }}>
+          KML Yükle (Arsa Alanı otomatik)
+          <input type="file" accept=".kml" hidden onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            try {
+              const parsed = parseKml(await f.text());
+              const area = parsed?.deedArea || parsed?.polygonArea || 0;
+              if (area > 0) setInput((p) => ({ ...p, costParcelArea: Math.round(area), costFromKml: true }));
+            } catch { /* yok say */ }
+            e.currentTarget.value = '';
+          }} />
+        </label>
+        {input.costParcelArea != null && input.costParcelArea > 0 && !input.costFromKml && (
+          <div className="hint" style={{ marginTop: 4 }}>Arsa alanı elle girildi/değiştirildi.</div>
+        )}
+
+        <div className="card-title" style={{ marginTop: 14, fontSize: 13 }}>Yapılar</div>
+        {(input.costBuildings ?? []).map((b, i) => (
+          <div className="isletme-row" key={b.id}>
+            <div className="grid-2">
+              <Field label="Yapı Türü">
+                <Sel value={b.type} onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                     options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
+              </Field>
+              <Field label="Alan m²">
+                <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
+              </Field>
+            </div>
+            <div className="grid-2">
+              <Field label="Birim Maliyet">
+                <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
+              </Field>
+              <Field label="Amortisman % (opsiyonel)">
+                <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
+              </Field>
+            </div>
+            <button type="button" className="link-btn" onClick={() => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).filter((_, j) => j !== i) }))}>Satırı sil</button>
+          </div>
+        ))}
+        <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => ({
+          ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
+        }))}>➕ Yapı Ekle</button>
+
+        {result.cost && (
+          <div className="note-box" style={{ marginTop: 10 }}>
+            Arsa {fmtTL(result.cost.landValue)} + Yapılar {fmtTL(result.cost.buildingsValue)} =
+            <b> Maliyet Yaklaşımı Değeri: {fmtTL(result.cost.totalValueRounded)}</b>
           </div>
         )}
       </div>
@@ -573,6 +638,15 @@ function HotelResult({ input, result, setFinal }: {
 
       <div className="card no-print">
         <div className="card-title">Rapor</div>
+        <div className="hint" style={{ marginBottom: 8 }}>PDF'te gösterilecek yöntemler:</div>
+        <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
+          <label className="pdf-toggle"><input type="checkbox" checked={input.showIncomeInPdf ?? true}
+                   onChange={(e) => setFinal({ showIncomeInPdf: e.target.checked })} /> Gelir (Direkt Kapitalizasyon)</label>
+          <label className="pdf-toggle"><input type="checkbox" checked={input.showInaInPdf ?? true}
+                   onChange={(e) => setFinal({ showInaInPdf: e.target.checked })} /> İNA</label>
+          <label className="pdf-toggle"><input type="checkbox" checked={input.showCostInPdf ?? true}
+                   onChange={(e) => setFinal({ showCostInPdf: e.target.checked })} /> Maliyet Yaklaşımı</label>
+        </div>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy}
                 onClick={async () => {
                   setBusy(true);

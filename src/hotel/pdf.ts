@@ -131,7 +131,7 @@ export async function buildHotelPdf(
     );
   }
 
-  if (input.finalMethod === 'ina') {
+  if ((input.showInaInPdf ?? true) && r.ina) {
     sectionTitle('Yıllık Projeksiyon Tablosu');
     table(
       ['Yıl', 'Toplam Gelir', 'İşletme Gideri', 'NOI', 'Kapitalizasyon Değeri'],
@@ -139,6 +139,19 @@ export async function buildHotelPdf(
         String(row.year), tl(row.totalRevenue), tl(row.totalExpense), tl(row.noi), tl(row.capitalizedValue),
       ]),
       [20, 45, 40, 40, 45],
+    );
+  }
+
+  if ((input.showCostInPdf ?? true) && r.cost) {
+    sectionTitle('Maliyet Yaklaşımı');
+    table(
+      ['Kalem', 'Değer'],
+      [
+        ['Arsa Değeri', tl(r.cost.landValue)],
+        ['Yapı Değerleri', tl(r.cost.buildingsValue)],
+        ['Maliyet Yaklaşımı Değeri (5.000\'e yuvarlanmış)', tl(r.cost.totalValueRounded)],
+      ],
+      [110, 70],
     );
   }
 

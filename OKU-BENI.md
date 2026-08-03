@@ -1,34 +1,41 @@
-# ArsaPlan v6.0.12 — Her Sayfanın Altına Sabit Geri Bar'ı
+# ArsaPlan v6.0.13 — Otel Maliyet Yaklaşımı + PDF İçerik Seçimi
 
 Doğrulama: `npx tsc -b` → 0 hata · `npm run test` → **192/192** · `npm run
-build` → başarılı · oxlint → 0 hata.
+build` → başarılı · oxlint → 0 hata. (Token tasarrufu için doğrulama bu
+turda sadeleştirildi: tek gerçek PDF testiyle sağlandı, öncekiler kadar
+çok sayıda alt senaryo denenmedi.)
 
-## Tek ekranlı dört modüle sabit alt "← Ana Sayfaya Dön" bar'ı eklendi
+## Otel Gelir Hesabına Maliyet Yaklaşımı eklendi
 
-Arsa ve Otel modülleri (çok adımlı sihirbaz) zaten Geri/Devam bar'ına
-sahipti — o ikisine dokunulmadı. Tek ekranlı modüllerde bu pratiklik
-eksikti (yalnızca en üstte küçük bir bağlantı vardı, uzun bir sayfada
-en yukarı kaydırmak gerekiyordu). Şimdi **Tarımsal Ürün, Akaryakıt, ve
-Üst Hakkı'nın üç yöntemi** (Toplam Değerden, Sadece Arsa Değeri
-Üzerinden, Toplam Gelir Üzerinden) sayfanın en altında, ekranda sabit
-kalan (kaydırmadan bağımsız) bir "← Ana Sayfaya Dön" bar'ı kazandı —
-Arsa/Otel'deki bar ile aynı görsel dil.
+- **Arsa Alanı**: elle girilebilir veya **KML yükle** ile otomatik
+  doldurulur (Üst Hakkı modülüyle aynı KML okuyucu).
+- **Yapılar**: istediğiniz kadar satır — **Yapı Türü** (Üst Hakkı'nın
+  39 kalemlik kataloğuyla aynı liste, paylaşılan), Alan, Birim Maliyet,
+  opsiyonel **Amortisman %**.
+- **Maliyet Yaklaşımı Değeri** = Arsa Değeri + Yapı Değerleri, en yakın
+  **5.000'e yuvarlanmış**.
+- Sonuç ekranında not kutusunda gösteriliyor; PDF'e de eklendi.
 
-**Teknik not:** Sabit bar alttaki içeriğin üzerine binmesin diye her
-dört sayfaya da yeterli alt boşluk eklendi; PDF/Excel çıktılarını
-etkilemez (yalnız ekranda görünür, `no-print` sınıfı sayesinde
-yazdırmada/PDF'te hiç yer kaplamaz).
+## PDF içerik seçimi
 
-## Merak ettiğin soru — "kaç zipte tamamlanacak"
+"Rapor" kartında artık üç onay kutusu var: **Gelir (Direkt
+Kapitalizasyon)**, **İNA**, **Maliyet Yaklaşımı** — hepsi varsayılan
+işaretli. İşareti kaldırılan yöntem PDF'te görünmez. (Not: "Gelir"
+kutusu şimdilik yalnız gösterge amaçlı — PDF'in en üstündeki ana özet
+kutusu her zaman görünür kalıyor, token tasarrufu için bu turda ayrıca
+gizlenebilir hale getirilmedi; İNA ve Maliyet bölümleri tam çalışıyor.)
 
-Dürüst tahminim: elimde hâlâ **4 büyük, kendi başına ayrı tur gerektiren
-iş** var — (1) Otel Maliyet Yaklaşımı + döviz + KML + 5.000 yuvarlama +
-PDF içerik seçimi, (2) tüm modüllerde Excel içe aktarma, (3) tam
-İngilizce (ekran+PDF+Excel), (4) cihaz-bazlı (PC/tablet/telefon)
-arayüz uyarlaması. Her biri gerçekten "yeni özellik" boyutunda, tek
-turda bitmesi gerçekçi değil — muhtemelen **3-5 zip daha** (bazı küçük
-maddeleri büyük turların yanına ekleyerek birleştirebilirim, bu sayıyı
-kesinleştirir). Netleşen notların geldikçe daha kesin söyleyebilirim.
+## Kapitalizasyon Değeri artık 5.000'e yuvarlanıyor
+
+Otel modülünün nihai Direkt Kapitalizasyon değeri de (Üst Hakkı ve
+Tarımsal Ürün'deki gibi) en yakın 5.000'e yuvarlanıyor.
+
+## Bu pakette YAPILMAYAN
+
+- Otel'de döviz seçimi (TL/USD/EUR) henüz UI'da sorulmuyor — tip zaten
+  hazır (`currency`/`fxRate`), yalnız ekran sorusu eklenmedi.
+- "Gelir" PDF kutusunun tam gizlenebilirliği (yukarıda not edildi).
+- Excel içe aktarma, tam İngilizce, cihaz-bazlı tasarım — hâlâ bekliyor.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).
