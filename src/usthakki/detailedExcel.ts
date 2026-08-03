@@ -3,6 +3,7 @@
  * Kurumsal banner ve renk paleti export/excel.ts ile aynıdır.
  */
 import ExcelJS from 'exceljs';
+import { attachDataSheet } from '../export/excelImport';
 import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG } from '../brand/logo';
 import { triggerDownload } from '../export/excel';
@@ -148,6 +149,7 @@ export async function downloadDetailedUstHakkiExcel(input: DetailedUstHakkiInput
   ws.getCell(`B${row}`).value = `${BRAND.preparedBy} · ${BRAND.developerLine} · Ayrintili Ust Hakki Deger Analizi`;
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
 
+  attachDataSheet(wb, input);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   triggerDownload(blob, 'Ayrintili-Ust-Hakki-Degerleme-Raporu.xlsx');

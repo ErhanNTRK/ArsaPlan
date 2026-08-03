@@ -2,6 +2,7 @@
  * ÜST HAKKI YÖNTEM 1/2 — Excel çıktısı. Ara hesaplar gösterilmez.
  */
 import ExcelJS from 'exceljs';
+import { attachDataSheet } from '../export/excelImport';
 import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG } from '../brand/logo';
 import { triggerDownload } from '../export/excel';
@@ -119,6 +120,7 @@ export async function downloadSimpleUstHakkiExcel(
   ws.getCell(`B${row}`).value = `${BRAND.preparedBy} · ${BRAND.developerLine} · ${title}`;
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
 
+  attachDataSheet(wb, input);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   triggerDownload(blob, method === 'toplam' ? 'Ust-Hakki-Toplam-Degerden.xlsx' : 'Ust-Hakki-Sadece-Arsa.xlsx');

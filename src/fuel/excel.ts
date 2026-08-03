@@ -4,6 +4,7 @@
  * gerçek TL değerlerini taşıyacak şekilde ayarlanmıştır (#### hatasına karşı).
  */
 import ExcelJS from 'exceljs';
+import { attachDataSheet } from '../export/excelImport';
 import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG } from '../brand/logo';
 import { triggerDownload } from '../export/excel';
@@ -167,6 +168,7 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
   ws.getCell(`B${row}`).value = `${BRAND.preparedBy} · ${BRAND.developerLine} · Akaryakıt Gelir Modülü`;
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
 
+  attachDataSheet(wb, input);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   triggerDownload(blob, 'Akaryakit-Gelir-Hesabi.xlsx');

@@ -5,6 +5,7 @@
  * dinamik yüklenir.
  */
 import ExcelJS from 'exceljs';
+import { attachDataSheet } from '../export/excelImport';
 import { BRAND } from '../brand/brand';
 import { DORA_LOGO_PNG } from '../brand/logo';
 import { triggerDownload } from '../export/excel';
@@ -167,6 +168,7 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
   void GREEN;
 
+  attachDataSheet(wb, input);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const name = `Tarimsal-Urun-${(input.mahalle || 'Rapor').replace(/\s+/g, '-')}-${input.ada || ''}-${input.parsel || ''}.xlsx`.replace(/-+\./, '.');

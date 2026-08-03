@@ -11,6 +11,7 @@ import {
 } from './simpleCostEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
+import { readDataSheet } from '../export/excelImport';
 import { downloadSimpleUstHakkiPdf } from './simplePdf';
 import { downloadSimpleUstHakkiExcel } from './simpleExcel';
 
@@ -86,6 +87,15 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
                 onClick={() => { if (window.confirm('Sayfa sıfırlansın mı? Tüm girdiler silinecek.')) { localStorage.removeItem(DRAFT); setState(DEFAULT); } }}>
           ↺ Sayfayı Sıfırla
         </button>
+        <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+          📂 Excel Yükle
+          <input type="file" accept=".xlsx" hidden onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            const data = await readDataSheet<S>(f);
+            if (data) setState(data); else alert('Bu Excel dosyasında ArsaPlan verisi bulunamadı.');
+            e.currentTarget.value = '';
+          }} />
+        </label>
       </div></div>
 
       <div className="step" style={{ paddingBottom: 76 }}>

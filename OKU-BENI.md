@@ -1,37 +1,45 @@
-# ArsaPlan v6.0.17 — Döviz + İngilizce Uyarısı + Responsive Düzeltmeleri (Birleşik Paket)
+# ArsaPlan v7.0.0 — Excel İçe Aktarma (5 Modül)
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı. v6.0.15+v6.0.16'da
-anlattığım her şey + bu turun responsive düzeltmeleri, tek pakette.
+Doğrulama: tsc 0 hata, test 192/192, build başarılı. Mekanizma önce
+bağımsız test edildi, sonra **gerçek dışa aktarma → içe aktarma
+round-trip'i** iki farklı modülde (Tarımsal Ürün — basit, ve Toplam
+Gelir Üzerinden Üst Hakkı — iç içe diziler içeren en karmaşık yapı)
+birebir eşleşme ile doğrulandı.
 
-## Bu pakette olanlar (önceki iki zip'in bilgisiyle birleşik)
+## Nasıl çalışıyor
 
-1. **Otel'de döviz tam yayılım** — ekran, PDF, motor özet metni dahil
-   her yerde seçilen para birimi (TL/USD/EUR) kullanılıyor.
-2. **İngilizce çevirisindeki kritik hata düzeltildi** — kod var olmayan
-   bir element ID'sini (`arsaplan-root`) arıyordu, gerçek ID `root`;
-   bu yüzden otomatik ekran çevirisi hiç tetiklenmiyordu.
-3. **Dil düğmesi artık her ekranda** (🌙/☀️ tema düğmesi gibi, sağ altta
-   sabit) — önceden yalnız Arsa modülünde vardı.
-4. **Kısmi İngilizce uyarısı eklendi**: İngilizce moda geçildiğinde
-   altta "This version does not yet fully support English — some
-   sections remain in Turkish." bandı görünüyor. Çevirisi olan yerler
-   İngilizce, olmayanlar Türkçe kalıyor.
-5. **Responsive: uygulama genelinde kullanılan üç ızgara sınıfının
-   (`.grid-2`, `.grid-3`, `.mini-kpi`, `.kpi-grid`) telefon ekranında
-   HİÇ tek kolona düşmediği bulundu ve düzeltildi.** Bu sınıflar
-   Arsa/Otel/Tarım gibi birçok modülde çok kullanıldığı için, düzeltme
-   uygulama genelinde etkili.
+Kırılgan bir yaklaşımdan (Excel'deki "güzel" formatlı sayıları — binlik
+ayırıcı, para birimi sembolü dahil — geri ayrıştırmaya çalışmak) kasıtlı
+olarak kaçınıldı. Bunun yerine: her Excel dosyasına **gizli bir veri
+sayfası** ekleniyor, bu sayfa girdinin ham JSON'unu taşıyor. "Excel
+Yükle" düğmesi bu gizli sayfayı okuyup formu **birebir** dolduruyor —
+görünür/bankaya sunulan sayfa hiç etkilenmiyor, kullanıcı normal
+Excel'i gördüğü gibi görmeye devam ediyor.
 
-## Dürüst sınır
+**Sınır (bilerek):** Kullanıcı Excel'deki görünen bir sayıyı elle
+değiştirip geri yüklerse bu değişiklik yansımaz — yalnızca ilk dışa
+aktarma anındaki veri geri gelir. Senin isteğin ("excel alıp başkasına
+iletmek, yeni kullanıcı yükleyince verileri birebir görmek") tam olarak
+bu.
 
-- Bu responsive turu **kod incelemesiyle bulunan gerçek hataları**
-  kapsıyor (canlı tarayıcı testi yapamadığım için görsel doğrulama
-  yok) — daha küçük, gözden kaçan sorunlar kalmış olabilir.
-- **Excel içe aktarma bu pakete YİNE alınmadı.** 7 farklı modülün
-  kendi Excel yapısını geri okuyup formu doldurması, düzgün yapılırsa
-  gerçekten uzun ve dikkatli test isteyen bir iş — aceleye getirip
-  yarım/hatalı bir özellik teslim etmek istemedim. Bu, kendi başına
-  ayrı bir tur olarak kalıyor; hazır olduğunda haber ver.
+## Eklenen modüller (5)
+
+- **Tarımsal Ürün Gelir Hesabı**
+- **Akaryakıt Gelir Hesabı**
+- **Toplam Değerden Üst Hakkı Hesabı**
+- **Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı**
+- **Toplam Gelir Üzerinden Üst Hakkı Hesabı**
+
+Her birinde artık "↺ Sayfayı Sıfırla" düğmesinin yanında **"📂 Excel
+Yükle"** var — daha önce o modülden indirilen bir .xlsx dosyasını
+seçince form birebir doluyor.
+
+## Bu pakette YAPILMAYAN (dürüst sınır)
+
+**Arsa Gelir Projeksiyonu ve Otel Gelir Hesabı'na eklenmedi.** Bu ikisi
+çok daha büyük/karmaşık veri modellerine sahip (çok adımlı sihirbaz,
+onlarca iç içe alan) — aynı güvenilirlikte round-trip testi yapmadan
+eklemek istemedim. Ayrı bir tur olarak kalıyor, istersen ele alalım.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).
