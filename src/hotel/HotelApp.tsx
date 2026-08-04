@@ -51,8 +51,7 @@ function loadDraft(): HotelIncomeInput {
 
 const STEPS = [
   { title: 'Genel Bilgiler', desc: 'Tesis ve taşınmaz kimliği.' },
-  { title: 'Oda Gelirleri', desc: 'Oda tipi, sayısı, ücret ve doluluk.' },
-  { title: 'Diğer Gelirler', desc: 'Yardımcı işletme gelirleri ve üçüncü kişilere kiralanan alanlar.' },
+  { title: 'Gelirler', desc: 'Oda gelirleri, yardımcı işletme gelirleri ve üçüncü kişilere kiralanan alanlar.' },
   { title: 'Gider · Projeksiyon · İNA', desc: 'Gider oranı, yıllara göre artışlar, kapitalizasyon ve iskonto.' },
 ];
 const TOTAL = STEPS.length;
@@ -89,7 +88,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
   const blocker = (): string | null => {
     if (step === 1 && !input.general.facilityName.trim()) return 'Tesis adını giriniz.';
-    if (step === 4 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
+    if (step === 3 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
     return null;
   };
   const stop = blocker();
@@ -128,12 +127,12 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
         )}
 
         {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} input={input} setInput={setInput} />}
-        {step === 2 && <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} />}
-        {step === 3 && (<>
+        {step === 2 && (<>
+          <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} />
           <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />
           <StepLeases leases={input.leases} setLeases={setLeases} result={result} />
         </>)}
-        {step === 4 && (<>
+        {step === 3 && (<>
           <StepOpex opex={input.opex} setOpex={setOpex} result={result} />
           <StepProjection projection={input.projection} setProjection={setProjection} result={result} input={input} setInput={setInput} />
         </>)}
@@ -473,11 +472,12 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
       </div>
 
       <div className="card card-optional">
-        <div className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <details>
+        <summary className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           İNA (İndirgenmiş Nakit Akımı)
           <span className="optional-badge">OPSİYONEL</span>
-        </div>
-        <div className="hint" style={{ marginBottom: 8 }}>Boş bırakılırsa hesaba dahil edilmez, yalnız Direkt Kapitalizasyon kullanılır.</div>
+        </summary>
+        <div className="hint" style={{ marginBottom: 8, marginTop: 8 }}>Boş bırakılırsa hesaba dahil edilmez, yalnız Direkt Kapitalizasyon kullanılır.</div>
         <div className="grid-2">
           <Field label="Risksiz Getiri Oranı" hint="Örn. %7,5">
             <Pct value={projection.riskFreeRate ?? 0} onChange={(n) => {
@@ -521,11 +521,13 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
             İNA sonucu: Terminal {fmt(result.ina.terminalValue)} · <b>NBD {fmt(result.ina.npv)}</b>
           </div>
         )}
+        </details>
       </div>
 
       <div className="card">
-        <div className="card-title">Maliyet Yaklaşımı — opsiyonel</div>
-        <div className="hint" style={{ marginBottom: 8 }}>Arsa Değeri + Yapı Değerleri toplanarak hesaplanır. Boş bırakılırsa hesaba dahil edilmez.</div>
+        <details>
+        <summary className="card-title" style={{ cursor: 'pointer' }}>Maliyet Yaklaşımı — opsiyonel</summary>
+        <div className="hint" style={{ marginBottom: 8, marginTop: 8 }}>Arsa Değeri + Yapı Değerleri toplanarak hesaplanır. Boş bırakılırsa hesaba dahil edilmez.</div>
         <div className="grid-2">
           <Field label="Arsa Alanı m²">
             <Num value={input.costParcelArea ?? 0} onChange={(n) => setInput((p) => ({ ...p, costParcelArea: n, costFromKml: false }))} suffix="m²" />
@@ -588,6 +590,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
             <b> Maliyet Yaklaşımı Değeri: {fmt(result.cost.totalValueRounded)}</b>
           </div>
         )}
+        </details>
       </div>
 
       <div className="card">
