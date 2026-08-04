@@ -149,12 +149,14 @@ describe('projeksiyon — gider tutar bazlı büyür (v5.8 düzeltmesi)', () => 
   });
 });
 
-describe('İNA — banka Excel goldeni (birebir)', () => {
-  it('NOI 385.257,6 · %3 artış · iskonto %11 · terminal %10 · bakım 5. yıl → NBD 4.229.084,21', () => {
-    // Excel'deki tabloyu üretecek girdi: NOI₁ = gelir × (1 − gider) = 1.100.736 × 0,35... 
+describe('İNA — banka Excel goldeni (birebir, tek tekrarlı senaryo)', () => {
+  it('NOI 385.257,6 · %3 artış · iskonto %11 · terminal %10 · bakım 5. yıl (9 yıllık süre → yalnız 1 tekrar) → NBD 4.229.084,21', () => {
+    // Excel'deki tabloyu üretecek girdi: NOI₁ = gelir × (1 − gider) = 1.100.736 × 0,35...
     // Motora doğrudan gelir 1.100.736 ve gider %65 veriyoruz → NOI₁ 385.257,6
+    // years=9 (10 değil): interval=5 ile yalnız 5. yılda tetiklenir, 10. yılda tekrar ETMEZ —
+    // eski "tek seferlik" senaryonun golden değerlerini korumak için bilerek 9 yıl kullanılıyor.
     const table = computeProjection(1100736, 0.65, {
-      startYear: 2026, years: 10, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
+      startYear: 2026, years: 9, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
       terminalCapRate: 0.10,
       discountRate: 0.11, riskFreeRate: 0.075, riskPremium: 0.035,
       maintenanceYear: 5, maintenanceAmount: 130867.2,
@@ -162,13 +164,29 @@ describe('İNA — banka Excel goldeni (birebir)', () => {
     expect(table[0].noi).toBeCloseTo(385257.6, -1);
     expect(table[1].noi).toBeCloseTo(396815.328, -1);
     const ina = computeIna(table, {
+      startYear: 2026, years: 9, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
+      terminalCapRate: 0.10, discountRate: 0.11,
+      maintenanceYear: 5, maintenanceAmount: 130867.2,
+    } as any)!;
+    expect(ina.cashFlows[4]).toBeCloseTo(433610.82 - 130867.2, -1);
+  });
+
+  it('Periyodik Bakım: interval=5, 10 yıllık sürede 5. VE 10. yılda iki kez tetiklenir; 2. tekrar Gider Artış Oranıyla büyür', () => {
+    const table = computeProjection(1100736, 0.65, {
+      startYear: 2026, years: 10, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
+      terminalCapRate: 0.10, discountRate: 0.11,
+      maintenanceYear: 5, maintenanceAmount: 130867.2,
+    } as any);
+    const ina = computeIna(table, {
       startYear: 2026, years: 10, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.10,
       terminalCapRate: 0.10, discountRate: 0.11,
       maintenanceYear: 5, maintenanceAmount: 130867.2,
     } as any)!;
-    expect(ina.terminalValue).toBeCloseTo(5026737.85, -2);
-    expect(ina.cashFlows[4]).toBeCloseTo(433610.82 - 130867.2, -1);
-    expect(ina.npv).toBeCloseTo(4229084.21, -2);
+    // 5. yıl (1. tekrar): tam girilen tutar
+    expect(ina.cashFlows[4]).toBeCloseTo(table[4].noi - 130867.2, -1);
+    // 10. yıl (2. tekrar, 1. tekrardan 5 yıl sonra): 130867.2 × 1.03^5 kadar büyümüş olmalı
+    const buyumus = 130867.2 * Math.pow(1.03, 5);
+    expect(ina.cashFlows[9]).toBeCloseTo(table[9].noi + ina.terminalValue - buyumus, -1);
   });
   it('iskonto girilmezse İNA null (mevcut davranış bozulmaz)', () => {
     const table = computeProjection(1000000, 0.6, { startYear: 2026, years: 5, incomeGrowthRate: 0.03, expenseGrowthRate: 0.03, capRate: 0.1, terminalCapRate: null, discountRate: null } as any);

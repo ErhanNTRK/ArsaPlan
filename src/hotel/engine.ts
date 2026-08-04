@@ -269,11 +269,18 @@ export function computeIna(
   const termCap = (p.terminalCapRate ?? p.capRate) || 0;
   const lastNoi = table[table.length - 1].noi;
   const terminalValue = termCap > 0 ? lastNoi / termCap : 0;
-  const mYear = p.maintenanceYear ?? 0;
-  const mAmt = p.maintenanceAmount ?? 0;
+  const maintInterval = Math.max(0, Math.round(p.maintenanceYear ?? 0));
+  const maintBaseAmt = Math.max(0, p.maintenanceAmount ?? 0);
+  const expGrowth = p.expenseGrowthRate ?? 0;
   const cashFlows = table.map((row, idx) => {
     let cf = row.noi;
-    if (mYear === idx + 1 && mAmt > 0) cf -= mAmt;
+    const yearNum = idx + 1;
+    if (maintInterval > 0 && maintBaseAmt > 0 && yearNum % maintInterval === 0) {
+      const occurrence = yearNum / maintInterval;              // 1. tekrar, 2. tekrar, ...
+      const yearsSinceFirst = (occurrence - 1) * maintInterval; // ilk tekrardan bu yana geçen yıl
+      const amt = R(maintBaseAmt * Math.pow(1 + expGrowth, yearsSinceFirst));
+      cf -= amt;
+    }
     if (idx === table.length - 1) cf += terminalValue;
     return cf;
   });

@@ -501,20 +501,20 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
           </Field>
         </div>
         <div className="grid-2">
-          <Field label="Yenileme Fonu Oranı" hint="Her yıl tekrarlar — Toplam Gelirin yüzdesi olarak gidere eklenir">
+          <Field label="Yenileme Fonu Oranı" hint="Her yıl için hesaplanır — %3-5 oranında önerilir">
             <Pct value={projection.renewalFundRate ?? 0} onChange={(n) => setProjection({ renewalFundRate: n > 0 ? n : null })} />
           </Field>
         </div>
         <div className="grid-2">
-          <Field label="Dönemsel Bakım — Yıl" hint="Örn. 5 (0 = yok)">
+          <Field label="Periyodik Bakım — Yıl Aralığı" hint="Örn. 5 → 5,10,15... yıllarda tekrar eder (0 = yok)">
             <Num value={projection.maintenanceYear ?? 0} onChange={(n) => setProjection({ maintenanceYear: n > 0 ? Math.round(n) : null })} />
           </Field>
-          <Field label="Dönemsel Bakım — Tutar" hint="O yılın nakit akımından düşülür">
+          <Field label="Periyodik Bakım — Tutar" hint="İlk tekrara yansır; sonraki tekrarlar Gider Artış Oranıyla büyür">
             <Num value={projection.maintenanceAmount ?? 0} onChange={(n) => setProjection({ maintenanceAmount: n > 0 ? n : null })} suffix="₺" />
           </Field>
         </div>
         {(projection.maintenanceAmount ?? 0) > 0 && !projection.maintenanceYear && (
-          <div className="warn-line">Dönemsel Bakım Tutarı girildi ama Yıl boş — bu gider hiçbir yıla uygulanmıyor, hesaba hiç girmiyor.</div>
+          <div className="warn-line">Periyodik Bakım Tutarı girildi ama Yıl Aralığı boş — bu gider hiçbir yıla uygulanmıyor, hesaba hiç girmiyor.</div>
         )}
         {result.ina && (
           <div className="note-box" style={{ marginTop: 10 }}>

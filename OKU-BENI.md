@@ -1,30 +1,29 @@
-# ArsaPlan v7.2.1 — Otel: Adım Birleştirme + Açılır/Kapanır Bölümler
+# ArsaPlan v7.3.0 — Periyodik Bakım Gerçekten Periyodik Oldu
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı. Bir önceki
-mesajında hatırlattığın maddeler — özür dilerim, uzun Excel analizi
-sırasında atlanmıştı, şimdi tamamlandı.
+Doğrulama: tsc 0 hata, test 193/193 (yeni golden test dahil), build
+başarılı. Periyodik büyüme mantığı iki ayrı testle doğrulandı: (1) eski
+"tek tekrar" senaryosunun golden değerleri korundu, (2) yeni "iki
+tekrar, ikincisi büyümüş" senaryosu ayrıca doğrulandı.
 
-## 1) Adım 2 ve Adım 3 birleştirildi
+## "Dönemsel Bakım" → "Periyodik Bakım" — artık gerçekten periyodik
 
-Otel Gelir Hesabı artık **3 adım** (4 değil): Genel Bilgiler → **Gelirler**
-(Oda Gelirleri + Yardımcı İşletme Gelirleri + Ticari Kira, hepsi tek
-ekranda) → Gider · Projeksiyon · İNA.
+**Eski davranış:** "Yıl"a 5 yazınca yalnız 5. yılda, TEK SEFERLİK
+uygulanıyordu — isim "Dönemsel" olsa da davranış tek seferlikti.
 
-## 2) Maliyet Yaklaşımı ve İNA artık gerçekten kapalı başlıyor
+**Yeni davranış:** Alan adı **"Periyodik Bakım — Yıl Aralığı"** oldu.
+5 yazarsan artık **5, 10, 15, 20... yıllarında tekrar eder.**
+**"Periyodik Bakım — Tutar"** kutusuna girdiğin değer **ilk tekrara**
+(5. yıl) tam olarak yansır; **sonraki her tekrar (10, 15, 20. yıl)
+Gider Artış Oranıyla büyüyerek** uygulanır — tıpkı gelirlerin İNA'yı
+büyüyerek etkilemesi gibi, senin de işaret ettiğin mantık.
 
-Önceden yalnız kesikli çerçeve ve "OPSİYONEL" rozetiyle görsel olarak
-ayrılmışlardı ama içerikleri her zaman açık duruyordu. Şimdi ikisi de
-**varsayılan kapalı** — başlığa tıklayınca açılıyor (▸ işareti dönerek
-▾ oluyor). Kullanıcı ihtiyacı yoksa hiç görmeden geçebiliyor, dar
-ekranda da yer kaplamıyor.
+## Diğer küçük düzeltmeler
 
-## 3) Paylaşılan veri (Gelir Artış Oranı) — kontrol ettim, zaten tek yerden giriliyor
-
-"Gelir de İNA da kullanılan bir veri varsa İNA'da tekrar sorulmasın"
-isteğini kontrol ettim: **Gelir Artış Oranı zaten yalnızca bir yerde**
-("Projeksiyon Parametreleri" kartında) soruluyor — İNA'nın kendi ayrı
-bir kopyası hiç yok. Yani bu istek zaten yapısal olarak karşılanmış,
-ek bir "salt-okunur gösterge" eklemeye gerek kalmadı.
+- **Yenileme Fonu Oranı** ipucu netleşti: *"Her yıl için hesaplanır —
+  %3-5 oranında önerilir."*
+- **Sessiz veri kaybı uyarısı** yeni isimle güncellendi: *"Periyodik
+  Bakım Tutarı girildi ama Yıl Aralığı boş — bu gider hiçbir yıla
+  uygulanmıyor."*
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).
