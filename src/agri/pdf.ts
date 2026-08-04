@@ -69,9 +69,14 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
       doc.text(tl(row.netWithByproduct), C[5], y, { align: 'right' });
       y += h;
       if (row.byproductResult) {
+        const b = row.byproductResult;
         doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
-        doc.text(`  + Yan ürün: ${row.byproductResult.name}`, C[0], y);
-        doc.text(tl(row.byproductResult.net), C[5], y, { align: 'right' });
+        doc.text(`  + Yan ürün: ${b.name}`, C[0], y);
+        doc.text(row.kind === 'ekili' ? m2(row.areaM2) : row.units.toLocaleString('tr-TR') + ' ağaç', C[1], y, { align: 'right' });
+        doc.text(b.yieldPerUnit.toLocaleString('tr-TR') + ' kg', C[2], y, { align: 'right' });
+        doc.text(b.price.toLocaleString('tr-TR') + ' ₺/kg', C[3], y, { align: 'right' });
+        doc.text('%' + b.expensePct.toLocaleString('tr-TR'), C[4], y, { align: 'right' });
+        doc.text(tl(b.net), C[5], y, { align: 'right' });
         y += h - 1;
       }
     }
@@ -103,7 +108,6 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
   y += 32;
 
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-  doc.text('Değer = yıllık net gelir × amorti yılı.', M, y);
 
   drawFooter(doc, BRAND.version, 'Yöntem: Tarımsal Ürün Gelir Hesabı · Tutarlar KDV hariçtir');
   return doc;

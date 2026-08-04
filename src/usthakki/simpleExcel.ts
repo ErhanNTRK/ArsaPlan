@@ -33,7 +33,7 @@ export async function downloadSimpleUstHakkiExcel(
     views: [{ showGridLines: false }],
     pageSetup: { paperSize: 9, orientation: 'portrait', fitToPage: true, fitToWidth: 1, fitToHeight: 0 },
   });
-  ws.columns = [{ width: 3 }, { width: 34 }, { width: 22 }, { width: 3 }];
+  ws.columns = [{ width: 3 }, { width: 46 }, { width: 22 }, { width: 3 }];
 
   ws.mergeCells('A1:D2');
   const t = ws.getCell('A1');
@@ -50,7 +50,7 @@ export async function downloadSimpleUstHakkiExcel(
   ws.mergeCells('A4:D4');
   ws.getCell('A4').fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
   ws.getRow(4).height = 3;
-  ws.addImage(logoId, { tl: { col: 2.4, row: 0.3 }, ext: { width: 105, height: 32 } });
+  ws.addImage(logoId, { tl: { col: 3.15, row: 0.3 }, ext: { width: 105, height: 32 } });
 
   let row = 6;
   function section(text: string) {

@@ -242,9 +242,15 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
             <div className="prop-card" key={b.id}>
               <div className="prop-card__top">
                 <label className="pfield"><span>Yapı Türü</span>
-                  <select value={b.type} onChange={(e) => patchBuilding(b.id, { type: e.target.value })}>
+                  <select value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                          onChange={(e) => patchBuilding(b.id, { type: e.target.value })}>
                     {BUILDING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select></label>
+                  </select>
+                  {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
+                    <input style={{ marginTop: 6 }} placeholder="Yapı adını yazın"
+                           value={BUILDING_TYPES.includes(b.type) ? '' : b.type}
+                           onChange={(e) => patchBuilding(b.id, { type: e.target.value || 'Diğer' })} />
+                  )}</label>
                 <label className="pfield pfield--s"><span>Alan m²</span>
                   <Num value={b.area} onChange={(n) => patchBuilding(b.id, { area: n })} /></label>
                 <label className="pfield pfield--s"><span>Birim Maliyet ({cur})</span>

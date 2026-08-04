@@ -119,12 +119,22 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
       }
       row++;
       if (cr.byproductResult) {
-        ws.getCell(row, 2).value = `  + Yan ürün: ${cr.byproductResult.name}`;
-        ws.getCell(row, 2).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
-        ws.getCell(row, 7).value = cr.byproductResult.net;
+        const b = cr.byproductResult;
+        ws.getCell(row, 2).value = `  + Yan ürün: ${b.name}`;
+        ws.getCell(row, 3).value = cr.kind === 'ekili'
+          ? `${Math.round(cr.areaM2).toLocaleString('tr-TR')} m²`
+          : `${cr.units.toLocaleString('tr-TR')} ağaç`;
+        ws.getCell(row, 4).value = `${b.yieldPerUnit.toLocaleString('tr-TR')} kg`;
+        ws.getCell(row, 5).value = b.price;
+        ws.getCell(row, 5).numFmt = '#,##0.00 "₺/kg"';
+        ws.getCell(row, 6).value = b.expensePct / 100;
+        ws.getCell(row, 6).numFmt = '0.0%';
+        ws.getCell(row, 7).value = b.net;
         ws.getCell(row, 7).numFmt = TL;
-        ws.getCell(row, 7).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
-        ws.getCell(row, 7).alignment = { horizontal: 'right' };
+        for (let c = 2; c <= 7; c++) {
+          ws.getCell(row, c).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
+          if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' };
+        }
         row++;
       }
     }
@@ -160,7 +170,6 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   row += 2;
 
   ws.mergeCells(`B${row}:F${row}`);
-  ws.getCell(`B${row}`).value = 'Değer = yıllık net gelir × amorti yılı.';
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 8, italic: true, color: { argb: 'FF8C98A5' } };
   row += 2;
   ws.mergeCells(`B${row}:F${row}`);

@@ -122,7 +122,7 @@ export interface HotelProjectionInput {
 }
 
 /** Tüm otel geliri modülü girdisi — tek kaynak (Single Source of Truth). */
-export type HotelFinalMethod = 'direkt' | 'ina' | 'manuel';
+export type HotelFinalMethod = 'direkt' | 'ina' | 'maliyet' | 'manuel';
 
 export interface HotelIncomeInput {
   /** Hesap para birimi ve TL kuru (yalnız gösterim; 'TRY' → kur 1) */

@@ -547,8 +547,13 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
           <div className="isletme-row" key={b.id}>
             <div className="grid-2">
               <Field label="Yapı Türü">
-                <Sel value={b.type} onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                     onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
                      options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
+                {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
+                  <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
+                       onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v || 'Diğer' } : x) }))} />
+                )}
               </Field>
               <Field label="Alan m²">
                 <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
@@ -609,6 +614,7 @@ function HotelResult({ input, result, setFinal }: {
 }) {
   const fmt = useFmt();
   const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
+    : input.finalMethod === 'maliyet' && result.cost ? result.cost.totalValueRounded
     : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
     : result.capitalizedValue;
   const [busy, setBusy] = useState(false);
@@ -628,6 +634,13 @@ function HotelResult({ input, result, setFinal }: {
               <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
             </div>
           )}
+          {result.cost && (
+            <div className={`dual-box${input.finalMethod === 'maliyet' ? ' dual-box--chosen' : ''}`}>
+              <span>MALİYET YAKLAŞIMI</span>
+              <b>{fmt(result.cost.totalValueRounded)}</b>
+              <em>Arsa + Yapı Değerleri</em>
+            </div>
+          )}
         </div>
         <div className="hrow-labeled" style={{ margin: '12px 0' }}>
           <label className="pfield"><span>Nihai Değer Seçimi (uzman takdiri)</span>
@@ -635,6 +648,7 @@ function HotelResult({ input, result, setFinal }: {
                     onChange={(e) => setFinal({ finalMethod: e.target.value as HotelIncomeInput['finalMethod'] })}>
               <option value="direkt">Direkt Kapitalizasyon</option>
               {result.ina && <option value="ina">İNA (NBD)</option>}
+              {result.cost && <option value="maliyet">Maliyet Yaklaşımı</option>}
               <option value="manuel">Elle tutar</option>
             </select></label>
           {input.finalMethod === 'manuel' && (

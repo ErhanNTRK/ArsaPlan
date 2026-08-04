@@ -43,19 +43,30 @@ export async function buildHotelPdf(
   doc.text(`Ada ${g.ada || '—'} · Parsel ${g.parsel || '—'}`, M + 4, y + 10.6);
   doc.setFontSize(8.2);
   doc.text(`Rapor Tarihi: ${tarih}`, PW - M - 4, y + 5.6, { align: 'right' });
-  doc.text('Direkt Kapitalizasyon Yöntemi', PW - M - 4, y + 10.6, { align: 'right' });
   y += 19;
 
-  /* Sonuç şeridi */
+  /* Sonuç şeridi — SEÇİLEN nihai yönteme göre dinamik */
+  const method = input.finalMethod ?? 'direkt';
+  const methodLabel: Record<string, string> = {
+    direkt: 'GELİR YAKLAŞIMINA GÖRE PİYASA DEĞERİ (DİREKT KAPİTALİZASYON)',
+    ina: 'İNA (İNDİRGENMİŞ NAKİT AKIMI) DEĞERİ',
+    maliyet: 'MALİYET YAKLAŞIMINA GÖRE PİYASA DEĞERİ',
+    manuel: 'UZMAN TAKDİRİYLE BELİRLENEN NİHAİ DEĞER',
+  };
+  const heroValue = method === 'ina' && r.ina ? r.ina.npv
+    : method === 'maliyet' && r.cost ? r.cost.totalValueRounded
+    : method === 'manuel' ? (input.finalManualValue ?? 0)
+    : r.capitalizedValue;
+
   const H = 27;
   doc.setFillColor(...NAVY);
   doc.roundedRect(M, y, W, H, 2.2, 2.2, 'F');
   doc.setFillColor(...GOLD);
   doc.rect(M, y + H - 1.2, W, 1.2, 'F');
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
-  doc.text('GELİR YAKLAŞIMINA GÖRE PİYASA DEĞERİ', M + 5, y + 7);
+  doc.text(methodLabel[method] ?? methodLabel.direkt, M + 5, y + 7);
   doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
-  doc.text(cur(r.capitalizedValue), M + 5, y + 18.5);
+  doc.text(cur(heroValue), M + 5, y + 18.5);
   const cx = M + W * 0.58;
   doc.setDrawColor(58, 88, 124);
   doc.line(cx - 4, y + 4.5, cx - 4, y + H - 4.5);
@@ -65,9 +76,35 @@ export async function buildHotelPdf(
     doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
     doc.text(val, cx, sy + 5.2);
   };
-  stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 10.5);
-  stat('KAPİTALİZASYON ORANI', pct(input.projection.capRate), y + 21.5);
-  y += H + 8;
+  if (method === 'ina' && r.ina) {
+    stat('İSKONTO ORANI', pct(input.projection.discountRate ?? 0), y + 10.5);
+    stat('TERMİNAL DEĞER DAHİL', cur(r.ina.terminalValue), y + 21.5);
+  } else if (method === 'maliyet' && r.cost) {
+    stat('ARSA DEĞERİ', cur(r.cost.landValue), y + 10.5);
+    stat('YAPI DEĞERLERİ', cur(r.cost.buildingsValue), y + 21.5);
+  } else {
+    stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 10.5);
+    stat('KAPİTALİZASYON ORANI', pct(input.projection.capRate), y + 21.5);
+  }
+  y += H + 6;
+
+  /* İkincil yöntemler — işaretli ama seçilen nihai yöntem OLMAYAN diğerleri */
+  const secondary: { label: string; value: number }[] = [];
+  if (method !== 'direkt' && (input.showIncomeInPdf ?? true)) secondary.push({ label: 'Gelir Yaklaşımı (Direkt Kapitalizasyon)', value: r.capitalizedValue });
+  if (method !== 'ina' && (input.showInaInPdf ?? true) && r.ina) secondary.push({ label: 'İNA (NBD)', value: r.ina.npv });
+  if (method !== 'maliyet' && (input.showCostInPdf ?? true) && r.cost) secondary.push({ label: 'Maliyet Yaklaşımı', value: r.cost.totalValueRounded });
+
+  if (secondary.length > 0) {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8.3); doc.setTextColor(...GRAY);
+    for (const s of secondary) {
+      doc.text(s.label, M + 3, y);
+      doc.setFont('NTRK', 'bold'); doc.setTextColor(...INK);
+      doc.text(cur(s.value), PW - M - 3, y, { align: 'right' });
+      doc.setFont('NTRK', 'normal'); doc.setTextColor(...GRAY);
+      y += 5.6;
+    }
+    y += 4;
+  }
 
   /* Gelir kırılımı tablosu */
   const sectionTitle = (title: string) => {
@@ -158,14 +195,22 @@ export async function buildHotelPdf(
     );
   }
 
-  sectionTitle('Değerlendirme Özeti');
-  pageBreak(20);
-  doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...INK);
-  const lines = doc.splitTextToSize(r.summaryText, W);
-  doc.text(lines, M, y);
-  y += lines.length * 4.2 + 4;
+  if (secondary.length > 0) {
+    sectionTitle('Yöntemlerin Karşılaştırması');
+    pageBreak(6 * (secondary.length + 1) + 8);
+    const allMethods = [{ label: methodLabel[method]?.split('(')[0].trim() ?? 'Seçilen Yöntem', value: heroValue }, ...secondary];
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...INK);
+    for (const m of allMethods) {
+      doc.text(m.label, M + 3, y);
+      doc.setFont('NTRK', 'bold');
+      doc.text(cur(m.value), PW - M - 3, y, { align: 'right' });
+      doc.setFont('NTRK', 'normal');
+      y += 6.5;
+    }
+    y += 4;
+  }
 
-  drawFooter(doc, BRAND.version, 'Yöntem: Gelir İndirgeme Yaklaşımı (Direkt Kapitalizasyon) · Tutarlar KDV hariçtir');
+  drawFooter(doc, BRAND.version, `Yöntem: ${methodLabel[method]?.split('(')[0].trim() ?? 'Gelir İndirgeme Yaklaşımı'} · Tutarlar KDV hariçtir`);
 
   const name = `Otel-Gelir-Analizi-${(g.facilityName || g.ilce || g.il || 'rapor').replace(/\s+/g, '-')}.pdf`;
   return { doc, name };

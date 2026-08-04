@@ -48,7 +48,7 @@ export interface DetailedRoomRow {
 
 /** Yapı türü kataloğu — Salih'in listesi; ileride kolayca genişletilebilir. */
 export const BUILDING_TYPES: string[] = [
-  'Diğer', 'Tüm Yapılar',
+  'Diğer', 'Tüm Yapılar', 'Otel Binası', 'Apart Otel Binası',
   'Standart Bloklar', 'Süit ve Rezidans Binası', 'Villalar', 'Personel Lojmanı',
   'Lobi ve Resepsiyon Binası', 'Butik', 'Market', 'Kuaför', 'Hediyelik Eşya Dükkanı',
   'Kapalı Yeraltı Otoparkı', 'Açık Misafir Otoparkı', 'Vale Alanı', 'Mal Kabul Otoparkı',

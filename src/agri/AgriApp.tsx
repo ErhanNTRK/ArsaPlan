@@ -131,7 +131,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
         <div className="step-head">
           <div className="step-eyebrow">Tarımsal Ürün Gelir Hesabı</div>
           <div className="step-title">Ürün Deseni ve Gelir</div>
-          <div className="step-desc">Değer = yıllık net gelir × bölge amorti yılı. Tüm öneriler yönlendiricidir; her kutu serbestçe değiştirilebilir.</div>
+          <div className="step-desc">Tüm öneriler yönlendiricidir; her kutu serbestçe değiştirilebilir.</div>
         </div>
 
         {/* ── SEÇİM KAPISI: mod seçilmeden hiçbir veri görünmez ── */}
@@ -335,8 +335,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
                          value={state.amortYears || ''} onChange={(e) => patch({ amortYears: Number(e.target.value) || 0 })} /></label>
                 <div className="pfield pfield--ro pfield--big"><span>Yaklaşık Değer</span><b>{TL(result.value)}</b></div>
               </div>
-              <div className="hint">Değer = yıllık net gelir × amorti yılı.</div>
-              <div className="export-row no-print">
+                            <div className="export-row no-print">
                 <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
                 <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>
               </div>

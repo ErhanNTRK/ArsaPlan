@@ -1,54 +1,67 @@
-# ArsaPlan v7.0.2 — Checkbox Kök Hatası + 5 Düzeltme
+# ArsaPlan v7.0.3 — Birikmiş Düzeltmeler (Kapsamlı Tur)
 
-Doğrulama: tsc 0 hata, test 192/192, build başarılı. Checkbox CSS
-düzeltmesi derlenmiş çıktıda doğrulandı; "5.000'e yuvarlanmış" metninin
-kalktığı, formül cümlesinin kaldığı gerçek PDF'le doğrulandı.
+Doğrulama: tsc 0 hata, test 192/192, build başarılı. Her madde gerçek
+PDF/Excel üretilerek ayrı ayrı doğrulandı.
 
-## 1) Checkbox'lar artık gerçekten çalışıyor — kök neden bulundu
+## Bu pakette TAMAMLANAN maddeler
 
-**Uygulama genelini etkileyen bir CSS hatasıydı.** Genel
-`input, select, textarea { width:100%; appearance:none; ... }` kuralı
-checkbox'ları da kapsıyordu — tarayıcının normal checkbox görünümünü
-(kare + tik işareti) tamamen siliyor, geniş boş bir dikdörtgene
-dönüştürüyordu. Bu yüzden hem Üst Hakkı'daki "PDF ve Excel'de Göster"
-hem Otel'deki "Gelir/İNA/Maliyet" checkbox'ları çalışmıyormuş gibi
-görünüyordu. Tek bir CSS düzeltmesiyle **her ikisi de dahil, uygulama
-genelindeki tüm checkbox'lar** düzeldi.
+1. **Checkbox'lar artık gerçekten çalışıyor** — uygulama genelini
+   etkileyen bir CSS kök hatası (input,select,textarea kuralı
+   checkbox'ları da eziyordu) düzeltildi.
+2. **"En yakın 5.000'e yuvarlanmış" ifadesi 6 yerden kaldırıldı**
+   (Tarımsal, Üst Hakkı, Otel — uygulama+PDF+Excel).
+3. **Gelirler Tablosu oranları artık her alanın yanında belirgin
+   rozet** olarak görünüyor (Üst Hakkı — Toplam Gelir Üzerinden).
+4. **İşletme Giderleri yüzdelerinin yanında döviz karşılığı** rozeti.
+5. **Otel'de İNA bölümü artık ayrı, "OPSİYONEL" rozetli kendi kartında.**
+6. **Tarımsal Ürün: Yan ürün artık ana ürün gibi tam detaylı**
+   (Birim, Verim, Fiyat, Gider% — önceden yalnız isim+net görünüyordu).
+7. **"Değer = yıllık net gelir" ibaresi 4 yerden tamamen kaldırıldı.**
+8. **Üst Hakkı'nda "Otel Binası" ve "Apart Otel Binası" bina türleri
+   eklendi** (listenin başına) — üç yöntemde ve Otel'de.
+9. **"Diğer" seçilince artık elle yazma kutusu açılıyor** — üç yerde.
+10. **Excel logo/başlık çakışması düzeltildi** (Yöntem 1/2 — Toplam
+    Değerden / Sadece Arsa Değeri Üzerinden).
+11. **Toplam Değerden Üst Hakkı Hesabı'nda "Daimi Müstakil Hak Değeri"
+    satırı kaldırılıp "Taşınmazın Değeri" ile değiştirildi.**
+12. **Nihai değer artık her üç Üst Hakkı yönteminde de hem seçilen
+    dövizde hem TL karşılığında** gösteriliyor (ekran+PDF+Excel).
+13. **Üst Hakkı Excel'inin Dönemsel Tablosu geniş matrise dönüştürüldü**
+    (kategori-satır/dönem-sütun, referans banka şablonu formatında,
+    "Toplam Gelir İçerisinde Oranı" sütunu dahil).
+14. **Otel Gelir Hesabı'na Maliyet Yaklaşımı, Nihai Değer Seçimi'ne
+    eklendi** (Direkt Kapitalizasyon / İNA / Maliyet Yaklaşımı / Elle
+    Tutar).
+15. **Otel PDF'i artık seçilen nihai yönteme göre dinamik:** seçilen
+    yöntem en üstte belirgin, işaretli diğer yöntemler altında,
+    birden fazla yöntem gösteriliyorsa en altta karşılaştırma özeti.
+16. **Otel'de döviz tam yayılımı** (ekran+PDF+motor özet metni).
+17. **İngilizce çevirisindeki kritik ID hatası düzeltildi**, global
+    dil düğmesi + kısmi İngilizce uyarı bandı eklendi.
+18. **Excel içe aktarma** — 5 modülde (Tarımsal, Akaryakıt, Üst
+    Hakkı'nın üç yöntemi) çalışıyor.
+19. **Uygulama genelinde 4 ızgara sınıfının** (grid-2/3, mini-kpi,
+    kpi-grid) telefon ekranında tek kolona düşmemesi düzeltildi.
+20. **Otel'de KAKS/TAKS havuzu aşım uyarısı** (ekran+PDF).
+21. **Her tek-ekran modülde sabit alt "← Ana Sayfaya Dön" bar'ı.**
 
-## 2) "En yakın 5.000'e yuvarlanmış" ifadesi 6 yerden kaldırıldı
+## YARIN ele alınacaklar (bu pakete YOK, aceleye getirilmedi)
 
-Tarımsal Ürün (uygulama içi + PDF + Excel), Üst Hakkı Toplam Gelir
-Üzerinden (PDF + Excel), Otel (PDF) — hepsinde bu açıklayıcı ifade
-kaldırıldı. Rakamın kendisi hâlâ 5.000'e yuvarlanmış olarak
-hesaplanıyor (yöntem değişmedi), yalnız bunu anlatan metin gitti.
-
-## 3) Gelirler Tablosu oranları artık her alanın yanında belirgin rozet
-
-Önceden tek bir küçük, gri ipucu cümlesindeydi. Şimdi her gelir kalemi
-(Yiyecek, Diğer, Toplantı, Dükkan) kutusunun hemen yanında, canlı
-güncellenen bir rozet var; Oda Gelirinin payı da ayrı, altın renkli bir
-rozetle vurgulanıyor.
-
-## 4) İşletme Giderleri yüzdelerinin yanına döviz karşılığı eklendi
-
-"Oda Gideri %30" gibi her yüzde kutusunun yanında, 1. yıl için o
-yüzdenin karşılık geldiği gerçek tutar (rozet olarak) görünüyor.
-
-## 5) Otel'de İNA bölümü artık görsel olarak ayrı, belirgin "OPSİYONEL" rozetli
-
-Önceden Projeksiyon Parametreleri ile aynı kartın içinde, yalnız bir
-alt başlıkla ayrılıyordu. Artık **kesikli çerçeveli, ayrı bir kart**
-içinde, üstünde net bir "OPSİYONEL" rozeti ve "boş bırakılırsa hesaba
-dahil edilmez" açıklamasıyla.
-
-## Bulduğum ama bu pakete EKLEMEDİĞİM bir eksiklik
-
-**Otel modülünde hiç Excel export özelliği yok** — yalnız PDF var. Bu
-yüzden "PDF ve Excel'de Göster" yerine yalnız "PDF'te gösterilecek
-yöntemler" yazıyor; tutarsızlık değil, gerçek bir eksiklik. Bunu
-sessizce eklemek yerine sana soruyorum: Otel'e de (Tarımsal Ürün/Üst
-Hakkı gibi) tam bir Excel export ekleyelim mi? Onaylarsan ayrı bir
-turda ele alırım.
+- **Akaryakıt İlave Gelir Getiriciler'i gerçek dropdown'a çevirmek** +
+  "Araç Temizlik Merkezi"/"Lastik Satış ve Değişimi" eklemek.
+- **Akaryakıt: Maliyet Yaklaşımı verisi boşsa PDF/Excel'de hiç
+  gösterilmemesi** (kök neden bulundu, kodlanmadı).
+- **Akaryakıt: Kapitalizasyon Oranının PDF/Excel'de ayrı, belirgin bir
+  satır olarak da gösterilmesi.**
+- **Ayrıntılı Üst Hakkı PDF'inde dönem başlığının yeni sayfada birkaç
+  kez tekrar basılması** (kök neden bulundu — `if (y<48)` mantık hatası
+  — kodlanmadı).
+- **Arsa modülünde KAKS/TAKS havuzu aşım uyarısının PDF'ten
+  kaldırılması** (ekranda kalsın, PDF'te görünmesin — kodlanmadı).
+- **Kat Tablosu'nun (çok katlı binalarda) duyarlı çok sütunlu ızgaraya
+  çevrilmesi** (tek sütunda alt alta uzayıp sağ tarafın boş kalması).
+- **TAKS'sız projelerde KAKS/Kat Sayısı öneri değeri + "Doğrudan Alan
+  Girişi" yönlendirme ipucu.**
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).
@@ -59,3 +72,5 @@ turda ele alırım.
 5. **Commit changes**.
 6. **Actions** sekmesinde yeşil tik belirene kadar bekle (~30-60 sn).
 7. Siteyi **Ctrl+F5** ile tazele.
+
+İyi çalışmalar — yarın kalanlarla devam ederiz! 📝
