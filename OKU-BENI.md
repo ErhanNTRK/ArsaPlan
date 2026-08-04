@@ -1,29 +1,44 @@
-# ArsaPlan v7.3.0 — Periyodik Bakım Gerçekten Periyodik Oldu
+# ArsaPlan v7.4.0 — Excel İndir/Yükle Artık Tüm 7 Modülde
 
-Doğrulama: tsc 0 hata, test 193/193 (yeni golden test dahil), build
-başarılı. Periyodik büyüme mantığı iki ayrı testle doğrulandı: (1) eski
-"tek tekrar" senaryosunun golden değerleri korundu, (2) yeni "iki
-tekrar, ikincisi büyümüş" senaryosu ayrıca doğrulandı.
+Doğrulama: tsc 0 hata, test 193/193, build başarılı. Otel'in round-trip'i
+(gerçek Excel üretilip geri okunarak) birebir eşleşmeyle doğrulandı.
 
-## "Dönemsel Bakım" → "Periyodik Bakım" — artık gerçekten periyodik
+## Tamamlanan modüller
 
-**Eski davranış:** "Yıl"a 5 yazınca yalnız 5. yılda, TEK SEFERLİK
-uygulanıyordu — isim "Dönemsel" olsa da davranış tek seferlikti.
+- **Arsa Gelir Projeksiyonu** — Excel Yükle eksikti (indirme zaten
+  vardı), eklendi.
+- **Otel Gelir Hesabı** — hem Excel İndir hem Excel Yükle **sıfırdan**
+  eklendi (Gelir Özeti, Seçilen Nihai Yöntem, Yöntemlerin
+  Karşılaştırması, Maliyet Yaklaşımı detayı, Yıllık Projeksiyon Tablosu
+  içeren tam bir rapor).
+- Tarımsal Ürün, Akaryakıt, Üst Hakkı'nın üç yöntemi zaten vardı,
+  değişmedi.
 
-**Yeni davranış:** Alan adı **"Periyodik Bakım — Yıl Aralığı"** oldu.
-5 yazarsan artık **5, 10, 15, 20... yıllarında tekrar eder.**
-**"Periyodik Bakım — Tutar"** kutusuna girdiğin değer **ilk tekrara**
-(5. yıl) tam olarak yansır; **sonraki her tekrar (10, 15, 20. yıl)
-Gider Artış Oranıyla büyüyerek** uygulanır — tıpkı gelirlerin İNA'yı
-büyüyerek etkilemesi gibi, senin de işaret ettiğin mantık.
+**Artık 7 modülün 7'sinde de Excel İndir + Excel Yükle çalışıyor.**
 
-## Diğer küçük düzeltmeler
+## İndir/Yükle mantığının özeti (senin istediğin gibi)
 
-- **Yenileme Fonu Oranı** ipucu netleşti: *"Her yıl için hesaplanır —
-  %3-5 oranında önerilir."*
-- **Sessiz veri kaybı uyarısı** yeni isimle güncellendi: *"Periyodik
-  Bakım Tutarı girildi ama Yıl Aralığı boş — bu gider hiçbir yıla
-  uygulanmıyor."*
+Her Excel dosyasına, görünmeyen (gizli) bir **"_data" sayfası**
+ekleniyor — bu sayfa, o anki tüm girdi verisinin ham bir kopyasını
+taşıyor. "Excel Yükle" düğmesi bu gizli sayfayı okuyup formu **birebir**
+dolduruyor.
+
+**Neden bu yöntem seçildi:** Excel'in "güzel", bankaya sunulan
+sayfasındaki formatlanmış sayıları (binlik ayırıcı, para birimi
+sembolü dahil) geri okumaya çalışmak kırılgandır — küçük bir format
+farkı bile veri kaybına yol açabilir. Gizli veri sayfası bu riski
+tamamen ortadan kaldırıyor: round-trip (indir → yükle) **her zaman**
+birebir çalışıyor, format nasıl görünürse görünsün.
+
+**Sınırı:** Excel'de görünen bir sayıyı elle değiştirip geri yüklersen,
+bu değişiklik yansımaz — yalnızca ilk indirme anındaki veri geri gelir.
+Amaç zaten bu: "bir kullanıcı Excel'i alıp başka bir kullanıcıya
+iletsin, o kullanıcı yükleyince verileri birebir görsün."
+
+4 modülde (Tarımsal, Akaryakıt, Üst Hakkı×2) bu özet artık **uygulama
+içinde de**, "Excel Yükle" düğmesinin hemen altında görünür bir not
+olarak duruyor. Arsa ve Otel'de topbar dar olduğu için bu açıklama
+düğmenin üzerine gelince (title/tooltip) çıkıyor.
 
 ## Yükleme
 1. Zip'i çıkar (`src`, `public`, `package.json`, bu dosya görünecek).

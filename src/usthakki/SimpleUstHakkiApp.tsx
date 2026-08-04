@@ -98,6 +98,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
           }} />
         </label>
       </div></div>
+      <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
 
       <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">

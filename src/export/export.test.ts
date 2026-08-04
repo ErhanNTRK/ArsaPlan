@@ -70,7 +70,7 @@ describe('Excel çıktısı', () => {
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.load(buf as any);
-    expect(wb.worksheets.map((w) => w.name)).toEqual(['RAPOR', 'GİRDİLER', 'UZMAN GÖRÜŞÜ']);
+    expect(wb.worksheets.map((w) => w.name)).toEqual(['RAPOR', 'GİRDİLER', 'UZMAN GÖRÜŞÜ', '_data']);
     const rapor = wb.getWorksheet('RAPOR')!;
     const values: string[] = [];
     rapor.eachRow((row) => row.eachCell((c) => values.push(String(c.value))));

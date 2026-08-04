@@ -10,6 +10,7 @@ import { DetailedUstHakkiApp } from './usthakki/DetailedUstHakkiApp';
 import { SimpleUstHakkiApp } from './usthakki/SimpleUstHakkiApp';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
+import { readDataSheet } from './export/excelImport';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
 import HotelApp from './hotel/HotelApp';
@@ -343,6 +344,16 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
               📂 Taslak Yükle
               <input type="file" accept="application/json,.json" style={{ display: 'none' }}
                      onChange={(e) => { const f = e.target.files?.[0]; if (f) importDraft(f); e.target.value = ''; }} />
+            </label>
+            <label className="link-btn topbar-link" title="Daha önce indirilen .xlsx dosyasından verileri geri yükler">
+              📊 Excel Yükle
+              <input type="file" accept=".xlsx" style={{ display: 'none' }}
+                     onChange={async (e) => {
+                       const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
+                       const data = await readDataSheet<ProjectInput>(f);
+                       if (data) { setInput(mergeDraft(data)); setStep(1); window.scrollTo({ top: 0 }); }
+                       else window.alert('Bu Excel dosyasında ArsaPlan verisi bulunamadı.');
+                     }} />
             </label>
           </div>
           <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />

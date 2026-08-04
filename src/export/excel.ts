@@ -4,6 +4,7 @@
  * böylece uygulamanın ilk açılışı hafif kalır.
  */
 import ExcelJS from 'exceljs';
+import { attachDataSheet } from './excelImport';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
@@ -663,6 +664,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     r3++;
   }
 
+  attachDataSheet(wb, input);
   const buf = await wb.xlsx.writeBuffer();
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const name = `Arsa-Analizi-${(p.ilce || p.il || 'rapor').replace(/\s+/g, '-')}-${p.ada || ''}-${p.parsel || ''}.xlsx`

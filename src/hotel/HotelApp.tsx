@@ -25,6 +25,8 @@ import type {
   HotelIncomeInput, RoomRevenueRow, AncillaryIncomeRow, CommercialLeaseRow,
 } from './types';
 import { downloadHotelPdf } from './pdf';
+import { downloadHotelExcel } from './excel';
+import { readDataSheet } from '../export/excelImport';
 import { parseKml } from '../geo/kml';
 import { BUILDING_TYPES } from '../usthakki/detailedEngine';
 
@@ -104,6 +106,15 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
           </div>
           <div className="topbar-actions no-print">
             <button type="button" className="link-btn topbar-link" onClick={onBack}>← Başlangıca dön</button>
+            <label className="link-btn topbar-link" title="Daha önce indirilen .xlsx dosyasından verileri geri yükler">
+              📊 Excel Yükle
+              <input type="file" accept=".xlsx" style={{ display: 'none' }}
+                     onChange={async (e) => {
+                       const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
+                       const data = await readDataSheet<HotelIncomeInput>(f);
+                       if (data) { setInput(data); setStep(1); } else window.alert('Bu Excel dosyasında ArsaPlan verisi bulunamadı.');
+                     }} />
+            </label>
           </div>
           <img className="brand-logo" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
         </div>
@@ -711,6 +722,7 @@ function HotelResult({ input, result, setFinal }: {
           <label className="pdf-toggle"><input type="checkbox" checked={input.showCostInPdf ?? true}
                    onChange={(e) => setFinal({ showCostInPdf: e.target.checked })} /> Maliyet Yaklaşımı</label>
         </div>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy}
                 onClick={async () => {
                   setBusy(true);
@@ -719,6 +731,15 @@ function HotelResult({ input, result, setFinal }: {
                 }}>
           {busy ? 'Hazırlanıyor…' : '📄 PDF Raporu İndir'}
         </button>
+        <button type="button" className="btn btn-ghost btn-sm" disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  try { await downloadHotelExcel(input, result); }
+                  finally { setBusy(false); }
+                }}>
+          📊 Excel Raporu İndir
+        </button>
+        </div>
       </div>
     </div>
   );
