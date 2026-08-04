@@ -501,6 +501,11 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
           </Field>
         </div>
         <div className="grid-2">
+          <Field label="Yenileme Fonu Oranı" hint="Her yıl tekrarlar — Toplam Gelirin yüzdesi olarak gidere eklenir">
+            <Pct value={projection.renewalFundRate ?? 0} onChange={(n) => setProjection({ renewalFundRate: n > 0 ? n : null })} />
+          </Field>
+        </div>
+        <div className="grid-2">
           <Field label="Dönemsel Bakım — Yıl" hint="Örn. 5 (0 = yok)">
             <Num value={projection.maintenanceYear ?? 0} onChange={(n) => setProjection({ maintenanceYear: n > 0 ? Math.round(n) : null })} />
           </Field>
@@ -508,6 +513,9 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
             <Num value={projection.maintenanceAmount ?? 0} onChange={(n) => setProjection({ maintenanceAmount: n > 0 ? n : null })} suffix="₺" />
           </Field>
         </div>
+        {(projection.maintenanceAmount ?? 0) > 0 && !projection.maintenanceYear && (
+          <div className="warn-line">Dönemsel Bakım Tutarı girildi ama Yıl boş — bu gider hiçbir yıla uygulanmıyor, hesaba hiç girmiyor.</div>
+        )}
         {result.ina && (
           <div className="note-box" style={{ marginTop: 10 }}>
             İNA sonucu: Terminal {fmt(result.ina.terminalValue)} · <b>NBD {fmt(result.ina.npv)}</b>

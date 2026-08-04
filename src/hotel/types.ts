@@ -119,6 +119,8 @@ export interface HotelProjectionInput {
   /** Dönemsel bakım-onarım: belirtilen yılda tek seferlik gider (₺) */
   maintenanceYear?: number | null;
   maintenanceAmount?: number | null;
+  /** Yenileme/Bakım Fonu: HER YIL tekrarlayan, toplam gelirin oranı kadar gider (0.05 = %5). null/0 = kapalı. */
+  renewalFundRate?: number | null;
 }
 
 /** Tüm otel geliri modülü girdisi — tek kaynak (Single Source of Truth). */
@@ -183,6 +185,7 @@ export interface HotelProjectionYear {
   yearIndex: number; // 1, 2, 3...
   totalRevenue: number;
   totalExpense: number;
+  renewalFund: number;   // o yılın Yenileme Fonu gideri (zaten totalExpense'e dahil, ayrıca gösterim için)
   noi: number;
   capitalizedValue: number;
 }

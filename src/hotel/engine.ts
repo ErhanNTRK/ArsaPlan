@@ -104,15 +104,19 @@ export function computeProjection(
      gider aynı oranda artarsa gider/gelir oranı sabit kalır ve NOI aynı oranda
      büyür; gider artışı gelirden yüksekse marj gerçekçi biçimde daralır. */
   const baseExpense = baseRevenue * Math.min(1, Math.max(0, baseExpenseRate));
+  const renewalRate = Math.max(0, input.renewalFundRate ?? 0);
   for (let i = 1; i <= years; i++) {
     const revenue = baseRevenue * Math.pow(1 + input.incomeGrowthRate, i - 1);
-    const expense = baseExpense * Math.pow(1 + input.expenseGrowthRate, i - 1);
+    const opExpense = baseExpense * Math.pow(1 + input.expenseGrowthRate, i - 1);
+    const renewalFund = R(revenue * renewalRate);
+    const expense = opExpense + renewalFund;
     const noi = z(R(revenue) - R(expense));
     const capitalizedValue = z(computeCapitalizedValue(noi, input.capRate));
     table.push({
       year: input.startYear + i - 1,
       yearIndex: i,
       totalRevenue: z(R(revenue)),
+      renewalFund: z(renewalFund),
       totalExpense: z(R(expense)),
       noi,
       capitalizedValue,
