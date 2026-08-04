@@ -435,19 +435,12 @@ function StepOpex({ opex, setOpex, result }: {
     <div className="cols">
       <div className="card">
         <div className="card-title">İşletme Gideri</div>
-        <div className="hint" style={{ marginBottom: 10 }}>
-          İlk sürümde işletme gideri, Toplam Brüt Gelir üzerinden tek bir oranla hesaplanır.
-          Personel, enerji, bakım gibi detaylı gider kalemleri ileride eklenebilecek şekilde altyapı hazır tutulmuştur.
-        </div>
-        <Field label="İşletme Gider Oranı" hint="Toplam gelirin yüzdesi olarak">
-          <Pct value={opex.expenseRate} onChange={(n) => setOpex({ expenseRate: n })} />
-        </Field>
-        <div className="note-box" style={{ marginTop: 8 }}>
-          {fmt(result.totalGrossRevenue)} × %{Math.round(opex.expenseRate * 100)} = {fmt(result.totalExpense)} gider
-        </div>
-        <div className="mini-kpi" style={{ marginTop: 14 }}>
-          <div><span>Toplam Brüt Gelir (yıllık)</span><b>{fmt(result.totalGrossRevenue)}</b></div>
-          <div><span>Net İşletme Geliri (NOI)</span><b>{fmt(result.noi)}</b></div>
+        <div className="hrow-labeled">
+          <label className="pfield pfield--s"><span>İşletme Gider Oranı</span>
+            <Pct value={opex.expenseRate} onChange={(n) => setOpex({ expenseRate: n })} /></label>
+          <div className="pct-badge" title="Toplam gelirin bu orana göre gideri">
+            {fmt(result.totalGrossRevenue)} × %{Math.round(opex.expenseRate * 100)} = {fmt(result.totalExpense)}
+          </div>
         </div>
       </div>
     </div>
@@ -466,16 +459,15 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
     <div className="cols">
       <div className="card">
         <div className="card-title">Projeksiyon Parametreleri</div>
-        <div className="grid-2">
-          <Field label="Başlangıç Yılı"><Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></Field>
-          <Field label="Projeksiyon Süresi">
-            <Num value={projection.years}
-                 onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" />
-          </Field>
-        </div>
-        <div className="grid-2">
-          <Field label="Gelir Artış Oranı" hint="Yıllık"><Pct value={projection.incomeGrowthRate} onChange={(n) => setProjection({ incomeGrowthRate: n })} /></Field>
-          <Field label="Gider Artış Oranı" hint="Yıllık"><Pct value={projection.expenseGrowthRate} onChange={(n) => setProjection({ expenseGrowthRate: n })} /></Field>
+        <div className="hrow-labeled">
+          <label className="pfield pfield--s"><span>Başlangıç Yılı</span>
+            <Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></label>
+          <label className="pfield pfield--s"><span>Projeksiyon Süresi</span>
+            <Num value={projection.years} onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" /></label>
+          <label className="pfield pfield--s"><span>Gelir Artış Oranı</span>
+            <Pct value={projection.incomeGrowthRate} onChange={(n) => setProjection({ incomeGrowthRate: n })} /></label>
+          <label className="pfield pfield--s"><span>Gider Artış Oranı</span>
+            <Pct value={projection.expenseGrowthRate} onChange={(n) => setProjection({ expenseGrowthRate: n })} /></label>
         </div>
         <Field label="Kapitalizasyon Oranı" hint="Direkt Kapitalizasyon Yöntemi: NOI ÷ Kapitalizasyon Oranı">
           <Pct value={projection.capRate} onChange={(n) => setProjection({ capRate: n })} />
@@ -604,8 +596,10 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
         </details>
       </div>
 
+      {result.ina && (
       <div className="card">
         <div className="card-title">Yıllık Projeksiyon Tablosu</div>
+        <div className="hint" style={{ marginBottom: 8 }}>İNA hesaplandığı için gösteriliyor — yalnız Direkt Kapitalizasyon kullanılıyorsa bu tablo gerekmez.</div>
         <div className="proj-table-wrap">
           <table className="proj-table">
             <thead>
@@ -625,6 +619,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
           </table>
         </div>
       </div>
+      )}
     </div>
   );
 }
