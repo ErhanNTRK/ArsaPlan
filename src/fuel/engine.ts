@@ -129,7 +129,7 @@ export function computeFuel(input: FuelInput): FuelResult {
   if (input.cost.enabled) {
     costLand = R(Math.max(0, input.cost.parcelArea) * Math.max(0, input.cost.landUnitValue));
     costBuildings = R(input.cost.buildings.reduce((s, b) => s + Math.max(0, b.area) * Math.max(0, b.unitCost), 0));
-    costValue = R(costLand + costBuildings);
+    if (costLand > 0 || costBuildings > 0) costValue = R(costLand + costBuildings);
   }
 
   return {

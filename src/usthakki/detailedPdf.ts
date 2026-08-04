@@ -21,7 +21,7 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   drawHeader(doc, 'Ayrıntılı Üst Hakkı Değer Analizi', 'Gelir İndirgeme (DCF) — Dönemsel Tablo');
   let y = 44;
 
-  function pageBreak(need: number) { if (y + need > 280) { doc.addPage(); y = 20; } }
+  function pageBreak(need: number): boolean { if (y + need > 280) { doc.addPage(); y = 20; return true; } return false; }
   function sectionTitle(title: string) {
     pageBreak(10);
     doc.setFillColor(...NAVY);
@@ -90,8 +90,8 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   tableHead();
   let zebra = false;
   for (const yr of r.years) {
-    pageBreak(h + 2);
-    if (y < 48) tableHead();
+    const newPage = pageBreak(h + 2);
+    if (newPage) tableHead();
     if (zebra) { doc.setFillColor(...FAINT); doc.rect(M, y - 3.8, W, h, 'F'); }
     zebra = !zebra;
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.2); doc.setTextColor(...INK);

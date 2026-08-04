@@ -106,6 +106,12 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
   }
   y += boxH + 6;
 
+  doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
+  doc.text('Kapitalizasyon Oranı', M + 3, y);
+  doc.setFont('NTRK', 'bold'); doc.setTextColor(...INK);
+  doc.text(`%${input.capRate}`, PW - M - 3, y, { align: 'right' });
+  y += 8;
+
   drawFooter(doc, BRAND.version, 'Yöntem: Akaryakıt Gelir Hesabı · Tutarlar KDV hariçtir');
   return doc;
 }

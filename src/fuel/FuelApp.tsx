@@ -11,6 +11,7 @@ import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
 import { downloadFuelPdf } from './pdf';
 import { downloadFuelExcel } from './excel';
+import { Num } from '../ui/fields';
 
 const DRAFT = 'arsaplan-fuel-draft-v1';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -22,9 +23,9 @@ const PRODUCT_DEFS: { name: string; profit: number; hint: string }[] = [
   { name: 'LPG (Otogaz)', profit: 5, hint: 'Öneri %5 · dağıtıcı sözleşmesine göre %6-7 olabilir' },
 ];
 const EXTRA_SUGGESTIONS = [
-  'Market Geliri', 'Restoran / Kafe Geliri', 'Oto Yıkama', 'LPG Geliri',
+  'Market Geliri', 'Restoran / Kafe Geliri', 'Oto Yıkama', 'Araç Temizlik Merkezi', 'LPG Geliri',
   'Elektrikli Araç Şarj Geliri', 'ATM / Banka Kira Geliri', 'Reklam Geliri',
-  'Araç Bakım / Lastik Servisi', 'Tekel', 'Kira Geliri',
+  'Araç Bakım / Lastik Servisi', 'Lastik Satış ve Değişimi', 'Tekel', 'Kira Geliri',
 ];
 const EXTRA_PCT: Record<string, number> = { 'Restoran / Lokanta': 20, Market: 20, Tekel: 4 };
 
@@ -177,10 +178,17 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             <div className="prop-card" key={e.id}>
               <div className="prop-card__top">
                 <label className="pfield"><span>Gelir Kalemi</span>
-                  <input list="extra-list" value={e.name} onChange={(ev) => {
-                    const name = ev.target.value;
+                  <select value={EXTRA_SUGGESTIONS.includes(e.name) ? e.name : '__ozel__'} onChange={(ev) => {
+                    const name = ev.target.value === '__ozel__' ? '' : ev.target.value;
                     patchExtra(e.id, { name, ...(EXTRA_PCT[name] !== undefined ? { profitPct: EXTRA_PCT[name] } : {}) });
-                  }} /></label>
+                  }}>
+                    {EXTRA_SUGGESTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                    <option value="__ozel__">Diğer (elle yaz)</option>
+                  </select>
+                  {!EXTRA_SUGGESTIONS.includes(e.name) && (
+                    <input style={{ marginTop: 6 }} placeholder="Gelir kalemi adı" value={e.name}
+                           onChange={(ev) => patchExtra(e.id, { name: ev.target.value })} />
+                  )}</label>
                 <label className="pfield"><span>Hesap Şekli</span>
                   <select value={e.mode} onChange={(ev) => patchExtra(e.id, { mode: ev.target.value as never })}>
                     <option value="ciro">Ciro × kâr oranı</option>
@@ -188,13 +196,12 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                   </select></label>
                 {e.mode === 'ciro' ? (<>
                   <label className="pfield"><span>Yıllık Ciro ₺</span>
-                    <input type="number" value={e.turnover || ''} onChange={(ev) => patchExtra(e.id, { turnover: Number(ev.target.value) || 0 })} /></label>
+                    <Num value={e.turnover} onChange={(n) => patchExtra(e.id, { turnover: n })} /></label>
                   <label className="pfield pfield--s"><span>Kâr %</span>
-                    <input type="number" value={e.profitPct || ''} title="Öneri: lokanta %20 · market %20 · tekel %4"
-                           onChange={(ev) => patchExtra(e.id, { profitPct: Number(ev.target.value) || 0 })} /></label>
+                    <Num value={e.profitPct} onChange={(n) => patchExtra(e.id, { profitPct: n })} /></label>
                 </>) : (
                   <label className="pfield"><span>Yıllık Net ₺</span>
-                    <input type="number" value={e.netAmount || ''} onChange={(ev) => patchExtra(e.id, { netAmount: Number(ev.target.value) || 0 })} /></label>
+                    <Num value={e.netAmount} onChange={(n) => patchExtra(e.id, { netAmount: n })} /></label>
                 )}
                 <div className="pfield pfield--ro"><span>Net Katkı</span>
                   <b>{TL(e.mode === 'net' ? e.netAmount : e.turnover * e.profitPct / 100)}</b></div>
@@ -202,7 +209,6 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
               </div>
             </div>
           ))}
-          <datalist id="extra-list">{EXTRA_SUGGESTIONS.map((n) => <option key={n} value={n} />)}</datalist>
           <button type="button" className="btn-ghost"
                   onClick={() => patch({ extras: [...state.extras, { id: uid(), name: 'Oto Yıkama', mode: 'ciro', turnover: 0, profitPct: 20, netAmount: 0 }] })}>
             ➕ Gelir Kalemi Ekle

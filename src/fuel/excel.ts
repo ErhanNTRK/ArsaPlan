@@ -159,6 +159,12 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
     ws.getCell(`F${row}`).alignment = { horizontal: 'right' };
     row++;
   }
+  ws.getCell(`B${row}`).value = 'Kapitalizasyon Oranı';
+  ws.getCell(`B${row}`).font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
+  ws.getCell(`F${row}`).value = `%${input.capRate}`;
+  ws.getCell(`F${row}`).font = { name: 'Arial', size: 9.5, bold: true };
+  ws.getCell(`F${row}`).alignment = { horizontal: 'right' };
+  row++;
   row += 2;
   ws.mergeCells(`B${row}:F${row}`);
   ws.getCell(`B${row}`).value = 'İki yöntem yan yana sunulur; nihai değer takdiri uzmana aittir.';

@@ -43,12 +43,13 @@
 /* v6: Kat Kurgusu — dar/orta ekranda sıkışan 5-kolonlu ızgara yerine
    etiketli iki-katlı kartlar (Dora Toplu Excel'deki prop-card deseniyle
    aynı dil). Kat sayısı ne kadar artarsa artsın kutular üst üste binmez. */
-.floor-cards { display: flex; flex-direction: column; gap: 8px; }
+.floor-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; align-items: start; }
 .floor-card.prop-card { padding: 10px 12px; margin: 0; }
 .floor-card__title { font-size: 13px; font-weight: 700; color: var(--text-1, #17202c); margin-bottom: 6px; }
 .floor-card .prop-card__top { gap: 10px 14px; }
 .floor-card .pfield { min-width: 130px; }
 .floor-total.floor-card {
+  grid-column: 1 / -1;
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   border: none; background: rgba(15,42,71,.05); border-radius: 10px; padding: 10px 14px;
   font-size: 13.5px;

@@ -1,5 +1,5 @@
 import type { ProjectInput, AssetType, HousingType } from '../engine';
-import { computeCapacity, normalizeZoning, computeApartment } from '../engine';
+import { computeCapacity, normalizeZoning, computeApartment, floorsFromHmax } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
 import { Step3Apartment, ApartmentSalesCard } from './StepsApartment';
@@ -224,8 +224,20 @@ function Step3Villa({ input, upd }: P) {
 
         {taksKaks ? (
           <div className="grid-3">
-            <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
+            <Field label="TAKS">
+              <Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01"
+                   placeholder={!z.taks && z.kaks && z.hmax ? (() => {
+                     const floors = floorsFromHmax(z.hmax);
+                     return floors ? String(Math.round((z.kaks / floors) * 100) / 100) : undefined;
+                   })() : undefined} />
+            </Field>
             <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+            {!z.taks && z.kaks != null && (
+              <div className="hint" style={{ gridColumn: '1 / -1' }}>
+                TAKS girilmedi — gerçek taban oturumunuz farklıysa TAKS'ı elle girin. Kat alanlarınızı zaten biliyorsanız
+                (mimari projeden), <b>Doğrudan Alan Girişi</b> modunu kullanmanız daha güvenilir sonuç verir.
+              </div>
+            )}
             {(() => {
               const k = input.parcel.kml;
               if (!k || k.setback <= 0 || z.mode !== 'taks-kaks' || !z.taks) return null;
