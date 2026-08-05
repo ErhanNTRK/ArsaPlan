@@ -433,7 +433,7 @@ function StepOpex({ opex, setOpex, result }: {
   const fmt = useFmt();
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">İşletme Gideri</div>
         <div className="hrow-labeled">
           <label className="pfield pfield--s"><span>İşletme Gider Oranı</span>
@@ -457,7 +457,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
   const fmt = useFmt();
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Projeksiyon Parametreleri</div>
         <div className="hrow-labeled">
           <label className="pfield pfield--s"><span>Başlangıç Yılı</span>
@@ -474,7 +474,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
         </Field>
       </div>
 
-      <div className="card card-optional">
+      <div className="card card-optional card-wide">
         <details>
         <summary className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           İNA (İndirgenmiş Nakit Akımı)
@@ -527,7 +527,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
         </details>
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <details>
         <summary className="card-title" style={{ cursor: 'pointer' }}>Maliyet Yaklaşımı — opsiyonel</summary>
         <div className="hint" style={{ marginBottom: 8, marginTop: 8 }}>Arsa Değeri + Yapı Değerleri toplanarak hesaplanır. Boş bırakılırsa hesaba dahil edilmez.</div>
@@ -597,7 +597,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
       </div>
 
       {result.ina && (
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Yıllık Projeksiyon Tablosu</div>
         <div className="hint" style={{ marginBottom: 8 }}>İNA hesaplandığı için gösteriliyor — yalnız Direkt Kapitalizasyon kullanılıyorsa bu tablo gerekmez.</div>
         <div className="proj-table-wrap">

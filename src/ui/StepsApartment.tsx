@@ -339,8 +339,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         )}
       </div>
 
-      {/* ── KAT TABLOSU ── */}
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">{taksKaks ? '4' : '3'} · Kat Tablosu</div>
         {cekmeMode ? (
           <div className="hint" style={{ marginBottom: 10 }}>
