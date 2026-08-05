@@ -122,7 +122,7 @@ export function Step2({ input, upd, setTop }: P) {
                        kml: { name: k.name, points: k.points, polygonArea: k.polygonArea, deedArea: k.deedArea, setback: 0 },
                        il: k.il || p.il, ilce: k.ilce || p.ilce, mahalle: k.mahalle || p.mahalle,
                        ada: k.ada || p.ada, parsel: k.parsel || p.parsel,
-                       ...(k.deedArea > 0 ? { area: k.deedArea } : {}),
+                       ...(k.deedArea > 0 ? { area: k.deedArea, netArea: k.deedArea } : {}),
                      });
                      upd('zoning', { cekmeFrontEdge: null });
                    };

@@ -189,6 +189,7 @@ export async function buildHotelPdf(
       [
         ['Arsa Değeri', cur(r.cost.landValue)],
         ['Yapı Değerleri', cur(r.cost.buildingsValue)],
+        ...(r.cost.goodwill > 0 ? [['Şerefiye', cur(r.cost.goodwill)]] : []),
         ['Maliyet Yaklaşımı Değeri', cur(r.cost.totalValueRounded)],
       ],
       [110, 70],

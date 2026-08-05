@@ -31,14 +31,14 @@ export function Txt({ value, onChange, placeholder }: {
 }
 
 /** Sayısal alan — boş bırakılabilir, 0 silinebilir (Dora dersi). */
-export function Num({ value, onChange, suffix, step, placeholder }: {
-  value: number; onChange: (v: number) => void; suffix?: string; step?: string; placeholder?: string;
+export function Num({ value, onChange, suffix, step, placeholder, plain }: {
+  value: number; onChange: (v: number) => void; suffix?: string; step?: string; placeholder?: string; plain?: boolean;
 }) {
   const [focused, setFocused] = useState(false);
   const [raw, setRaw] = useState('');
   useEffect(() => { if (!focused) setRaw(value === 0 ? '' : String(value)); }, [value, focused]);
 
-  const display = focused ? raw : (value === 0 ? '' : value.toLocaleString(LOC(), { maximumFractionDigits: 2 }));
+  const display = focused ? raw : (value === 0 ? '' : plain ? String(value) : value.toLocaleString(LOC(), { maximumFractionDigits: 2 }));
 
   return (
     <div className="suffix-wrap">

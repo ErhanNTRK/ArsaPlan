@@ -135,6 +135,8 @@ export interface HotelIncomeInput {
   costFromKml?: boolean;
   costLandUnitValue?: number;
   costBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
+  /** Şerefiye — konum/ticari potansiyel primi, elle girilen tek tutar. Maliyet Yaklaşımı toplamına eklenir. */
+  costGoodwill?: number | null;
   /** PDF'te hangi yöntemlerin gösterileceği (varsayılan hepsi açık) */
   showIncomeInPdf?: boolean;
   showInaInPdf?: boolean;
@@ -215,7 +217,7 @@ export interface HotelIncomeResult {
   /** İNA sonucu (discountRate girilmişse) */
   ina: HotelInaResult | null;
   /** Maliyet Yaklaşımı sonucu (bina/arsa girilmişse) */
-  cost: { landValue: number; buildingsValue: number; totalValue: number; totalValueRounded: number } | null;
+  cost: { landValue: number; buildingsValue: number; goodwill: number; totalValue: number; totalValueRounded: number } | null;
 
   warnings: HotelWarning[];
   summaryText: string;

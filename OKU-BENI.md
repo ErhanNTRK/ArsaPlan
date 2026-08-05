@@ -1,53 +1,41 @@
-# ArsaPlan v7.7.0 — Otel Düzeltmeleri + Doğrulanmış Tarım Kataloğu
+# ArsaPlan v7.8.0 — KML Senkron Hatası + Şerefiye + Yatay Düzen + Yıl Format
 
 Doğrulama: tsc 0 hata, test 193/193, build başarılı.
 
-## Otel Gelir Hesabı
+## 1) KML / Net Parsel Alanı senkron hatası düzeltildi (kritik)
 
-1. **`loadDraft()` veri kaybı hatası düzeltildi.** Maliyet Yaklaşımı,
-   döviz, nihai yöntem seçimi gibi alanlar artık tarayıcı taslağından
-   doğru geri yükleniyor (önceden bu alanlar sessizce sıfırlanıyordu).
-2. **Risksiz Getiri Oranı / Risk Primi ipuçları güncellendi** — Türkiye
-   gerçeğine (%35-38 / %3-8) göre, **döviz seçimine göre dinamik**:
-   TL seçiliyse Türkiye rakamları, USD/EUR seçiliyse çok daha düşük
-   döviz bazlı rakamlar gösteriliyor.
-3. **Gelir Artış / Gider Artış / Kapitalizasyon Oranı ipuçları** aynı
-   şekilde Türkiye/döviz duyarlı hale getirildi.
-4. **Terminal Kap. Oranı artık Kapitalizasyon Oranı ile senkron/
-   salt-okunur geliyor** — "Farklı gir" bağlantısına tıklayan isterse
-   ayrı bir değer girebiliyor.
+KML yüklenince yalnız **Parsel Alanı** güncelleniyordu, **Net Parsel
+Alanı** eski değerde kalıyordu — bu tutarsızlık fark edilmeden Devam
+butonuna basılabiliyordu. Artık KML yüklenince ikisi de aynı değere
+eşitleniyor; kullanıcı isterse Net Parsel Alanı'nı sonradan elle
+değiştirebilir.
 
-## Tarımsal Ürün Kataloğu
+## 2) Şerefiye — Otel Maliyet Yaklaşımı'na eklendi
 
-**Buğday (16,5 TL/kg) ve Arpa (12,75 TL/kg) TMO'nun 2026 resmi alım
-fiyatlarıyla doğrulandı** — artık tahmin değil, gerçek kaynak.
+Arsa+Yapı değerlerinin altına, opsiyonel bir "Şerefiye" tutarı
+girilebiliyor — nihai Maliyet Yaklaşımı Değeri'ne ekleniyor. PDF ve
+Excel'de de (yalnız değer girilmişse) ayrı bir satır olarak görünüyor.
+Konuştuğumuz gibi açıklayıcı bir metin eklenmedi.
 
-Diğer ~20 ürünün fiyat/verim/gider oranları, Gemini ve ChatGPT'nin
-verdiği önerilerin orta noktası alınarak güncellendi (Mısır, Ayçiçeği,
-Pamuk, tüm meyveler, sebzeler).
+## 3) Arsa'da iki dar kart tam genişliğe alındı
 
-**Metodolojik düzeltmeler:**
-- Küspeler **"(işlenmiş ürün)"** olarak yeniden adlandırıldı — tarlada
-  değil, yağ/çırçır fabrikasında elde edildiği notu eklendi.
-- Bağlarda (Sofralık/Şaraplık/Kurutmalık Üzüm) artık ayrı bir
-  **"ekonomik ömür"** kavramı var (30 yıl), "yatırım geri dönüş süresi"
-  (8 yıl) ile karıştırılmıyor.
-- Kurutmalık Üzüm notu netleştirildi: verim/fiyat **kurutulmuş** ürün
-  baz alınarak eşleştirildi, yaş üzüm verimiyle karıştırılmamalı uyarısı
-  güçlendirildi.
+"Yapılar" ve "İlave Maliyetler" kartları (Ticari/İşletme modülü) artık
+tam ekran genişliğinde — önceki `card-wide` düzeltmesiyle aynı desen.
 
-**Dürüstlük notu:** Kod incelemesinde fark ettim — kataloğun `years` ve
-yeni `economicLifeYears` alanları şu an **uygulama ekranında hiç
-gösterilmiyor/kullanılmıyor**, yalnızca kod içinde belgeleniyor. Forma
-gerçekten yansıyan alanlar `yieldPerUnit`, `price`, `expensePct` — bu
-üçü doğru güncellendi ve etkili.
+## 4) Otel "Başlangıç Yılı" artık binlik ayırıcı almıyor
 
-## Bu turda YAPILMAYAN (bilerek atlandı, sen onayladın)
+"2026" yerine "2.026" gösteren hata düzeltildi — bu alan için
+`Num` bileşenine yeni bir "plain" modu eklendi (yalnız burada
+kullanılıyor, diğer para/miktar alanları etkilenmedi).
 
-- Madde 6 (tutarlılık ipucu metni) — istemedin, eklenmedi.
-- Madde 7 (aşırı veri girişi uyarı eşikleri) — örnek olarak vermiştin,
-  atlandı.
-- Madde 8 (üzüm çeşitleri: Sultaniye vb.) — sonraya bırakıldı.
+## Bu turda dokunulmayan, kapanan konular
+
+- Kademeli doluluk modeli — eklenmeyecek (onayladın).
+- Emsal Karşılaştırma / Kira Kapitalizasyonu / Deprem Riski — eklenmeyecek.
+- Sistem mimarisini baştan kurma (döviz/Excel deseni merkezi hale
+  getirme) — riski faydasından yüksek, dokunulmadı.
+- Kat Tablosu şablon-kopyalama — zaten otomatik eşitleme çalışıyor,
+  ek özelliğe gerek yok.
 
 ## Yükleme
 `src`/`public`/`package.json` → GitHub Upload files → üzerine yaz →

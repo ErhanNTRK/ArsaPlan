@@ -105,6 +105,7 @@ export async function downloadHotelExcel(input: HotelIncomeInput, r: HotelIncome
     section('MALİYET YAKLAŞIMI DETAYI');
     kv('Arsa Değeri', cur(r.cost.landValue));
     kv('Yapı Değerleri', cur(r.cost.buildingsValue));
+    if (r.cost.goodwill > 0) kv('Şerefiye', cur(r.cost.goodwill));
     row++;
   }
 

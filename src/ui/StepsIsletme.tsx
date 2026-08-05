@@ -34,7 +34,7 @@ export function Step3Isletme({ input, upd }: P) {
 
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">1 · Yapılar</div>
         <div className="grid-2">
           <Field label="Yapı Ekle" hint="Katalogdan seçin; aynı türden birden fazla eklenebilir.">
@@ -89,7 +89,7 @@ export function Step3Isletme({ input, upd }: P) {
         )}
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">2 · İlave Maliyetler (tercihe bağlı)</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           Peyzaj ve altyapı, parsel alanı ({fmtM2(input.parcel.area)}) üzerinden; çevre duvarı,

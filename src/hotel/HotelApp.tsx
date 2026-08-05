@@ -457,7 +457,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         <div className="card-title">Projeksiyon Parametreleri</div>
         <div className="hrow-labeled">
           <label className="pfield pfield--s"><span>Başlangıç Yılı</span>
-            <Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></label>
+            <Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} plain /></label>
           <label className="pfield pfield--s"><span>Projeksiyon Süresi</span>
             <Num value={projection.years} onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" /></label>
           <label className="pfield pfield--s" title={isTl ? 'TÜFE\'ye yakın önerilir, ör. %28-33' : 'Döviz enflasyonuna yakın, ör. %2-5'}>
@@ -596,9 +596,13 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
           ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
         }))}>➕ Yapı Ekle</button>
 
+        <Field label="Şerefiye (opsiyonel)">
+          <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix="₺" />
+        </Field>
+
         {result.cost && (
           <div className="note-box" style={{ marginTop: 10 }}>
-            Arsa {fmt(result.cost.landValue)} + Yapılar {fmt(result.cost.buildingsValue)} =
+            Arsa {fmt(result.cost.landValue)} + Yapılar {fmt(result.cost.buildingsValue)}{result.cost.goodwill > 0 ? ` + Şerefiye ${fmt(result.cost.goodwill)}` : ''} =
             <b> Maliyet Yaklaşımı Değeri: {fmt(result.cost.totalValueRounded)}</b>
           </div>
         )}
