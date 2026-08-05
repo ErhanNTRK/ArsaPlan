@@ -103,6 +103,16 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
       </div></div>
       <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
 
+      {state.products.length > 0 && (
+        <div className="hotel-summary-sticky no-print">
+          <div className="hotel-summary-inner">
+            <div><span>Toplam Net Kâr</span><b>{TL(r.totalNet)}</b></div>
+            <div><span>Gelir (Direkt Kap.)</span><b>{TL(r.incomeValueRounded)}</b></div>
+            {r.costValue != null && <div><span>Maliyet Yaklaşımı</span><b>{TL(r.costValue)}</b></div>}
+          </div>
+        </div>
+      )}
+
       <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Akaryakıt Gelir Hesabı</div>

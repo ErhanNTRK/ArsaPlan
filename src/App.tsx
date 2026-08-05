@@ -366,6 +366,16 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
+      {!isResult && input.parcel.area > 0 && result.financial.revenue > 0 && (
+        <div className="hotel-summary-sticky no-print">
+          <div className="hotel-summary-inner">
+            <div><span>Hasılat</span><b>{Math.round(result.financial.revenue).toLocaleString('tr-TR')} ₺</b></div>
+            <div><span>Toplam Maliyet</span><b>{Math.round(result.financial.totalCost).toLocaleString('tr-TR')} ₺</b></div>
+            <div><span>Arsa Değeri (Artık Değer)</span><b>{Math.round(result.financial.residualLandValue).toLocaleString('tr-TR')} ₺</b></div>
+          </div>
+        </div>
+      )}
+
       <div className="step" key={step}>
         {!isResult && (
           <div className="step-head">

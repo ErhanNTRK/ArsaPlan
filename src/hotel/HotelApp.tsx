@@ -26,6 +26,7 @@ import type {
 } from './types';
 import { downloadHotelPdf } from './pdf';
 import { downloadHotelExcel } from './excel';
+import { HOTEL_PROFILES, type HotelProfile } from './profiles';
 import { readDataSheet } from '../export/excelImport';
 import { parseKml } from '../geo/kml';
 import { BUILDING_TYPES } from '../usthakki/detailedEngine';
@@ -143,7 +144,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
         {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} input={input} setInput={setInput} />}
         {step === 2 && (<>
-          <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} />
+          <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} setInput={setInput} />
           <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />
           <StepLeases leases={input.leases} setLeases={setLeases} result={result} />
         </>)}
@@ -244,8 +245,9 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
 }
 
 /* ─────────────────── Adım 2 — Oda Gelirleri ─────────────────── */
-function StepRooms({ rooms, setRooms, result }: {
+function StepRooms({ rooms, setRooms, result, setInput }: {
   rooms: RoomRevenueRow[]; setRooms: (r: RoomRevenueRow[]) => void; result: ReturnType<typeof analyzeHotel>;
+  setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
 }) {
   const fmt = useFmt();
   const add = () => setRooms([...rooms, {
@@ -254,9 +256,35 @@ function StepRooms({ rooms, setRooms, result }: {
   const upd = (i: number, patch: Partial<RoomRevenueRow>) =>
     setRooms(rooms.map((r, k) => (k === i ? { ...r, ...patch } : r)));
   const del = (i: number) => setRooms(rooms.filter((_, k) => k !== i));
+  const applyProfile = (p: HotelProfile) => {
+    setInput((prev) => ({
+      ...prev,
+      rooms: [{ id: newId(), roomType: 'Standart', roomCount: p.roomCount, adr: p.adr, occupancy: p.occupancy, operatingDays: p.operatingDays }],
+      opex: { ...prev.opex, expenseRate: p.expenseRate },
+      projection: { ...prev.projection, capRate: p.capRate },
+    }));
+  };
 
   return (
     <div className="cols">
+      {rooms.length === 0 && (
+        <div className="card card-wide">
+          <div className="card-title">Hazır Profil ile Başla (opsiyonel)</div>
+          <div className="hint" style={{ marginBottom: 10 }}>
+            Bunlar <b>ÖRNEK/başlangıç verileridir</b>, gerçek piyasa verisi değildir — yalnızca hızlı bir
+            başlangıç noktası sunar. Seçtikten sonra tüm alanları kendi verilerinizle değiştirin.
+          </div>
+          <div className="choice-grid">
+            {HOTEL_PROFILES.map((p) => (
+              <button key={p.name} type="button" className="btn-ghost" style={{ textAlign: 'left', height: 'auto', padding: '10px 12px' }}
+                      onClick={() => applyProfile(p)}>
+                <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>{p.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="card card-wide">
         <div className="card-title">Oda Tipleri</div>
         <div className="hint" style={{ marginBottom: 10 }}>

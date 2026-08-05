@@ -128,6 +128,16 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
       </div></div>
       <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
 
+      {state.rows.length > 0 && (
+        <div className="hotel-summary-sticky no-print">
+          <div className="hotel-summary-inner">
+            <div><span>Toplam Brüt Gelir</span><b>{TL(result.totalGross)}</b></div>
+            <div><span>Toplam Net Gelir</span><b>{TL(result.totalNet)}</b></div>
+            <div><span>Yaklaşık Değer</span><b>{TL(result.value)}</b></div>
+          </div>
+        </div>
+      )}
+
       <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Tarımsal Ürün Gelir Hesabı</div>

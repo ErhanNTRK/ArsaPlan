@@ -60,6 +60,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [state.parcelArea, state.landUnitValue, state.buildings, state.kalanSure, state.toplamSure]);
   const r = method === 'toplam' ? whole : land;
+  const finalValue = method === 'toplam' ? whole.ustHakkiValue : land.nihaiUstHakkiDegeri;
 
   async function onKml(f: File) {
     try {
@@ -99,6 +100,15 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
         </label>
       </div></div>
       <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
+
+      {state.parcelArea > 0 && (
+        <div className="hotel-summary-sticky no-print">
+          <div className="hotel-summary-inner">
+            <div><span>Maliyet Toplamı</span><b>{TL(r.cost.totalValue)}</b></div>
+            <div><span>Taşınmazın Değeri</span><b>{TL(finalValue)}</b></div>
+          </div>
+        </div>
+      )}
 
       <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">

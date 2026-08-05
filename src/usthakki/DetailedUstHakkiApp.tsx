@@ -100,6 +100,15 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
       </div></div>
       <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
 
+      {state.rooms.length > 0 && (
+        <div className="hotel-summary-sticky no-print">
+          <div className="hotel-summary-inner">
+            <div><span>1. Yıl Toplam Gelir</span><b>{Math.round(r.years[0]?.totalRevenue ?? 0).toLocaleString('tr-TR')} ₺</b></div>
+            <div><span>Taşınmazın Değeri</span><b>{Math.round(r.propertyValueTl).toLocaleString('tr-TR')} ₺</b></div>
+          </div>
+        </div>
+      )}
+
       <div className="step" style={{ paddingBottom: 76 }}>
         <div className="step-head">
           <div className="step-eyebrow">Üst Hakkı Değerleme</div>
