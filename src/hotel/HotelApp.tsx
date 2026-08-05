@@ -60,6 +60,8 @@ const TOTAL = STEPS.length;
 
 export default function HotelApp({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1);
+  const [costOpen, setCostOpen] = useState(false);
+  const [inaOpen, setInaOpen] = useState(false);
   const [input, setInput] = useState<HotelIncomeInput>(loadDraft);
 
   useEffect(() => {
@@ -145,7 +147,8 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
         </>)}
         {step === 3 && (<>
           <StepOpex opex={input.opex} setOpex={setOpex} result={result} />
-          <StepProjection projection={input.projection} setProjection={setProjection} result={result} input={input} setInput={setInput} />
+          <StepProjection projection={input.projection} setProjection={setProjection} result={result} input={input} setInput={setInput}
+                          costOpen={costOpen} setCostOpen={setCostOpen} inaOpen={inaOpen} setInaOpen={setInaOpen} />
         </>)}
         {isResult && <HotelResult input={input} result={result} setFinal={(p) => setInput((x) => ({ ...x, ...p }))} />}
 
@@ -186,9 +189,9 @@ function HotelSummaryBar({ result }: { result: ReturnType<typeof analyzeHotel> }
     <div className="hotel-summary-sticky no-print">
       <div className="hotel-summary-inner">
         <div><span>Toplam Gelir</span><b>{fmt(result.totalGrossRevenue)}</b></div>
-        <div><span>Gider</span><b>{fmt(result.totalExpense)}</b></div>
-        <div><span>NOI</span><b>{fmt(result.noi)}</b></div>
-        <div><span>Kapitalizasyon Değeri</span><b>{fmt(result.capitalizedValue)}</b></div>
+        <div><span>Gelir (Direkt Kap.)</span><b>{fmt(result.capitalizedValue)}</b></div>
+        {result.ina && <div><span>İNA (NBD)</span><b>{fmt(result.ina.npv)}</b></div>}
+        {result.cost && <div><span>Maliyet Yaklaşımı</span><b>{fmt(result.cost.totalValueRounded)}</b></div>}
       </div>
     </div>
   );
@@ -289,17 +292,6 @@ function StepRooms({ rooms, setRooms, result }: {
           </div>
         )}
       </div>
-
-      {rooms.length > 0 && (
-        <div className="card result-preview">
-          <div className="card-title">Otomatik Performans Göstergeleri</div>
-          <div className="mini-kpi three">
-            <div><span>ADR</span><b>{fmt(result.performance.blendedAdr)}</b></div>
-            <div><span>Doluluk</span><b>%{Math.round(result.performance.blendedOccupancy * 100)}</b></div>
-            <div><span>RevPAR</span><b>{fmt(result.performance.revPar)}</b></div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -449,10 +441,11 @@ function StepOpex({ opex, setOpex, result }: {
 
 /* ─────────────────── Adım 6 — Projeksiyon ─────────────────── */
 
-function StepProjection({ projection, setProjection, result, input, setInput }: {
+function StepProjection({ projection, setProjection, result, input, setInput, costOpen, setCostOpen, inaOpen, setInaOpen }: {
   projection: HotelIncomeInput['projection']; setProjection: (p: Partial<HotelIncomeInput['projection']>) => void;
   result: ReturnType<typeof analyzeHotel>;
   input: HotelIncomeInput; setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
+  costOpen: boolean; setCostOpen: (v: boolean) => void; inaOpen: boolean; setInaOpen: (v: boolean) => void;
 }) {
   const fmt = useFmt();
   return (
@@ -475,7 +468,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
       </div>
 
       <div className="card card-optional card-wide">
-        <details>
+        <details open={inaOpen || !!result.ina} onToggle={(e) => setInaOpen(e.currentTarget.open)}>
         <summary className="card-title" style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
           İNA (İndirgenmiş Nakit Akımı)
           <span className="optional-badge">OPSİYONEL</span>
@@ -528,7 +521,7 @@ function StepProjection({ projection, setProjection, result, input, setInput }: 
       </div>
 
       <div className="card card-wide">
-        <details>
+        <details open={costOpen || !!result.cost} onToggle={(e) => setCostOpen(e.currentTarget.open)}>
         <summary className="card-title" style={{ cursor: 'pointer' }}>Maliyet Yaklaşımı — opsiyonel</summary>
         <div className="hint" style={{ marginBottom: 8, marginTop: 8 }}>Arsa Değeri + Yapı Değerleri toplanarak hesaplanır. Boş bırakılırsa hesaba dahil edilmez.</div>
         <div className="grid-2">
