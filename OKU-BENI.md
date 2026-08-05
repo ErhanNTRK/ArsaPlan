@@ -1,23 +1,53 @@
-# ArsaPlan v7.6.0 — Otel: 3 Düzeltme
+# ArsaPlan v7.7.0 — Otel Düzeltmeleri + Doğrulanmış Tarım Kataloğu
 
 Doğrulama: tsc 0 hata, test 193/193, build başarılı.
 
-## 1) Maliyet/İNA artık veri girilince adım değiştirse de açık kalıyor
+## Otel Gelir Hesabı
 
-Kök neden: bu bölümler adım değişince React'te yeniden monte oluyordu,
-`<details>`'ın kendi açık/kapalı hafızası sıfırlanıyordu. Açık/kapalı
-durumu artık hiç kaybolmayan üst seviye bir hafızada tutuluyor; ayrıca
-**veri varsa her zaman açık** kalıyor (elle kapatılsa bile bir sonraki
-değişiklikte tekrar açılır) — tam istediğin davranış.
+1. **`loadDraft()` veri kaybı hatası düzeltildi.** Maliyet Yaklaşımı,
+   döviz, nihai yöntem seçimi gibi alanlar artık tarayıcı taslağından
+   doğru geri yükleniyor (önceden bu alanlar sessizce sıfırlanıyordu).
+2. **Risksiz Getiri Oranı / Risk Primi ipuçları güncellendi** — Türkiye
+   gerçeğine (%35-38 / %3-8) göre, **döviz seçimine göre dinamik**:
+   TL seçiliyse Türkiye rakamları, USD/EUR seçiliyse çok daha düşük
+   döviz bazlı rakamlar gösteriliyor.
+3. **Gelir Artış / Gider Artış / Kapitalizasyon Oranı ipuçları** aynı
+   şekilde Türkiye/döviz duyarlı hale getirildi.
+4. **Terminal Kap. Oranı artık Kapitalizasyon Oranı ile senkron/
+   salt-okunur geliyor** — "Farklı gir" bağlantısına tıklayan isterse
+   ayrı bir değer girebiliyor.
 
-## 2) "Otomatik Performans Göstergeleri" (ADR/Doluluk/RevPAR) kaldırıldı
+## Tarımsal Ürün Kataloğu
 
-## 3) Üst özet çubuğu artık İNA ve Maliyet Yaklaşımı'nı da gösteriyor
+**Buğday (16,5 TL/kg) ve Arpa (12,75 TL/kg) TMO'nun 2026 resmi alım
+fiyatlarıyla doğrulandı** — artık tahmin değil, gerçek kaynak.
 
-Önceden yalnız Toplam Gelir/Gider/NOI/Kapitalizasyon vardı. Artık her
-adımda (Sonuç sayfası hariç), veri girildikçe **canlı güncellenen**:
-Toplam Gelir, Gelir (Direkt Kap.), İNA (varsa), Maliyet Yaklaşımı
-(varsa) — son sayfaya gelmeden anlık değeri görebiliyorsun.
+Diğer ~20 ürünün fiyat/verim/gider oranları, Gemini ve ChatGPT'nin
+verdiği önerilerin orta noktası alınarak güncellendi (Mısır, Ayçiçeği,
+Pamuk, tüm meyveler, sebzeler).
+
+**Metodolojik düzeltmeler:**
+- Küspeler **"(işlenmiş ürün)"** olarak yeniden adlandırıldı — tarlada
+  değil, yağ/çırçır fabrikasında elde edildiği notu eklendi.
+- Bağlarda (Sofralık/Şaraplık/Kurutmalık Üzüm) artık ayrı bir
+  **"ekonomik ömür"** kavramı var (30 yıl), "yatırım geri dönüş süresi"
+  (8 yıl) ile karıştırılmıyor.
+- Kurutmalık Üzüm notu netleştirildi: verim/fiyat **kurutulmuş** ürün
+  baz alınarak eşleştirildi, yaş üzüm verimiyle karıştırılmamalı uyarısı
+  güçlendirildi.
+
+**Dürüstlük notu:** Kod incelemesinde fark ettim — kataloğun `years` ve
+yeni `economicLifeYears` alanları şu an **uygulama ekranında hiç
+gösterilmiyor/kullanılmıyor**, yalnızca kod içinde belgeleniyor. Forma
+gerçekten yansıyan alanlar `yieldPerUnit`, `price`, `expensePct` — bu
+üçü doğru güncellendi ve etkili.
+
+## Bu turda YAPILMAYAN (bilerek atlandı, sen onayladın)
+
+- Madde 6 (tutarlılık ipucu metni) — istemedin, eklenmedi.
+- Madde 7 (aşırı veri girişi uyarı eşikleri) — örnek olarak vermiştin,
+  atlandı.
+- Madde 8 (üzüm çeşitleri: Sultaniye vb.) — sonraya bırakıldı.
 
 ## Yükleme
 `src`/`public`/`package.json` → GitHub Upload files → üzerine yaz →

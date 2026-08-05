@@ -39,12 +39,14 @@ function loadDraft(): HotelIncomeInput {
     const d = JSON.parse(raw);
     const D = createDefaultHotelInput();
     return {
+      ...D, ...d,
       general: { ...D.general, ...(d.general ?? {}) },
       rooms: Array.isArray(d.rooms) ? d.rooms : [],
       ancillary: Array.isArray(d.ancillary) ? d.ancillary : [],
       leases: Array.isArray(d.leases) ? d.leases : [],
       opex: { ...D.opex, ...(d.opex ?? {}) },
       projection: { ...D.projection, ...(d.projection ?? {}) },
+      costBuildings: Array.isArray(d.costBuildings) ? d.costBuildings : (D.costBuildings ?? []),
     };
   } catch {
     return createDefaultHotelInput();
@@ -448,6 +450,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
   costOpen: boolean; setCostOpen: (v: boolean) => void; inaOpen: boolean; setInaOpen: (v: boolean) => void;
 }) {
   const fmt = useFmt();
+  const isTl = (input.currency ?? 'TRY') === 'TRY';
   return (
     <div className="cols">
       <div className="card card-wide">
@@ -457,12 +460,14 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             <Num value={projection.startYear} onChange={(n) => setProjection({ startYear: n })} /></label>
           <label className="pfield pfield--s"><span>Projeksiyon Süresi</span>
             <Num value={projection.years} onChange={(n) => setProjection({ years: Math.max(3, Math.min(25, Math.round(n || 10))) })} suffix="yıl" /></label>
-          <label className="pfield pfield--s"><span>Gelir Artış Oranı</span>
+          <label className="pfield pfield--s" title={isTl ? 'TÜFE\'ye yakın önerilir, ör. %28-33' : 'Döviz enflasyonuna yakın, ör. %2-5'}>
+            <span>Gelir Artış Oranı</span>
             <Pct value={projection.incomeGrowthRate} onChange={(n) => setProjection({ incomeGrowthRate: n })} /></label>
-          <label className="pfield pfield--s"><span>Gider Artış Oranı</span>
+          <label className="pfield pfield--s" title="Genelde gelir artışına yakın tutulur">
+            <span>Gider Artış Oranı</span>
             <Pct value={projection.expenseGrowthRate} onChange={(n) => setProjection({ expenseGrowthRate: n })} /></label>
         </div>
-        <Field label="Kapitalizasyon Oranı" hint="Direkt Kapitalizasyon Yöntemi: NOI ÷ Kapitalizasyon Oranı">
+        <Field label="Kapitalizasyon Oranı" hint={isTl ? 'NOI ÷ Kapitalizasyon Oranı — Türkiye otelcilikte piyasa aralığı ~%7-11' : 'NOI ÷ Kapitalizasyon Oranı — döviz bazlı piyasalarda ~%6-9'}>
           <Pct value={projection.capRate} onChange={(n) => setProjection({ capRate: n })} />
         </Field>
       </div>
@@ -475,13 +480,13 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         </summary>
         <div className="hint" style={{ marginBottom: 8, marginTop: 8 }}>Boş bırakılırsa hesaba dahil edilmez, yalnız Direkt Kapitalizasyon kullanılır.</div>
         <div className="grid-2">
-          <Field label="Risksiz Getiri Oranı" hint="Örn. %7,5">
+          <Field label="Risksiz Getiri Oranı" hint={isTl ? 'TCMB politika faizine yakın, ör. %35-38' : 'Döviz bazlı, ör. %5-8'}>
             <Pct value={projection.riskFreeRate ?? 0} onChange={(n) => {
               const prim = projection.riskPremium ?? 0;
               setProjection({ riskFreeRate: n, discountRate: n + prim > 0 ? n + prim : null });
             }} />
           </Field>
-          <Field label="Risk Primi" hint="Örn. %3,5">
+          <Field label="Risk Primi" hint={isTl ? 'Otelcilik için tipik, ör. %3-8' : 'Döviz bazlı, ör. %2-5'}>
             <Pct value={projection.riskPremium ?? 0} onChange={(n) => {
               const rf = projection.riskFreeRate ?? 0;
               setProjection({ riskPremium: n, discountRate: rf + n > 0 ? rf + n : null });
@@ -492,8 +497,19 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
           <Field label="İskonto Oranı" hint="Risksiz + prim (elle de ezilebilir)">
             <Pct value={projection.discountRate ?? 0} onChange={(n) => setProjection({ discountRate: n > 0 ? n : null })} />
           </Field>
-          <Field label="Terminal Kap. Oranı" hint="Boş → kapitalizasyon oranı kullanılır">
-            <Pct value={projection.terminalCapRate ?? projection.capRate} onChange={(n) => setProjection({ terminalCapRate: n > 0 ? n : null })} />
+          <Field label="Terminal Kap. Oranı" hint={projection.terminalCapRate == null ? 'Kapitalizasyon Oranı ile aynı' : 'Elle ayrı girildi'}>
+            {projection.terminalCapRate == null ? (
+              <div className="suffix-wrap">
+                <input type="text" readOnly value={`${(projection.capRate * 100).toLocaleString('tr-TR')}`} style={{ background: 'var(--navy-50,#eef2f7)', color: 'var(--text-2)' }} />
+                <span className="suffix">%</span>
+              </div>
+            ) : (
+              <Pct value={projection.terminalCapRate} onChange={(n) => setProjection({ terminalCapRate: n > 0 ? n : 0.0001 })} />
+            )}
+            <button type="button" className="link-btn" style={{ marginTop: 4, fontSize: 11.5 }}
+                    onClick={() => setProjection({ terminalCapRate: projection.terminalCapRate == null ? projection.capRate : null })}>
+              {projection.terminalCapRate == null ? 'Farklı gir' : 'Kapitalizasyon Oranı ile senkronize et'}
+            </button>
           </Field>
         </div>
         <div className="grid-2">
