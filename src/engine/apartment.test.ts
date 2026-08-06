@@ -234,3 +234,34 @@ describe('analyze() — apartman hattı uçtan uca', () => {
     komp.forEach((a) => expect(a.level).toBe('uyari-uygulama'));
   });
 });
+
+describe('Bodrum Kat "lossRate" eksikse normal katlar NaN olmamalı (regresyon)', () => {
+  it('use=konut, alan/kayıp oranı elle girilmemişse normal katlar sayısal kalır', () => {
+    const parcel: Parcel = { il: '', ilce: '', mahalle: '', ada: '', parsel: '', area: 1257, netArea: 1257 };
+    const zoning: Zoning = {
+      mode: 'taks-kaks', lejant: '', taks: 0.25, kaks: 1, hmax: 12.5,
+      cekmeFront: 0, cekmeSide: 0, cekmeRear: 0, cekmeFrontEdge: null, planNotes: '',
+      directFootprint: 0, directEmsalArea: 0,
+    } as Zoning;
+    const apt: ApartmentInput = {
+      basementCount: 1,
+      basements: [{ use: 'konut', area: null, saleable: null } as any],
+      zeminArea: null, zeminLossRate: 0.099, zeminSaleable: null,
+      normalCount: 3,
+      normalAreas: [null, null, null, null, null, null, null, null],
+      normalSaleables: [null, null, null, null, null, null, null, null],
+      normalCommonRate: 0.10,
+      hasPiyes: false, piyesInEmsal: true, piyesRate: 0.45, piyesArea: null, piyesSaleable: null,
+      asmaCount: 0, asmaInEmsal: true, asmaRate: 0.40,
+      asmaAreas: [null, null, null, null], asmaSaleables: [null, null, null, null],
+      hasExtraSaleable: false, extraMode: 'oran', extraRate: 0, extraArea: 0,
+    } as ApartmentInput;
+    const r = computeApartment(parcel, zoning, apt, 'konut');
+    const normalFloors = r.floors.filter((f) => f.kind === 'normal');
+    expect(normalFloors).toHaveLength(3);
+    for (const f of normalFloors) {
+      expect(Number.isNaN(f.area)).toBe(false);
+      expect(f.area).toBeGreaterThan(0);
+    }
+  });
+});

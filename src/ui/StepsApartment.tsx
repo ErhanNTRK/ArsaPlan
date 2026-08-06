@@ -66,7 +66,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
   return (
     <div className="cols step-cols">
       {/* ── 1 · İMAR DURUMU ── */}
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">1 · İmar Durumu</div>
         <Field label="Plan Lejantı">
           <Sel value={lejantOther ? 'Diğer (elle yazınız)' : z.lejant}
@@ -185,7 +185,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
 
       {/* ── 2 · İLAVE SATILABİLİR ALAN (yalnızca TAKS/KAKS) ── */}
       {taksKaks && (
-        <div className="card">
+        <div className="card card-wide">
           <div className="card-title">2 · İlave Satılabilir Alan</div>
           <Field label="Emsale dahil olmayan satılabilir alan var mı?"
                  hint="Tip İmar Yönetmeliği gereği emsal dışı kalan ancak satılabilen alanlar">
@@ -212,7 +212,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
       )}
 
       {/* ── 3 · KAT KURGUSU ── */}
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">{taksKaks ? '3' : '2'} · Kat Kurgusu</div>
 
         <Field label="Bodrum Kat Sayısı" hint="0-8 arası">
@@ -487,7 +487,7 @@ export function ApartmentSalesCard({ input, upd, karma = false }: P) {
     c.saleableByKind.normal * s.normal + c.saleableByKind.piyes * s.piyes;
 
   return (
-    <div className="card">
+    <div className="card card-wide">
       <div className="card-title">Satış — Kat Tipine Göre Birim Değerler</div>
       <div className="hint" style={{ marginBottom: 10 }}>
         Satılabilir m² başına, KDV hariç. Normal katlar için tek ortalama değer girilir.

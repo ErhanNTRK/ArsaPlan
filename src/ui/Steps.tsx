@@ -22,7 +22,7 @@ const ASSETS: Array<{ v: AssetType; label: string; desc: string }> = [
 
 export function Step1({ input, setTop, onSample }: P & { onSample?: () => void }) {
   return (
-    <div className="card">
+    <div className="card card-wide">
       <div className="card-title">Ne Değerleniyor?</div>
       <div className="choice-grid">
         {ASSETS.map((a) => (
@@ -68,7 +68,7 @@ export function Step2({ input, upd, setTop }: P) {
   return (
     <div className="cols step-cols">
       {input.assetType === 'konut' && (
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Konut Proje Tipi</div>
         <div className="choice-grid two">
           {HOUSING.map((h) => (
@@ -80,7 +80,7 @@ export function Step2({ input, upd, setTop }: P) {
       </div>
       )}
       {input.assetType === 'ticari' && (
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Ticari Yol</div>
         <div className="choice-grid two">
           <Choice on={input.ticariMode === 'apartman'} name="Ticari Apartman"
@@ -100,7 +100,7 @@ export function Step2({ input, upd, setTop }: P) {
       </div>
       )}
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Parsel Krokisi — KML (opsiyonel)</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           TKGM Parsel Sorgu'dan indirilen .kml dosyasını yükleyin: taşınmaz bilgileri
@@ -205,7 +205,7 @@ function Step3Villa({ input, upd }: P) {
 
   return (
     <div className="cols step-cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">1 · İmar Durumu</div>
         <Field label="Plan Lejantı">
           <Sel value={lejantOther ? 'Diğer (elle yazınız)' : z.lejant}
@@ -277,7 +277,7 @@ function Step3Villa({ input, upd }: P) {
 
       <ZoningKmlCard input={input} upd={upd} />
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">2 · Emsal Dışı Satılabilir Alan</div>
         <Field label="Emsal dışı satılabilir alan var mı?">
           <Seg value={e.hasExtra} onChange={(b) => upd('emsal', { hasExtra: b })}
@@ -301,7 +301,7 @@ function Step3Villa({ input, upd }: P) {
         )}
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">3 · Çatı Katı</div>
         <Field label="Çatı katı var mı?">
           <Seg value={e.hasAttic} onChange={(b) => upd('emsal', { hasAttic: b })}
@@ -329,7 +329,7 @@ function Step3Villa({ input, upd }: P) {
         )}
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">4 · Bodrum Kat</div>
         <Field label="Bodrum kat var mı?">
           <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
@@ -384,7 +384,7 @@ function Step3Villa({ input, upd }: P) {
         )}
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">5 · Villa Dağılımı (opsiyonel)</div>
         <div className="grid-2">
           <Field label="Villa Adedi" hint="Boş bırakılabilir">
@@ -416,7 +416,7 @@ function Step3Villa({ input, upd }: P) {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Plan Notları (opsiyonel)</div>
         <textarea value={z.planNotes} onChange={(ev) => upd('zoning', { planNotes: ev.target.value })}
                   placeholder="Emsal istisnaları, çıkma ve balkon kuralları — raporda aynen görünür." />
@@ -443,7 +443,7 @@ export function Step4(props: P) {
   const sinif = YAPI_SINIFLARI.find((x) => x.code === c.buildingClass);
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Yapım Maliyeti</div>
         <Field label="Yapı Sınıfı (2026 Bakanlık Tebliği)">
           <Sel value={c.buildingClass}
@@ -472,7 +472,7 @@ export function Step4(props: P) {
         </div>
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Peyzaj ve Bahçe</div>
         <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − taban oturumu">
           <Num value={s.landscapeArea > 0 ? s.landscapeArea : Math.round(cap.gardenArea)}
@@ -496,7 +496,7 @@ export function Step4(props: P) {
       {apartman ? (
         <ApartmentSalesCard {...props} karma={karma} />
       ) : (
-        <div className="card">
+        <div className="card card-wide">
           <div className="card-title">Satış</div>
           <Field label="Satış Birim Değeri" error={!input.sales.unitPrice ? 'Zorunlu: satış birim değeri giriniz.' : null} hint="TOPLAM İNŞAAT ALANI m² başına, KDV hariç. Bodrum, zemin ve çatı ayrımı yapılmaz.">
             <Num value={input.sales.unitPrice} onChange={(n) => upd('sales', { unitPrice: n })} suffix="₺/m²" />
@@ -518,7 +518,7 @@ export function Step5({ input, upd, setTop }: P) {
   const r = input.residual;
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Kâr ve Finansman</div>
         <Field label="Müteahhit Kâr Oranı" hint="Hasılat üzerinden.">
           <Pct value={r.profitRate} onChange={(n) => upd('residual', { profitRate: n })} />
@@ -528,7 +528,7 @@ export function Step5({ input, upd, setTop }: P) {
         </Field>
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Günümüze İndirgeme</div>
         <div className="hint" style={{ marginBottom: 10 }}>
           İnşaat bir anda değil süre içinde biter; hasılat ve maliyet bugünkü değerlerine
@@ -544,7 +544,7 @@ export function Step5({ input, upd, setTop }: P) {
         </Field>
       </div>
 
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Kat Karşılığı Analizi</div>
         <Field label="Rapora eklensin mi?"
                hint="Kat karşılığı yöntemi artık değer yönteminden farklı sonuç verebilir.">

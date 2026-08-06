@@ -96,7 +96,7 @@ function computeCekme(
     const b = apt.basements[i - 1] ?? { use: 'konut', area: null, lossRate: 0.07, saleable: null };
     const area = R(Math.max(0, b.area ?? footprintArea));
     const saleable = b.use === 'ortak' ? 0
-      : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
+      : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate ?? 0.10))));
     floors.push({
       kind: 'bodrum', index: i,
       label: `${ord(i)} Bodrum Kat` + (variant === 'karma' && b.use !== 'ortak' ? ` (${b.use})` : ''),
@@ -285,7 +285,7 @@ export function computeApartment(
       const area = R(Math.max(0, b.area ?? footprintArea));
       const saleable = b.use === 'ortak'
         ? 0
-        : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate))));
+        : R(Math.max(0, b.saleable ?? area * (1 - Math.max(0, b.lossRate ?? 0.10))));
       if (b.inEmsal !== false) pool -= saleable;   // emsale dahil değilse havuzdan düşmez
       floors.push({
         kind: 'bodrum', index: i,

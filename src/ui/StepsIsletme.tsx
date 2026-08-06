@@ -153,7 +153,7 @@ export function Step4Isletme({ input, upd, setTop }: P) {
   const r = computeIsletme(input.parcel, inp);
   return (
     <div className="cols">
-      <div className="card">
+      <div className="card card-wide">
         <div className="card-title">Öngörülen Satış Değeri</div>
         <Field label="Taşınmazın Toplam Satış Değeri" hint="Tek toplam tutar, KDV hariç">
           <Num value={inp.salesTotal} onChange={(n) => upd('isletme', { salesTotal: n })} suffix="₺" />
