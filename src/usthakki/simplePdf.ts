@@ -24,7 +24,7 @@ export async function buildSimpleUstHakkiPdf(
 ): Promise<jsPDF> {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' });
   await loadFonts(doc);
-  const title = method === 'toplam' ? 'Toplam Değerden Üst Hakkı Hesabı' : 'Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı';
+  const title = method === 'toplam' ? 'Toplam Değer Esaslı Üst Hakkı Tespiti' : 'Arsa Değeri Esaslı Üst Hakkı Tespiti';
   drawHeader(doc, title, 'Üst Hakkı Değerleme Raporu');
   let y = 44;
 

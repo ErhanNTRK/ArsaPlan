@@ -10,7 +10,7 @@ describe('computeSimpleCost — amortismanlı yapı değeri', () => {
   });
 });
 
-describe('Yöntem 1 — Toplam Değerden Üst Hakkı Hesabı (Salih örneği)', () => {
+describe('Yöntem 1 — Toplam Değer Esaslı Üst Hakkı Tespiti (Salih örneği)', () => {
   it('golden: Toplam Değer 150M, Kalan 10, Toplam 20 → Üst Hakkı Değeri 50M', () => {
     // Daimi Müstakil Hak = 150M × 2/3 = 100M; Üst Hakkı = 100M × (10/20) = 50M
     const r = computeWholeValueMethod(

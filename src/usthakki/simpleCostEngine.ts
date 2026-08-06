@@ -37,7 +37,7 @@ export function computeSimpleCost(input: SimpleCostInput): SimpleCostResult {
   return { landValue, buildingValues, totalValue: R(landValue + buildingValues) };
 }
 
-/** Yöntem 1 — Toplam Değerden Üst Hakkı Hesabı.
+/** Yöntem 1 — Toplam Değer Esaslı Üst Hakkı Tespiti.
  *  Daimi Müstakil Hak Değeri = Toplam Değer × 2/3 (sistem hesaplar, elle değiştirilemez).
  *  Üst Hakkı Değeri = Daimi Müstakil Hak Değeri × (Kalan Süre / Toplam Süre). */
 export interface WholeValueResult {
@@ -58,7 +58,7 @@ export function computeWholeValueMethod(cost: SimpleCostInput, kalanSure: number
   return { cost: c, permanentValue, ustHakkiValue, warnings };
 }
 
-/** Yöntem 2 — Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı.
+/** Yöntem 2 — Arsa Değeri Esaslı Üst Hakkı Tespiti.
  *  Arsa Daimi Müstakil Hak = Arsa Değeri × 2/3; Üst Hakkı Arsa Değeri =
  *  bunun × (Kalan/Toplam); Nihai = Üst Hakkı Arsa Değeri + Bina Değeri (tam). */
 export interface LandOnlyResult {

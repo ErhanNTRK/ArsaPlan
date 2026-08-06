@@ -75,7 +75,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
     } catch { alert('KML okunamadı.'); }
   }
 
-  const title = method === 'toplam' ? 'Toplam Değerden Üst Hakkı Hesabı' : 'Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı';
+  const title = method === 'toplam' ? 'Toplam Değer Esaslı Üst Hakkı Tespiti' : 'Arsa Değeri Esaslı Üst Hakkı Tespiti';
   const busyRef = useRef(false);
   async function onPdf() { if (busyRef.current) return; busyRef.current = true; try { await downloadSimpleUstHakkiPdf(method, state, whole, land); } finally { busyRef.current = false; } }
   async function onExcel() { if (busyRef.current) return; busyRef.current = true; try { await downloadSimpleUstHakkiExcel(method, state, whole, land); } finally { busyRef.current = false; } }

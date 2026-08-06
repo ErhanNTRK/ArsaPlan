@@ -1,39 +1,48 @@
-# ArsaPlan v8.0.1 — Kritik Hata: Normal Katlar NaN Oluyordu (KRİTİK DÜZELTME)
+# ArsaPlan v8.1.0 — İsim Değişikliği + Veri Kalıcılığı + Adım Birleştirme
 
-Doğrulama: tsc 0 hata, test 194/194 (yeni regresyon testi dahil),
-build başarılı.
+Doğrulama: tsc 0 hata, test 194/194, build başarılı.
 
-## Kesin kök neden bulundu ve düzeltildi
+## Tamamlanan 4 madde
 
-Senin gönderdiğin ekran görüntüleri sayesinde kesin teşhis kondu:
-**Bodrum Kat'ın "Satılabilir alan var mı?" seçimi belirli bir
-durumdayken (kullanım tipi "konut"/satılabilir) VE Bodrum Kat Alanı
-ile Kayıp Oranı elle girilmemişse, motor `NaN` (sayısal olmayan bir
-değer) üretiyordu.** Bu NaN, "satılabilir alan havuzu" mekanizması
-üzerinden **tüm normal katlara yayılıyordu** — bu yüzden normal
-katlar boş/0 görünüyordu, "otomatik hesaplamıyor" izlenimi
-oluşuyordu. Aslında motorun kendi mantığı (Hmax'tan kat sayısı
-önerisi, havuzdan pay dağıtımı) doğru çalışıyordu — yalnız tek bir
-eksik varsayılan değer (`lossRate`) tüm hesabı bozuyordu.
+1. **Üst Hakkı isim değişikliği** — "Toplam Değerden Üst Hakkı Hesabı" →
+   **"Toplam Değer Esaslı Üst Hakkı Tespiti"**; "Sadece Arsa Değeri
+   Üzerinden Üst Hakkı Hesabı" → **"Arsa Değeri Esaslı Üst Hakkı
+   Tespiti"**. Uygulama içi, PDF ve Excel'in hepsinde güncellendi.
 
-Artık Kayıp Oranı elle girilmezse **%10 varsayılan** kullanılıyor,
-NaN hiç oluşmuyor. Bu senaryoyu birebir tekrar eden bir **regresyon
-testi** de eklendi — bu hata bir daha sessizce geri gelemez.
+2. **Veri kalıcılığı — artık her açılışta boş başlıyor.** Arsa ve
+   Otel modülleri artık sayfa her açıldığında **temiz/sıfır** başlıyor.
+   Kayıtlı bir taslak varsa, üstte **"↺ Eski verileri geri getir"**
+   düğmesi çıkıyor — istersen tıklayıp devam edersin, istemezsen hiç
+   dokunmadan yeni bir hesaplamaya başlarsın.
 
-## Ayrıca fark ettiğim, ayrı bir konu (senin dikkatini çekmek isterim)
+3. **TAKS/KAKS tutarsızlık uyarısı — zaten var olduğu doğrulandı.**
+   Bir önceki NaN düzeltmesiyle bu uyarı artık doğru rakamlarla
+   çalışıyor. Elle kilitlenmiş kat alanları TAKS/KAKS değişince
+   otomatik silinmiyor (bilinçli tasarım — "↺" ile istenirse
+   sıfırlanabiliyor), ama tutarsızlık varsa ekranda net bir uyarı
+   çıkıyor.
 
-Ekran görüntülerinde "2. Normal Kat" ve "3. Normal Kat" kutularında
-gerçekçi olmayan büyük sayılar (3.517 m², 2.168 m²) vardı — bunlar
-muhtemelen **önceki bir TAKS/KAKS/Hmax denemesinden kalma, elle
-girilmiş (kilitli) değerler.** TAKS/KAKS/Hmax'ı değiştirdiğinde,
-daha önce elle girdiğin kat alanları **otomatik temizlenmiyor** —
-bu bilinçli bir tasarım (uzman kullanıcı bir katı özellikle
-sabitleyebilsin diye) ama zoning parametreleri değişince kafa
-karıştırıcı olabiliyor. Kat Tablosu'nda ilgili kutunun yanındaki
-**"↺" simgesine tıklayarak** o kutuyu tekrar otomatik moda
-döndürebilirsin. İstersen, "TAKS/KAKS/Hmax değiştiğinde elle
-girilmiş kat alanları varsa uyar" gibi bir iyileştirmeyi ayrı bir
-madde olarak ele alabiliriz — şimdilik dokunmadım.
+4. **Adım birleştirme — hem Otel hem Arsa'da.**
+   - **Otel:** 2 adıma indi (Genel Bilgiler+Gelirler tek adımda,
+     Gider·Projeksiyon·İNA ayrı).
+   - **Arsa** (Konut/Karma/Ticari Apartman/Ticari İşletme — dört
+     varyantın hepsinde): "Değerleme Konusu" ayrı adımı kalktı,
+     taşınmaz bilgileriyle birleşti — 5 adımlık akışlar 4'e, 4 adımlık
+     Ticari İşletme akışı 3'e indi.
+
+## Bu turda YAPILMAYAN — dürüst not
+
+**Madde 5 (hibrit masaüstü-tablo/mobil-kart görünümü, 7 modülde ~10
+ekran) bu turda ele alınmadı** — kapsamı en büyük iş olduğu için,
+zaman/token bütçesini yukarıdaki 4 maddeyi sağlam tamamlamaya
+ayırdım. Bu, ayrı bir turda ele alınmayı bekliyor.
+
+## Yapılacaklar listesine eklenen (dokunulmadı, onayın olmadan
+başlamayacağım)
+
+- **"Site" — parsel içinde çok bloklu proje desteği** (Konut Proje
+  Tipi'nde "yakında hizmette" olarak duran seçenek). Büyük bir mimari
+  genişleme, ayrı bir tur/proje olarak ele alınacak.
 
 ## Yükleme
 `src`/`public`/`package.json` → GitHub Upload files → üzerine yaz →

@@ -72,29 +72,25 @@ const DEFAULT_INPUT: ProjectInput = {
 };
 
 const STEPS_KONUT = [
-  { title: 'Değerleme Konusu', desc: 'Ne değerleniyor?' },
-  { title: 'Proje Tipi ve Taşınmaz', desc: 'Konut ürünü ve parsel bilgileri.' },
+  { title: 'Değerleme Konusu ve Taşınmaz', desc: 'Ne değerleniyor, konut ürünü ve parsel bilgileri.' },
   { title: 'İmar ve Alan Üretimi', desc: 'Yapılaşma hakları, emsal dışı alanlar, çatı ve bodrum.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti, peyzaj ve satış değeri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];
 const STEPS_KARMA = [
-  { title: 'Değerleme Konusu', desc: 'Ne değerleniyor?' },
-  { title: 'Taşınmaz', desc: 'Parsel bilgileri.' },
+  { title: 'Değerleme Konusu ve Taşınmaz', desc: 'Ne değerleniyor, parsel bilgileri.' },
   { title: 'İmar ve Kat Kurgusu', desc: 'Yapılaşma hakları, bodrum, asma kat ve çatı arası piyesi.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti ve kat tipine göre satış değerleri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];
 const STEPS_TICARI_APT = [
-  { title: 'Değerleme Konusu', desc: 'Ne değerleniyor?' },
-  { title: 'Ticari Yol ve Taşınmaz', desc: 'Ticari apartman / işletme seçimi ve parsel bilgileri.' },
+  { title: 'Değerleme Konusu ve Taşınmaz', desc: 'Ne değerleniyor, ticari apartman / işletme seçimi ve parsel bilgileri.' },
   { title: 'İmar ve Kat Kurgusu', desc: 'Yapılaşma hakları, bodrum, asma kat ve çatı arası piyesi.' },
   { title: 'Maliyet ve Satış', desc: 'Yapım maliyeti ve kat tipine göre satış değerleri.' },
   { title: 'Değerleme', desc: 'Kâr, finansman ve kat karşılığı.' },
 ];
 const STEPS_ISLETME = [
-  { title: 'Değerleme Konusu', desc: 'Ne değerleniyor?' },
-  { title: 'Ticari Yol ve Taşınmaz', desc: 'Ticari apartman / işletme seçimi ve parsel bilgileri.' },
+  { title: 'Değerleme Konusu ve Taşınmaz', desc: 'Ne değerleniyor, ticari apartman / işletme seçimi ve parsel bilgileri.' },
   { title: 'Yapılar ve Maliyetler', desc: 'Yapı satırları, güncelleme, yıpranma ve ilave maliyetler.' },
   { title: 'Satış Değeri', desc: 'Öngörülen toplam satış değeri.' },
 ];
@@ -144,7 +140,8 @@ function loadDraft(): ProjectInput {
 /** ArsaPlan'ın mevcut "Arsa Gelir Projeksiyon Yöntemi" akışı — hiçbir satırı değiştirilmemiştir. */
 function ArsaApp({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1);
-  const [input, setInput] = useState<ProjectInput>(loadDraft);
+  const [input, setInput] = useState<ProjectInput>(DEFAULT_INPUT);
+  const [hasSavedDraft] = useState(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } });
 
   useEffect(() => {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(input)); } catch { /* kota */ }
@@ -287,7 +284,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
   const meta = STEPS[Math.min(step, TOTAL) - 1];
 
   const blocker = (): string | null => {
-    if (step === 2) {
+    if (step === 1) {
       if (!input.parcel.area) return 'Parsel alanı giriniz.';
       if (!input.parcel.netArea) return 'Net parsel alanı giriniz.';
     }
@@ -295,19 +292,19 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
       (input.assetType === 'ticari' && input.ticariMode === 'apartman');
     const apartman = karma || input.housingType === 'apartman-3-8';
     if (isIsletme) {
-      if (step === 3) {
+      if (step === 2) {
         if (input.isletme.buildings.length === 0) return 'En az bir yapı satırı ekleyiniz.';
         if (input.isletme.buildings.some((b) => !b.area)) return 'Tüm yapı satırlarına alan giriniz.';
       }
-      if (step === 4 && !input.isletme.salesTotal) return 'Öngörülen satış değerini giriniz.';
+      if (step === 3 && !input.isletme.salesTotal) return 'Öngörülen satış değerini giriniz.';
       return null;
     }
-    if (step === 3) {
+    if (step === 2) {
       const z = input.zoning;
       if (z.mode === 'taks-kaks' && z.kaks == null) return 'KAKS (emsal) değerini giriniz.';
       if (z.mode === 'dogrudan' && !apartman && !z.directEmsalArea) return 'Emsale dahil alanı giriniz.';
     }
-    if (step === 4) {
+    if (step === 3) {
       if (!input.cost.unitCost) return 'Birim maliyet giriniz.';
       if (apartman) {
         if (!input.sales.apt.normal) return 'Normal kat satış birim değerini giriniz.';
@@ -335,6 +332,12 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
             <p>{BRAND.tagline}</p>
           </div>
           <div className="topbar-actions no-print">
+            {hasSavedDraft && (
+              <button type="button" className="link-btn topbar-link" title="Daha önce girdiğiniz, kaydedilmiş verileri geri yükler"
+                      onClick={() => setInput(loadDraft())}>
+                ↺ Eski verileri geri getir
+              </button>
+            )}
             <button type="button" className="link-btn topbar-link"
                     onClick={() => { window.location.hash = ''; }}
                     title="Yöntem seçim ekranına dön">← Başlangıç</button>
@@ -388,11 +391,10 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {step === 1 && <Step1 {...P} onSample={fillSample} />}
-        {step === 2 && <Step2 {...P} />}
-        {step === 3 && <Step3 {...P} />}
-        {step === 4 && <Step4 {...P} />}
-        {step === 5 && <Step5 {...P} />}
+        {step === 1 && (<><Step1 {...P} onSample={fillSample} /><Step2 {...P} /></>)}
+        {step === 2 && <Step3 {...P} />}
+        {step === 3 && <Step4 {...P} />}
+        {step === 4 && <Step5 {...P} />}
         {isResult && <Result input={input} result={result} version={VERSION} />}
 
         {stop && !isResult && (
@@ -529,10 +531,10 @@ export default function App() {
         </div>
         <div className="card">
           <div className="choice-grid">
-            <Choice on={false} name="Toplam Değerden Üst Hakkı Hesabı"
+            <Choice on={false} name="Toplam Değer Esaslı Üst Hakkı Tespiti"
                     desc="Arsa+Yapı Değeri × 2/3 × (Kalan/Toplam Süre) — sade ve hızlı"
                     onClick={() => { window.location.hash = 'usthakki-toplam'; }} />
-            <Choice on={false} name="Sadece Arsa Değeri Üzerinden Üst Hakkı Hesabı"
+            <Choice on={false} name="Arsa Değeri Esaslı Üst Hakkı Tespiti"
                     desc="Yalnız arsa süreye göre oranlanır, bina değeri tam eklenir"
                     onClick={() => { window.location.hash = 'usthakki-arsa'; }} />
             <Choice on={false} name="Toplam Gelir Üzerinden Üst Hakkı Hesabı"

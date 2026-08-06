@@ -55,8 +55,7 @@ function loadDraft(): HotelIncomeInput {
 }
 
 const STEPS = [
-  { title: 'Genel Bilgiler', desc: 'Tesis ve taşınmaz kimliği.' },
-  { title: 'Gelirler', desc: 'Oda gelirleri, yardımcı işletme gelirleri ve üçüncü kişilere kiralanan alanlar.' },
+  { title: 'Genel Bilgiler ve Gelirler', desc: 'Tesis kimliği, oda gelirleri, yardımcı işletme gelirleri ve üçüncü kişilere kiralanan alanlar.' },
   { title: 'Gider · Projeksiyon · İNA', desc: 'Gider oranı, yıllara göre artışlar, kapitalizasyon ve iskonto.' },
 ];
 const TOTAL = STEPS.length;
@@ -65,7 +64,8 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState(1);
   const [costOpen, setCostOpen] = useState(false);
   const [inaOpen, setInaOpen] = useState(false);
-  const [input, setInput] = useState<HotelIncomeInput>(loadDraft);
+  const [input, setInput] = useState<HotelIncomeInput>(createDefaultHotelInput);
+  const [hasSavedDraft] = useState(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } });
 
   useEffect(() => {
     try { localStorage.setItem(DRAFT_KEY, JSON.stringify(input)); } catch { /* kota */ }
@@ -95,7 +95,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
   const blocker = (): string | null => {
     if (step === 1 && !input.general.facilityName.trim()) return 'Tesis adını giriniz.';
-    if (step === 3 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
+    if (step === 2 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
     return null;
   };
   const stop = blocker();
@@ -111,6 +111,12 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
           </div>
           <div className="topbar-actions no-print">
             <button type="button" className="link-btn topbar-link" onClick={onBack}>← Başlangıca dön</button>
+            {hasSavedDraft && (
+              <button type="button" className="link-btn topbar-link" title="Daha önce girdiğiniz, kaydedilmiş verileri geri yükler"
+                      onClick={() => setInput(loadDraft())}>
+                ↺ Eski verileri geri getir
+              </button>
+            )}
             <label className="link-btn topbar-link" title="Daha önce indirilen .xlsx dosyasından verileri geri yükler">
               📊 Excel Yükle
               <input type="file" accept=".xlsx" style={{ display: 'none' }}
@@ -142,13 +148,13 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
-        {step === 1 && <StepGeneral general={input.general} setGeneral={setGeneral} input={input} setInput={setInput} />}
-        {step === 2 && (<>
+        {step === 1 && (<>
+          <StepGeneral general={input.general} setGeneral={setGeneral} input={input} setInput={setInput} />
           <StepRooms rooms={input.rooms} setRooms={setRooms} result={result} setInput={setInput} />
           <StepAncillary ancillary={input.ancillary} setAncillary={setAncillary} result={result} />
           <StepLeases leases={input.leases} setLeases={setLeases} result={result} />
         </>)}
-        {step === 3 && (<>
+        {step === 2 && (<>
           <StepOpex opex={input.opex} setOpex={setOpex} result={result} />
           <StepProjection projection={input.projection} setProjection={setProjection} result={result} input={input} setInput={setInput}
                           costOpen={costOpen} setCostOpen={setCostOpen} inaOpen={inaOpen} setInaOpen={setInaOpen} />
