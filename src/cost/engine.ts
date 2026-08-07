@@ -21,22 +21,37 @@ export interface CostApproachInput {
   buildings: CostBuildingRow[];
   adjustmentType: AdjustmentType;
   adjustmentAmount: number;
+  /** "Mevcut Durum Değeri Hesapla" opsiyonu açıldığında true olur. */
+  computeMevcutDurum: boolean;
+  /** Açıldığında, Yasal Durum yapı satırlarının bir kopyası ile başlar; kullanıcı değiştirip ekleyip silebilir. */
+  mevcutBuildings: CostBuildingRow[];
+  /** Mevcut Durum için ayrı şerefiye/düzeltme tutarı (girilmezse Yasal Durum'unki kullanılır). */
+  mevcutAdjustmentAmount: number | null;
 }
 
 export interface CostBuildingRowResult extends CostBuildingRow {
   effectiveUnitCost: number;
-  buildingValue: number; // area × effectiveUnitCost × (depreciationPct/100)
+  buildingValue: number; // area × effectiveUnitCost × (depreciationPct/100, veya 0 ise ×1)
   overridden: boolean;
 }
 
-export interface CostApproachResult {
-  landValue: number;
+/** Tek bir durumun (Yasal ya da Mevcut) hesap çıktısı. */
+export interface CostStatusResult {
   buildingRows: CostBuildingRowResult[];
   buildingsValue: number;
   adjustmentValue: number;
   totalValue: number;
   totalValueRounded: number; // 5.000'e yuvarlanmış
+}
+
+export interface CostApproachResult extends CostStatusResult {
+  landValue: number;
   warnings: string[];
+  /**
+   * Mevcut Durum sonucu. "Mevcut Durum Değeri Hesapla" kapalıysa ya da
+   * ayrı yapı satırı girilmemişse, Yasal Durum'un birebir aynısıdır.
+   */
+  current: CostStatusResult;
 }
 
 export function createDefaultCostInput(): CostApproachInput {
@@ -50,15 +65,14 @@ export function createDefaultCostInput(): CostApproachInput {
     buildings: [],
     adjustmentType: 'none',
     adjustmentAmount: 0,
+    computeMevcutDurum: false,
+    mevcutBuildings: [],
+    mevcutAdjustmentAmount: null,
   };
 }
 
-export function analyzeCostApproach(input: CostApproachInput): CostApproachResult {
-  const warnings: string[] = [];
-  const netArea = Math.max(0, input.netParcelArea ?? 0);
-  const landValue = Math.round(netArea * Math.max(0, input.landUnitValue));
-
-  const buildingRows: CostBuildingRowResult[] = input.buildings.map((b) => {
+function computeBuildingRows(rows: CostBuildingRow[]): { buildingRows: CostBuildingRowResult[]; buildingsValue: number } {
+  const buildingRows: CostBuildingRowResult[] = rows.map((b) => {
     const cls = YAPI_SINIFLARI.find((c) => c.code === b.buildingClassCode);
     const baseUnitCost = cls?.unitCost ?? 0;
     const overridden = b.unitCostOverride != null;
@@ -68,15 +82,38 @@ export function analyzeCostApproach(input: CostApproachInput): CostApproachResul
     return { ...b, effectiveUnitCost, buildingValue, overridden };
   });
   const buildingsValue = buildingRows.reduce((s, b) => s + b.buildingValue, 0);
+  return { buildingRows, buildingsValue };
+}
 
-  const adjustmentValue = input.adjustmentType === 'none' ? 0 : Math.max(0, input.adjustmentAmount);
-
+function computeStatus(landValue: number, buildingRows: CostBuildingRow[], adjustmentType: AdjustmentType, adjustmentAmount: number): CostStatusResult {
+  const { buildingRows: rows, buildingsValue } = computeBuildingRows(buildingRows);
+  const adjustmentValue = adjustmentType === 'none' ? 0 : Math.max(0, adjustmentAmount);
   const totalValue = landValue + buildingsValue + adjustmentValue;
   const totalValueRounded = Math.round(totalValue / 5000) * 5000;
+  return { buildingRows: rows, buildingsValue, adjustmentValue, totalValue, totalValueRounded };
+}
+
+export function analyzeCostApproach(input: CostApproachInput): CostApproachResult {
+  const warnings: string[] = [];
+  const netArea = Math.max(0, input.netParcelArea ?? 0);
+  const landValue = Math.round(netArea * Math.max(0, input.landUnitValue));
+
+  const legal = computeStatus(landValue, input.buildings, input.adjustmentType, input.adjustmentAmount);
+
+  // Mevcut Durum: opsiyon kapalıysa ya da satır girilmemişse Yasal Durum'un aynısı.
+  const hasMevcutOverride = input.computeMevcutDurum && input.mevcutBuildings.length > 0;
+  const current = hasMevcutOverride
+    ? computeStatus(
+        landValue,
+        input.mevcutBuildings,
+        input.adjustmentType,
+        input.mevcutAdjustmentAmount ?? input.adjustmentAmount,
+      )
+    : legal;
 
   if (netArea <= 0) warnings.push('Net Arsa Alanı giriniz.');
   if (input.landUnitValue <= 0) warnings.push('Arsa m² Birim Değeri giriniz.');
-  if (buildingRows.length === 0) warnings.push('En az bir yapı eklemeniz önerilir (yalnız arsa değeri hesaplanıyor).');
+  if (legal.buildingRows.length === 0) warnings.push('En az bir yapı eklemeniz önerilir (yalnız arsa değeri hesaplanıyor).');
 
-  return { landValue, buildingRows, buildingsValue, adjustmentValue, totalValue, totalValueRounded, warnings };
+  return { landValue, ...legal, warnings, current };
 }

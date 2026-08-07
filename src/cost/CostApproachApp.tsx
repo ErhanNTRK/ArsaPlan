@@ -24,7 +24,7 @@ function loadDraft(): CostApproachInput {
 export function CostApproachApp({ onBack }: { onBack: () => void }) {
   const [input, setInput] = useState<CostApproachInput>(createDefaultCostInput);
   const [hasSavedDraft] = useState(() => { try { return !!localStorage.getItem(DRAFT_KEY); } catch { return false; } });
-  const [busy, setBusy] = useState<null | 'pdf' | 'excel' | 'jpeg'>(null);
+  const [busy, setBusy] = useState<null | 'pdf' | 'excel' | 'jpeg' | 'ziraat'>(null);
   const result = useMemo(() => analyzeCostApproach(input), [input]);
 
   useMemo(() => { try { localStorage.setItem(DRAFT_KEY, JSON.stringify(input)); } catch { /* kota */ } }, [input]);
@@ -35,6 +35,22 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
 
   const patchBuilding = (id: string, p: Partial<CostApproachInput['buildings'][number]>) =>
     setInput((s) => ({ ...s, buildings: s.buildings.map((b) => (b.id === id ? { ...b, ...p } : b)) }));
+
+  const patchMevcutBuilding = (id: string, p: Partial<CostApproachInput['buildings'][number]>) =>
+    setInput((s) => ({ ...s, mevcutBuildings: s.mevcutBuildings.map((b) => (b.id === id ? { ...b, ...p } : b)) }));
+
+  function toggleMevcutDurum() {
+    setInput((s) => {
+      if (s.computeMevcutDurum) {
+        // Kapatılıyor — mevcutBuildings'i sıfırla, veri kaybını kullanıcıya sormadan silmemek için tutmuyoruz çünkü
+        // tekrar açıldığında zaten Yasal Durum'dan yeniden kopyalanacak.
+        return { ...s, computeMevcutDurum: false };
+      }
+      // Açılıyor — Yasal Durum yapı satırlarının bir kopyasıyla başlat (yeni id'lerle, bağımsız düzenlenebilir).
+      const copied = s.buildings.map((b) => ({ ...b, id: newId() }));
+      return { ...s, computeMevcutDurum: true, mevcutBuildings: copied.length > 0 ? copied : s.mevcutBuildings };
+    });
+  }
 
   async function onKml(f: File) {
     try {
@@ -71,7 +87,10 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                      onChange={async (e) => {
                        const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
                        const data = await readDataSheet<CostApproachInput>(f);
-                       if (data) setInput(data); else window.alert('Bu Excel dosyasında ArsaPlan verisi bulunamadı.');
+                       // createDefaultCostInput ile birleştiriyoruz: bu özellikten ÖNCE dışa aktarılmış
+                       // eski bir Excel'de computeMevcutDurum/mevcutBuildings alanları yoktur — birleştirme
+                       // olmadan motor bu alanları undefined bulup çöker.
+                       if (data) setInput({ ...createDefaultCostInput(), ...data }); else window.alert('Bu Excel dosyasında ArsaPlan verisi bulunamadı.');
                      }} />
             </label>
           </div>
@@ -212,6 +231,80 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
             </div>
           </div>
 
+          <div className="card card-wide">
+            <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={input.computeMevcutDurum} onChange={toggleMevcutDurum} />
+              <span><b>Mevcut Durum Değeri Hesapla</b> (opsiyonel)</span>
+            </label>
+            <div className="hint" style={{ marginTop: 6 }}>
+              Açarsanız Yasal Durum'daki yapı satırları aynen aşağıya kopyalanır; burada serbestçe
+              değiştirebilir, silebilir veya (kaçak/ilave yapı gibi) yeni satır ekleyebilirsiniz.
+              Kapalı kalırsa ya da hiç dokunulmazsa, Mevcut Durum raporlarda Yasal Durum ile birebir aynı görünür.
+            </div>
+
+            {input.computeMevcutDurum && (
+              <>
+                {input.mevcutBuildings.length > 0 && (
+                  <RTable headers={['Yapı Türü', 'Yapı Sınıfı', 'Alan m²', 'Birim Maliyet', 'Amortisman %', 'Değer', '']}>
+                    {result.current.buildingRows.map((b) => (
+                      <RRow key={b.id}>
+                        <RCell label="Yapı Türü">
+                          <select value={buildingSuggestions.includes(b.type) ? b.type : DIGER_KATEGORI}
+                                  onChange={(e) => patchMevcutBuilding(b.id, { type: e.target.value === DIGER_KATEGORI ? '' : e.target.value })}>
+                            {buildingSuggestions.map((t) => <option key={t} value={t}>{t}</option>)}
+                            <option value={DIGER_KATEGORI}>Diğer (elle yaz)</option>
+                          </select>
+                          {!buildingSuggestions.includes(b.type) && (
+                            <input style={{ marginTop: 4 }} placeholder="Yapı adını yazın" value={b.type}
+                                   onChange={(e) => patchMevcutBuilding(b.id, { type: e.target.value })} />
+                          )}
+                        </RCell>
+                        <RCell label="Yapı Sınıfı">
+                          <select value={b.buildingClassCode ?? ''} onChange={(e) => patchMevcutBuilding(b.id, { buildingClassCode: e.target.value || null, unitCostOverride: null })}>
+                            <option value="">— elle gireceğim —</option>
+                            {YAPI_SINIFLARI.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
+                          </select>
+                        </RCell>
+                        <RCell label="Alan m²">
+                          <input type="number" value={b.area || ''} onChange={(e) => patchMevcutBuilding(b.id, { area: Number(e.target.value) || 0 })} />
+                        </RCell>
+                        <RCell label="Birim Maliyet">
+                          <span className="floor-cell">
+                            <input type="number" value={b.effectiveUnitCost || ''}
+                                   onChange={(e) => patchMevcutBuilding(b.id, { unitCostOverride: Number(e.target.value) || 0 })} />
+                            {b.overridden && (
+                              <button type="button" className="cell-reset" title="Tebliğ değerine dön"
+                                      onClick={() => patchMevcutBuilding(b.id, { unitCostOverride: null })}>↺</button>
+                            )}
+                          </span>
+                        </RCell>
+                        <RCell label="Amortisman %">
+                          <input type="number" value={b.depreciationPct || ''} onChange={(e) => patchMevcutBuilding(b.id, { depreciationPct: Number(e.target.value) || 0 })} />
+                        </RCell>
+                        <RCell label="Değer"><b>{fmt(b.buildingValue)}</b></RCell>
+                        <RCell label="">
+                          <button type="button" className="b-del" title="Satırı sil"
+                                  onClick={() => setInput((s) => ({ ...s, mevcutBuildings: s.mevcutBuildings.filter((x) => x.id !== b.id) }))}>✕</button>
+                        </RCell>
+                      </RRow>
+                    ))}
+                  </RTable>
+                )}
+                <button type="button" className="btn-ghost btn-sm" style={{ marginTop: 10 }}
+                        onClick={() => setInput((s) => ({ ...s, mevcutBuildings: [...s.mevcutBuildings, { id: newId(), type: buildingSuggestions[0] ?? '', buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] }))}>
+                  ➕ Mevcut Duruma Yapı Ekle
+                </button>
+                <div className="hrow-labeled" style={{ marginTop: 10 }}>
+                  <label className="pfield"><span>Mevcut Durum için ayrı Şerefiye/Düzeltme Tutarı (₺, opsiyonel)</span>
+                    <input type="number" placeholder={`Boş bırakılırsa Yasal Durum tutarı kullanılır (${fmt(input.adjustmentAmount)})`}
+                           value={input.mevcutAdjustmentAmount ?? ''}
+                           onChange={(e) => setInput((s) => ({ ...s, mevcutAdjustmentAmount: e.target.value === '' ? null : Number(e.target.value) || 0 }))} />
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
+
           <div className="card card-wide result-preview">
             <div className="card-title">Sonuç</div>
             <div className="mini-kpi">
@@ -220,9 +313,15 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
               {result.adjustmentValue > 0 && <div><span>Şerefiye/Düzeltme/Peyzaj</span><b>{fmt(result.adjustmentValue)}</b></div>}
             </div>
             <div className="result-hero" style={{ marginTop: 12 }}>
-              <span>MALİYET YAKLAŞIMI DEĞERİ</span>
+              <span>MALİYET YAKLAŞIMI DEĞERİ{input.computeMevcutDurum && input.mevcutBuildings.length > 0 ? ' — YASAL DURUM' : ''}</span>
               <b>{fmt(result.totalValueRounded)}</b>
             </div>
+            {input.computeMevcutDurum && input.mevcutBuildings.length > 0 && (
+              <div className="result-hero" style={{ marginTop: 8 }}>
+                <span>MALİYET YAKLAŞIMI DEĞERİ — MEVCUT DURUM</span>
+                <b>{fmt(result.current.totalValueRounded)}</b>
+              </div>
+            )}
             {result.warnings.map((w, i) => <div className="hint" key={i} style={{ marginTop: 6 }}>{w}</div>)}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy !== null}
@@ -242,6 +341,16 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                         } finally { setBusy(null); }
                       }}>
                 🖼️ Özet JPEG
+              </button>
+              <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null}
+                      onClick={async () => {
+                        setBusy('ziraat');
+                        try {
+                          const { downloadCostApproachZiraatExcel } = await import('./ziraatExcel');
+                          await downloadCostApproachZiraatExcel(input, result);
+                        } finally { setBusy(null); }
+                      }}>
+                {busy === 'ziraat' ? 'Hazırlanıyor…' : '🏦 Ziraat Tablosu İndir'}
               </button>
             </div>
           </div>

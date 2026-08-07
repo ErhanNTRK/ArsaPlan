@@ -65,8 +65,11 @@ export async function downloadCostApproachExcel(input: CostApproachInput, r: Cos
   kv('ARSA DEĞERİ', cur(r.landValue), true);
   row++;
 
-  if (r.buildingRows.length > 0) {
-    section('YAPILAR');
+  const showMevcut = input.computeMevcutDurum && input.mevcutBuildings.length > 0;
+
+  function buildingSection(title: string, rows: typeof r.buildingRows, totalLabel: string, total: number) {
+    if (rows.length === 0) return;
+    section(title);
     const heads = ['Yapı Türü', 'Alan m²', 'Birim Maliyet', 'Amortisman %', 'Değer'];
     heads.forEach((h, i) => {
       const c = ws.getCell(row, 2 + i);
@@ -76,7 +79,7 @@ export async function downloadCostApproachExcel(input: CostApproachInput, r: Cos
       c.alignment = { horizontal: i === 0 ? 'left' : 'right' };
     });
     row++;
-    for (const b of r.buildingRows) {
+    for (const b of rows) {
       ws.getCell(row, 2).value = b.type || '—';
       ws.getCell(row, 3).value = b.area.toLocaleString('tr-TR');
       ws.getCell(row, 4).value = cur(b.effectiveUnitCost);
@@ -85,18 +88,32 @@ export async function downloadCostApproachExcel(input: CostApproachInput, r: Cos
       for (let c = 2; c <= 6; c++) { ws.getCell(row, c).font = { name: 'Arial', size: 8.5 }; if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' }; }
       row++;
     }
-    kv('TOPLAM YAPILAR DEĞERİ', cur(r.buildingsValue), true);
+    kv(totalLabel, cur(total), true);
     row++;
   }
 
+  buildingSection(showMevcut ? 'YAPILAR — YASAL DURUM' : 'YAPILAR', r.buildingRows,
+    'TOPLAM YAPILAR DEĞERİ', r.buildingsValue);
+
   if (r.adjustmentValue > 0) {
-    section('DÜZELTME');
+    section(showMevcut ? 'DÜZELTME — YASAL DURUM' : 'DÜZELTME');
     const label = input.adjustmentType === 'serefiye' ? 'Şerefiye' : input.adjustmentType === 'peyzaj' ? 'Çevre Düzenlemesi' : 'Düzeltme';
     kv(label, cur(r.adjustmentValue));
     row++;
   }
 
-  ws.getCell(`B${row}`).value = 'MALİYET YAKLAŞIMI DEĞERİ';
+  if (showMevcut) {
+    buildingSection('YAPILAR — MEVCUT DURUM', r.current.buildingRows,
+      'TOPLAM YAPILAR DEĞERİ (MEVCUT)', r.current.buildingsValue);
+    if (r.current.adjustmentValue > 0) {
+      section('DÜZELTME — MEVCUT DURUM');
+      const label = input.adjustmentType === 'serefiye' ? 'Şerefiye' : input.adjustmentType === 'peyzaj' ? 'Çevre Düzenlemesi' : 'Düzeltme';
+      kv(label, cur(r.current.adjustmentValue));
+      row++;
+    }
+  }
+
+  ws.getCell(`B${row}`).value = showMevcut ? 'MALİYET YAKLAŞIMI DEĞERİ — YASAL DURUM' : 'MALİYET YAKLAŞIMI DEĞERİ';
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
   ws.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   ws.getCell(`B${row}`).alignment = { vertical: 'middle', indent: 1 };
@@ -105,7 +122,20 @@ export async function downloadCostApproachExcel(input: CostApproachInput, r: Cos
   ws.getCell(`C${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   ws.getCell(`C${row}`).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
   ws.getRow(row).height = 20;
-  row += 2;
+  row++;
+  if (showMevcut) {
+    ws.getCell(`B${row}`).value = 'MALİYET YAKLAŞIMI DEĞERİ — MEVCUT DURUM';
+    ws.getCell(`B${row}`).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    ws.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+    ws.getCell(`B${row}`).alignment = { vertical: 'middle', indent: 1 };
+    ws.getCell(`C${row}`).value = cur(r.current.totalValueRounded);
+    ws.getCell(`C${row}`).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
+    ws.getCell(`C${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GOLD } };
+    ws.getCell(`C${row}`).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
+    ws.getRow(row).height = 20;
+    row++;
+  }
+  row++;
   ws.mergeCells(`B${row}:C${row}`);
   ws.getCell(`B${row}`).value = `${BRAND.preparedBy} · ${BRAND.developerLine} · Maliyet Yaklaşımı Modülü`;
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };

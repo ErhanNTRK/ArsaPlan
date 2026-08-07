@@ -40,21 +40,24 @@ export async function buildCostApproachPdf(
     y += 6.3;
   }
 
+  const showMevcut = input.computeMevcutDurum && input.mevcutBuildings.length > 0;
+
   sectionTitle('ARSA');
   row('Net Arsa Alanı', `${(input.netParcelArea ?? 0).toLocaleString('tr-TR')} m²`);
   row('Arsa m² Birim Değeri', cur(input.landUnitValue));
   row('ARSA DEĞERİ', cur(r.landValue), true);
   y += 2;
 
-  if (r.buildingRows.length > 0) {
-    sectionTitle('YAPILAR');
+  function buildingSection(title: string, rows: typeof r.buildingRows, totalLabel: string, total: number) {
+    if (rows.length === 0) return;
+    sectionTitle(title);
     const heads = ['Yapı Türü', 'Alan m²', 'Birim Maliyet', 'Amortisman %', 'Değer'];
     const colX = [M + 2, M + 62, M + 92, M + 130, PW - M - 2];
     doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
     heads.forEach((h, i) => doc.text(h, colX[i], y, { align: i === 0 ? 'left' : 'right' }));
     y += 5;
     let zebra = false;
-    for (const b of r.buildingRows) {
+    for (const b of rows) {
       pageBreak(7);
       if (zebra) { doc.setFillColor(...FAINT); doc.rect(M, y - 3.8, W, 6, 'F'); }
       zebra = !zebra;
@@ -66,27 +69,47 @@ export async function buildCostApproachPdf(
       doc.text(cur(b.buildingValue), colX[4], y, { align: 'right' });
       y += 6;
     }
-    row('TOPLAM YAPILAR DEĞERİ', cur(r.buildingsValue), true);
+    row(totalLabel, cur(total), true);
     y += 2;
   }
 
+  buildingSection(showMevcut ? 'YAPILAR — YASAL DURUM' : 'YAPILAR', r.buildingRows,
+    'TOPLAM YAPILAR DEĞERİ', r.buildingsValue);
+
   if (r.adjustmentValue > 0) {
-    sectionTitle('DÜZELTME');
+    sectionTitle(showMevcut ? 'DÜZELTME — YASAL DURUM' : 'DÜZELTME');
     const label = input.adjustmentType === 'serefiye' ? 'Şerefiye' : input.adjustmentType === 'peyzaj' ? 'Çevre Düzenlemesi' : 'Düzeltme';
     row(label, cur(r.adjustmentValue));
     y += 2;
   }
 
-  pageBreak(30);
+  if (showMevcut) {
+    buildingSection('YAPILAR — MEVCUT DURUM', r.current.buildingRows,
+      'TOPLAM YAPILAR DEĞERİ (MEVCUT)', r.current.buildingsValue);
+    if (r.current.adjustmentValue > 0) {
+      sectionTitle('DÜZELTME — MEVCUT DURUM');
+      const label = input.adjustmentType === 'serefiye' ? 'Şerefiye' : input.adjustmentType === 'peyzaj' ? 'Çevre Düzenlemesi' : 'Düzeltme';
+      row(label, cur(r.current.adjustmentValue));
+      y += 2;
+    }
+  }
+
+  pageBreak(showMevcut ? 40 : 30);
   doc.setFillColor(...NAVY);
-  doc.roundedRect(M, y, W, 24, 2.2, 2.2, 'F');
+  doc.roundedRect(M, y, W, showMevcut ? 34 : 24, 2.2, 2.2, 'F');
   doc.setFillColor(...GOLD);
-  doc.rect(M, y + 24 - 1.2, W, 1.2, 'F');
+  doc.rect(M, y + (showMevcut ? 34 : 24) - 1.2, W, 1.2, 'F');
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
-  doc.text('MALİYET YAKLAŞIMI DEĞERİ', M + 5, y + 8);
+  doc.text(showMevcut ? 'MALİYET YAKLAŞIMI DEĞERİ — YASAL DURUM' : 'MALİYET YAKLAŞIMI DEĞERİ', M + 5, y + 8);
   doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
   doc.text(cur(r.totalValueRounded), M + 5, y + 18.5);
-  y += 24 + 8;
+  if (showMevcut) {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
+    doc.text('MALİYET YAKLAŞIMI DEĞERİ — MEVCUT DURUM', M + 5, y + 25.5);
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(13); doc.setTextColor(255, 255, 255);
+    doc.text(cur(r.current.totalValueRounded), M + 5, y + 31.5);
+  }
+  y += (showMevcut ? 34 : 24) + 8;
 
   drawFooter(doc, BRAND.version, 'Yöntem: Maliyet Yaklaşımı · Tutarlar KDV hariçtir');
 

@@ -53,4 +53,66 @@ describe('Maliyet Yaklaşımı motoru', () => {
     expect(r.adjustmentValue).toBe(500000);
     expect(r.totalValue).toBe(100 * 1000 + 500000);
   });
+
+  it('Mevcut Durum kapalıysa "current", Yasal Durum ile birebir aynıdır', () => {
+    const input = createDefaultCostInput();
+    input.netParcelArea = 100; input.landUnitValue = 1000;
+    input.buildings = [{ id: 'b1', type: 'Depo', buildingClassCode: null, area: 100, unitCostOverride: 10000, depreciationPct: 90 }];
+    const r = analyzeCostApproach(input);
+    expect(r.current.totalValueRounded).toBe(r.totalValueRounded);
+    expect(r.current.buildingsValue).toBe(r.buildingsValue);
+    expect(r.current.buildingRows).toEqual(r.buildingRows);
+  });
+
+  it('Mevcut Durum açık ama satır girilmemişse yine Yasal Durum ile aynıdır', () => {
+    const input = createDefaultCostInput();
+    input.netParcelArea = 100; input.landUnitValue = 1000;
+    input.buildings = [{ id: 'b1', type: 'Depo', buildingClassCode: null, area: 100, unitCostOverride: 10000, depreciationPct: 90 }];
+    input.computeMevcutDurum = true; // ama mevcutBuildings boş
+    const r = analyzeCostApproach(input);
+    expect(r.current.totalValueRounded).toBe(r.totalValueRounded);
+  });
+
+  it('kullanıcının örneği: alan 100 m² birim maliyet 10.000, amortisman 90 → 900.000 TL (hem Yasal hem Mevcut)', () => {
+    const input = createDefaultCostInput();
+    input.netParcelArea = 0; input.landUnitValue = 0; // yalnız yapı değerine bakıyoruz
+    input.buildings = [{ id: 'b1', type: 'Ambar', buildingClassCode: null, area: 100, unitCostOverride: 10000, depreciationPct: 90 }];
+    input.computeMevcutDurum = true;
+    input.mevcutBuildings = [{ id: 'b1', type: 'Ambar', buildingClassCode: null, area: 100, unitCostOverride: 10000, depreciationPct: 90 }];
+    const r = analyzeCostApproach(input);
+    expect(r.buildingsValue).toBe(900000);
+    expect(r.current.buildingsValue).toBe(900000);
+  });
+
+  it('Mevcut Durum satırları Yasal Durum\'dan bağımsız değiştirilebilir (kaçak/ilave yapı senaryosu)', () => {
+    const input = createDefaultCostInput();
+    input.netParcelArea = 100; input.landUnitValue = 1000; // arsa değeri her iki durumda da aynı
+    input.buildings = [{ id: 'b1', type: 'Ana Bina', buildingClassCode: null, area: 200, unitCostOverride: 5000, depreciationPct: 100 }];
+    input.computeMevcutDurum = true;
+    input.mevcutBuildings = [
+      { id: 'b1', type: 'Ana Bina', buildingClassCode: null, area: 200, unitCostOverride: 5000, depreciationPct: 100 },
+      { id: 'b2', type: 'Kaçak Ek Yapı', buildingClassCode: null, area: 50, unitCostOverride: 4000, depreciationPct: 100 },
+    ];
+    const r = analyzeCostApproach(input);
+    expect(r.landValue).toBe(r.current.buildingRows.length && 100 * 1000); // arsa ortak
+    expect(r.buildingsValue).toBe(200 * 5000); // Yasal: yalnız ana bina
+    expect(r.current.buildingsValue).toBe(200 * 5000 + 50 * 4000); // Mevcut: ana bina + kaçak ek yapı
+    expect(r.current.buildingRows.map((b) => b.type)).toEqual(['Ana Bina', 'Kaçak Ek Yapı']);
+  });
+
+  it('Mevcut Durum için ayrı düzeltme tutarı girilirse o kullanılır, girilmezse Yasal Durum\'unki kullanılır', () => {
+    const input = createDefaultCostInput();
+    input.netParcelArea = 100; input.landUnitValue = 1000;
+    input.adjustmentType = 'serefiye'; input.adjustmentAmount = 100000;
+    input.computeMevcutDurum = true;
+    input.mevcutBuildings = [{ id: 'b1', type: 'Depo', buildingClassCode: null, area: 10, unitCostOverride: 1000, depreciationPct: 100 }];
+    // Mevcut için ayrı tutar girilmemiş:
+    let r = analyzeCostApproach(input);
+    expect(r.current.adjustmentValue).toBe(100000);
+    // Şimdi ayrı tutar girilsin:
+    input.mevcutAdjustmentAmount = 250000;
+    r = analyzeCostApproach(input);
+    expect(r.current.adjustmentValue).toBe(250000);
+    expect(r.adjustmentValue).toBe(100000); // Yasal Durum etkilenmez
+  });
 });
