@@ -9,7 +9,6 @@ import { readDataSheet } from '../export/excelImport';
 import { downloadCostApproachPdf } from './pdf';
 import { downloadCostApproachExcel } from './excel';
 import { RTable, RRow, RCell } from '../ui/RTable';
-import { Choice } from '../ui/fields';
 
 const DRAFT_KEY = 'arsaplan-cost-draft-v1';
 function newId() { return Math.random().toString(36).slice(2, 10); }
@@ -93,15 +92,12 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
       <div className="step">
         <div className="card card-wide">
           <div className="card-title">Ne Değerleniyor?</div>
-          <div className="choice-grid">
-            {PROPERTY_CATEGORIES.map((c) => (
-              <Choice key={c.name} on={input.category === c.name} name={c.name} desc=""
-                      onClick={() => setInput((s) => ({ ...s, category: c.name }))} />
-            ))}
-            <Choice on={input.category !== '' && !PROPERTY_CATEGORIES.some((c) => c.name === input.category)}
-                    name={DIGER_KATEGORI} desc="Kendi kategorinizi yazın"
-                    onClick={() => setInput((s) => ({ ...s, category: DIGER_KATEGORI }))} />
-          </div>
+          <select value={input.category}
+                  onChange={(e) => setInput((s) => ({ ...s, category: e.target.value }))}>
+            <option value="">Kategori seçiniz…</option>
+            {PROPERTY_CATEGORIES.map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+            <option value={DIGER_KATEGORI}>{DIGER_KATEGORI}</option>
+          </select>
           {(input.category === DIGER_KATEGORI) && (
             <input style={{ marginTop: 10 }} placeholder="Kategori adını yazın"
                    onChange={(e) => setInput((s) => ({ ...s, category: e.target.value || DIGER_KATEGORI }))} />

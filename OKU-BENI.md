@@ -1,26 +1,13 @@
-# ArsaPlan v9.1.0 — Maliyet Yaklaşımı Kategorileri Genişletildi
+# ArsaPlan v9.1.1 — Maliyet Yaklaşımı: Kompakt Kategori Seçimi
 
-Doğrulama: tsc 0 hata, test 199/199, build başarılı. Kategori sayısı
-ve içerikleri gerçek verilerle doğrulandı.
+Doğrulama: tsc 0 hata, test 199/199, build başarılı.
 
-## Maliyet Yaklaşımı — "Ne Değerleniyor?" listesi güncellendi
+## "Ne Değerleniyor?" artık tek bir açılır liste
 
-**6 kategori kaldırıldı:** Rafineri, Hangar, Kültür Tesisi,
-Kütüphane, Sinema Salonu, Tiyatro Salonu.
-
-**Kalan 13 kategorinin yapı türü önerileri senin verdiğin detaylı
-listelerle güncellendi** — her biri artık ana bina + destek
-birimlerini (idari, depo, teknik, güvenlik, personel vb.) kapsıyor.
-Örnek: Hayvancılık Tesisi artık 19 kalem (Buzağı Barınağı, Gübre
-Separatörü gibi ayrıntılara kadar).
-
-**Otel kategorisi artık kendi listesini kullanmıyor** — Otel
-modülünün mevcut, 37 kalemlik BUILDING_TYPES kataloğunu (Lobi ve
-Resepsiyon Binası, Sonsuzluk Havuzu, Su Sporları Merkezi vb.)
-doğrudan paylaşıyor, tutarlılık için.
-
-**Toplam: 14 kategori** kaldı (13 kendi listesiyle + Otel paylaşılan
-listeyle) + "Diğer" (elle yaz).
+14 büyük kategori kartı (çok yer kaplıyordu) yerine, tek bir açılır
+liste (dropdown) — tıklayınca tüm kategoriler + "Diğer" seçeneği
+görünüyor, seçilince sayfa aynı şekilde devam ediyor. Sayfa artık
+çok daha kısa ve kullanışlı.
 
 ## Yükleme
 `src`/`public`/`package.json` → GitHub Upload files → üzerine yaz →
