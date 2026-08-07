@@ -13,6 +13,7 @@ import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
 import { Num } from '../ui/fields';
+import { RTable, RRow, RCell } from '../ui/RTable';
 import { downloadSimpleUstHakkiPdf } from './simplePdf';
 import { downloadSimpleUstHakkiExcel } from './simpleExcel';
 
@@ -156,33 +157,34 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
           </div>
 
           <div className="card-title" style={{ marginTop: 14, fontSize: 13 }}>Yapılar</div>
-          {state.buildings.map((b) => (
-            <div className="prop-card" key={b.id}>
-              <div className="prop-card__top">
-                <label className="pfield"><span>Yapı Türü</span>
-                  <select value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                          onChange={(e) => patchBuilding(b.id, { type: e.target.value })}>
-                    {BUILDING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                  {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
-                    <input style={{ marginTop: 6 }} placeholder="Yapı adını yazın"
-                           value={BUILDING_TYPES.includes(b.type) ? '' : b.type}
-                           onChange={(e) => patchBuilding(b.id, { type: e.target.value || 'Diğer' })} />
-                  )}</label>
-                <label className="pfield pfield--s"><span>Yapı Alanı m²</span>
-                  <Num value={b.area} onChange={(n) => patchBuilding(b.id, { area: n })} /></label>
-                <label className="pfield pfield--s"><span>Birim Maliyet ({cur})</span>
-                  <Num value={b.unitCost} onChange={(n) => patchBuilding(b.id, { unitCost: n })} /></label>
-                <label className="pfield pfield--s"><span>Amortisman %</span>
-                  <Num value={b.depreciationPct} onChange={(n) => patchBuilding(b.id, { depreciationPct: n })} /></label>
-                <div className="pfield pfield--ro"><span>Yapı Değeri</span>
-                  <b>{TL(Math.max(0, b.area) * Math.max(0, b.unitCost) * Math.min(100, Math.max(0, b.depreciationPct)) / 100)}</b></div>
-                {state.buildings.length > 1 && (
-                  <button type="button" className="b-del" onClick={() => patch({ buildings: state.buildings.filter((x) => x.id !== b.id) })}>✕</button>
-                )}
-              </div>
-            </div>
-          ))}
+          {state.buildings.length > 0 && (
+            <RTable headers={['Yapı Türü', 'Alan m²', `Birim Maliyet (${cur})`, 'Amortisman %', 'Yapı Değeri', '']}>
+              {state.buildings.map((b) => (
+                <RRow key={b.id}>
+                  <RCell label="Yapı Türü">
+                    <select value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                            onChange={(e) => patchBuilding(b.id, { type: e.target.value })}>
+                      {BUILDING_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                    {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
+                      <input style={{ marginTop: 6 }} placeholder="Yapı adını yazın"
+                             value={BUILDING_TYPES.includes(b.type) ? '' : b.type}
+                             onChange={(e) => patchBuilding(b.id, { type: e.target.value || 'Diğer' })} />
+                    )}
+                  </RCell>
+                  <RCell label="Alan m²"><Num value={b.area} onChange={(n) => patchBuilding(b.id, { area: n })} /></RCell>
+                  <RCell label={`Birim Maliyet (${cur})`}><Num value={b.unitCost} onChange={(n) => patchBuilding(b.id, { unitCost: n })} /></RCell>
+                  <RCell label="Amortisman %"><Num value={b.depreciationPct} onChange={(n) => patchBuilding(b.id, { depreciationPct: n })} /></RCell>
+                  <RCell label="Yapı Değeri"><b>{TL(Math.max(0, b.area) * Math.max(0, b.unitCost) * Math.min(100, Math.max(0, b.depreciationPct)) / 100)}</b></RCell>
+                  <RCell label="">
+                    {state.buildings.length > 1 && (
+                      <button type="button" className="b-del" onClick={() => patch({ buildings: state.buildings.filter((x) => x.id !== b.id) })}>✕</button>
+                    )}
+                  </RCell>
+                </RRow>
+              ))}
+            </RTable>
+          )}
           <button type="button" className="btn-ghost" onClick={() => patch({ buildings: [...state.buildings, { ...DEFAULT_BUILDING, id: uid() }] })}>➕ Yapı Ekle</button>
 
           <div className="hrow-labeled" style={{ marginTop: 12 }}>

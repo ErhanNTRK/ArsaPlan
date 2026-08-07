@@ -384,6 +384,17 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 .b-row { display: grid; grid-template-columns: 1.1fr 0.7fr 0.9fr 0.7fr 1.05fr 1fr 30px;
   gap: 6px; align-items: center; padding: 5px 4px; border-radius: 8px; }
 .b-row:nth-child(even) { background: rgba(15, 42, 71, 0.03); }
+@media (max-width: 700px) {
+  .b-row { display: block; grid-template-columns: none; position: relative; padding: 10px 34px 10px 10px; }
+  .b-row .b-cell { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
+  .b-row .b-cell[data-label]::before {
+    content: attr(data-label); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-3, #94a1ae); font-weight: 700; flex-shrink: 0; margin-right: 8px;
+  }
+  .b-row .b-cell input, .b-row .b-cell select { width: auto; max-width: 140px; }
+  .b-row .b-del { position: absolute; top: 8px; right: 8px; }
+  .b-row .b-type { white-space: normal; }
+}
 .b-type { font-size: 13px; font-weight: 700; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .b-cell { position: relative; display: flex; align-items: center; gap: 3px; }
 .b-cell input, .b-cell select { padding: 7px 22px 7px 7px; font-size: 12.5px; width: 100%; }
@@ -403,6 +414,16 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 .h-row-anc { grid-template-columns: 1.6fr 0.9fr 1.2fr 1fr 32px; gap: 14px; }
 .h-row .b-cell input, .h-row .b-cell select { padding: 9px 22px 9px 9px; font-size: 13.5px; width: 100%; }
 .h-row .seg button { padding: 6px 8px; font-size: 12px; }
+@media (max-width: 700px) {
+  .h-row, .h-row-anc { display: block; grid-template-columns: none; position: relative; padding: 10px 34px 10px 10px; }
+  .h-row .b-cell { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
+  .h-row .b-cell[data-label]::before {
+    content: attr(data-label); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-3, #94a1ae); font-weight: 700; flex-shrink: 0; margin-right: 8px;
+  }
+  .h-row .b-cell input, .h-row .b-cell select { width: auto; max-width: 140px; }
+  .h-row .b-del { position: absolute; top: 8px; right: 8px; }
+}
 .add-btn { margin-top: 8px; padding: 9px 16px; font-size: 13.5px; }
 @media (max-width: 860px) {
   .h-row { grid-template-columns: 1.1fr 0.8fr 0.95fr 0.75fr 0.85fr 1fr 24px; gap: 4px; }

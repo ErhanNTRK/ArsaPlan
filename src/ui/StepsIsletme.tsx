@@ -50,19 +50,19 @@ export function Step3Isletme({ input, upd }: P) {
           const row = r.rows[i];
           return (
             <div className="b-row" key={i}>
-              <div className="b-cell b-type" title={b.type}>{b.type}</div>
-              <div className="b-cell">
+              <div className="b-cell b-type" data-label="Yapı" title={b.type}>{b.type}</div>
+              <div className="b-cell" data-label="Sınıf">
                 <Sel value={b.buildingClass}
                      onChange={(code) => setB(i, { buildingClass: code, unitCostOverride: null })}
                      options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: x.code }))} />
               </div>
-              <div className="b-cell">
+              <div className="b-cell" data-label="Alan">
                 <Num value={b.area} onChange={(n) => setB(i, { area: n })} suffix="m²" />
               </div>
-              <div className="b-cell">
+              <div className="b-cell" data-label="Yıpranma">
                 <Pct value={b.depreciation} onChange={(n) => setB(i, { depreciation: n, unitCostOverride: null })} />
               </div>
-              <div className="b-cell">
+              <div className="b-cell" data-label="Birim Maliyet">
                 <Num value={row.effectiveUnitCost}
                      onChange={(n) => setB(i, { unitCostOverride: n })} suffix="₺/m²" />
                 {row.overridden && (
@@ -70,7 +70,7 @@ export function Step3Isletme({ input, upd }: P) {
                           onClick={() => setB(i, { unitCostOverride: null })}>↺</button>
                 )}
               </div>
-              <div className="b-cell b-cost">{fmtTL(row.cost)}</div>
+              <div className="b-cell b-cost" data-label="Maliyet">{fmtTL(row.cost)}</div>
               <button type="button" className="b-del" title="Satırı sil"
                       onClick={() => set({ buildings: inp.buildings.filter((_, k) => k !== i) })}>✕</button>
             </div>

@@ -27,6 +27,7 @@ import type {
 import { downloadHotelPdf } from './pdf';
 import { downloadHotelExcel } from './excel';
 import { HOTEL_PROFILES, type HotelProfile } from './profiles';
+import { RTable, RRow, RCell } from '../ui/RTable';
 import { readDataSheet } from '../export/excelImport';
 import { parseKml } from '../geo/kml';
 import { BUILDING_TYPES } from '../usthakki/detailedEngine';
@@ -300,16 +301,16 @@ function StepRooms({ rooms, setRooms, result, setInput }: {
           const calc = result.roomRows[i];
           return (
             <div className="h-row" key={r.id}>
-              <div className="b-cell">
+              <div className="b-cell" data-label="Oda Tipi">
                 <Sel value={ODA_TIPLERI.includes(r.roomType) ? r.roomType : 'Diğer'}
                      onChange={(v) => upd(i, { roomType: v })}
                      options={ODA_TIPLERI.map((t) => ({ value: t, label: t }))} />
               </div>
-              <div className="b-cell"><Num value={r.roomCount} onChange={(n) => upd(i, { roomCount: n })} suffix="oda" /></div>
-              <div className="b-cell"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></div>
-              <div className="b-cell"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></div>
-              <div className="b-cell"><Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" /></div>
-              <div className="b-cell b-cost">{calc ? fmt(calc.annualRevenue) : '—'}</div>
+              <div className="b-cell" data-label="Oda Sayısı"><Num value={r.roomCount} onChange={(n) => upd(i, { roomCount: n })} suffix="oda" /></div>
+              <div className="b-cell" data-label="Günlük Fiyat"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></div>
+              <div className="b-cell" data-label="Doluluk"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></div>
+              <div className="b-cell" data-label="Faaliyet Günü"><Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" /></div>
+              <div className="b-cell b-cost" data-label="Yıllık Gelir">{calc ? fmt(calc.annualRevenue) : '—'}</div>
               <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
             </div>
           );
@@ -356,21 +357,21 @@ function StepAncillary({ ancillary, setAncillary, result }: {
         </div>
         {ancillary.map((a, i) => (
           <div className="h-row h-row-anc" key={a.id}>
-            <div className="b-cell">
+            <div className="b-cell" data-label="Gelir Adı">
               <Sel value={YARDIMCI_GELIR_KATALOGU.includes(a.name) ? a.name : 'Diğer'}
                    onChange={(v) => upd(i, { name: v })}
                    options={YARDIMCI_GELIR_KATALOGU.map((t) => ({ value: t, label: t }))} />
             </div>
-            <div className="b-cell">
+            <div className="b-cell" data-label="Giriş Türü">
               <Seg value={a.mode ?? 'tutar'} onChange={(v) => upd(i, { mode: v })}
                    options={[{ value: 'tutar', label: '₺' }, { value: 'oran', label: '% oda' }]} />
             </div>
-            <div className="b-cell">
+            <div className="b-cell" data-label="Değer">
               {(a.mode ?? 'tutar') === 'oran'
                 ? <Pct value={a.rate ?? 0} onChange={(n) => upd(i, { rate: n })} />
                 : <Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix="₺" />}
             </div>
-            <div className="b-cell b-cost">
+            <div className="b-cell b-cost" data-label="Yıllık Gelir">
               {(() => { const c = result.ancillaryRows?.[i]; return c ? fmt(c.effectiveIncome) : fmt(a.annualIncome); })()}
             </div>
             <button type="button" className="b-del" title="Satırı sil" onClick={() => del(i)}>✕</button>
@@ -599,33 +600,35 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         )}
 
         <div className="card-title" style={{ marginTop: 14, fontSize: 13 }}>Yapılar</div>
-        {(input.costBuildings ?? []).map((b, i) => (
-          <div className="isletme-row" key={b.id}>
-            <div className="grid-2">
-              <Field label="Yapı Türü">
-                <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                     onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
-                     options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
-                {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
-                  <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
-                       onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v || 'Diğer' } : x) }))} />
-                )}
-              </Field>
-              <Field label="Alan m²">
-                <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
-              </Field>
-            </div>
-            <div className="grid-2">
-              <Field label="Birim Maliyet">
-                <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
-              </Field>
-              <Field label="Amortisman % (opsiyonel)">
-                <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
-              </Field>
-            </div>
-            <button type="button" className="link-btn" onClick={() => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).filter((_, j) => j !== i) }))}>Satırı sil</button>
-          </div>
-        ))}
+        {(input.costBuildings ?? []).length > 0 && (
+          <RTable headers={['Yapı Türü', 'Alan m²', 'Birim Maliyet', 'Amortisman %', '']}>
+            {(input.costBuildings ?? []).map((b, i) => (
+              <RRow key={b.id}>
+                <RCell label="Yapı Türü">
+                  <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                       onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                       options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
+                  {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
+                    <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
+                         onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v || 'Diğer' } : x) }))} />
+                  )}
+                </RCell>
+                <RCell label="Alan m²">
+                  <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
+                </RCell>
+                <RCell label="Birim Maliyet">
+                  <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
+                </RCell>
+                <RCell label="Amortisman %">
+                  <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
+                </RCell>
+                <RCell label="">
+                  <button type="button" className="b-del" title="Satırı sil" onClick={() => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).filter((_, j) => j !== i) }))}>✕</button>
+                </RCell>
+              </RRow>
+            ))}
+          </RTable>
+        )}
         <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => ({
           ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
         }))}>➕ Yapı Ekle</button>
