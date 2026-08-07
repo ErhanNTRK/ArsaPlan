@@ -568,7 +568,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
         apt.mode === 'taks-kaks' && apt.derivedFloorsFromHmax != null
           ? `Hmax → zemin dahil ${apt.derivedFloorsFromHmax} kat` : undefined],
       ...(karma ? [['Asma Kat', a.asmaCount > 0
-        ? `${a.asmaCount} adet · zeminin %${(a.asmaRate * 100).toFixed(0)}'ı önerisi · ${a.asmaInEmsal ? 'emsale dahil' : 'emsal dışı'}`
+        ? `${a.asmaCount} adet · ${a.asmaInEmsal ? 'emsale dahil' : 'emsal dışı'}`
         : 'Yok'] as Row] : []),
       ['Çatı Arası Piyesi', a.hasPiyes
         ? (apt.mode === 'taks-kaks'

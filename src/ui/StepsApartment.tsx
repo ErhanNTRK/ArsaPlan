@@ -357,26 +357,27 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
             1. Normal Kat'a girilen değerler diğer normal katlara kopyalanır; her satır tek tek düzenlenebilir.
           </div>
         )}
-        <div className="floor-cards">
+        <table className="floor-table-responsive">
+          <thead>
+            <tr><th>Kat</th><th>Kat Alanı</th><th>Ortak Alan Payı</th><th>Satılabilir Alan</th><th>Ortak Alan</th></tr>
+          </thead>
+          <tbody>
           {c.floors.map((f) => {
             const ortak = f.kind === 'bodrum' && a.basements[f.index - 1]?.use === 'ortak';
             return (
-              <div className="prop-card floor-card" key={`${f.kind}-${f.index}`}>
-                <div className="floor-card__title">{f.label}</div>
-                <div className="prop-card__top">
-                  <label className="pfield">
-                    <span>Kat Alanı</span>
-                    <span className="floor-cell">
-                      <Num value={f.area}
-                           onChange={(n) => setApt(patchFloor(a, f, 'area', n))} suffix="m²" />
-                      {canReset(z.mode, f, f.autoArea) && (
-                        <button type="button" className="cell-reset" title="Otomatik değere dön"
-                                onClick={() => setApt(patchFloor(a, f, 'area', null))}>↺</button>
-                      )}
-                    </span>
-                  </label>
-                  <label className="pfield">
-                    <span>Ortak Alan Payı</span>
+              <tr key={`${f.kind}-${f.index}`}>
+                <td data-label="Kat" className="floor-table-label">{f.label}</td>
+                <td data-label="Kat Alanı">
+                  <span className="floor-cell">
+                    <Num value={f.area}
+                         onChange={(n) => setApt(patchFloor(a, f, 'area', n))} suffix="m²" />
+                    {canReset(z.mode, f, f.autoArea) && (
+                      <button type="button" className="cell-reset" title="Otomatik değere dön"
+                              onClick={() => setApt(patchFloor(a, f, 'area', null))}>↺</button>
+                    )}
+                  </span>
+                </td>
+                <td data-label="Ortak Alan Payı">
                     {ortak ? (
                       <span className="floor-fixed">%100 ortak</span>
                     ) : (
@@ -395,9 +396,8 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                              }} />
                       </span>
                     )}
-                  </label>
-                  <label className="pfield">
-                    <span>Satılabilir Alan</span>
+                </td>
+                <td data-label="Satılabilir Alan">
                     {ortak ? (
                       <span className="floor-fixed">0 m²</span>
                     ) : (
@@ -410,21 +410,22 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                         )}
                       </span>
                     )}
-                  </label>
-                  <div className="pfield pfield--ro">
-                    <span>Ortak Alan</span>
-                    <b>{fmtM2(Math.max(0, f.area - f.saleable))}</b>
-                  </div>
-                </div>
-              </div>
+                </td>
+                <td data-label="Ortak Alan"><b>{fmtM2(Math.max(0, f.area - f.saleable))}</b></td>
+              </tr>
             );
           })}
-          <div className="floor-card floor-total">
-            <span className="floor-label">TOPLAM</span>
-            <span className="floor-cell"><b>{fmtM2(c.totalArea)}</b> kat alanı</span>
-            <span className="floor-cell"><b>{fmtM2(c.saleableTotal)}</b> satılabilir</span>
-          </div>
-        </div>
+          </tbody>
+          <tfoot>
+            <tr className="floor-table-total">
+              <td data-label="Kat"><b>TOPLAM</b></td>
+              <td data-label="Kat Alanı"><b>{fmtM2(c.totalArea)}</b></td>
+              <td></td>
+              <td data-label="Satılabilir Alan"><b>{fmtM2(c.saleableTotal)}</b></td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
         {c.warnings.map((w, i) => (
           <div className="leftover" style={{ marginTop: 8 }} key={i}>{w}</div>
         ))}

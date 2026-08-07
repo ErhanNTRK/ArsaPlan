@@ -1,48 +1,39 @@
-# ArsaPlan v8.1.0 — İsim Değişikliği + Veri Kalıcılığı + Adım Birleştirme
+# ArsaPlan v8.2.0 — Asma Kat %75 + Kat Tablosu Gerçek Hibrit Tablo
 
 Doğrulama: tsc 0 hata, test 194/194, build başarılı.
 
-## Tamamlanan 4 madde
+## 1) Asma Kat — oran gizli, %75 varsayılan
 
-1. **Üst Hakkı isim değişikliği** — "Toplam Değerden Üst Hakkı Hesabı" →
-   **"Toplam Değer Esaslı Üst Hakkı Tespiti"**; "Sadece Arsa Değeri
-   Üzerinden Üst Hakkı Hesabı" → **"Arsa Değeri Esaslı Üst Hakkı
-   Tespiti"**. Uygulama içi, PDF ve Excel'in hepsinde güncellendi.
+Asma Kat alanı artık **zemin katın %75'i** üzerinden hesaplanıyor
+(önceden %40'tı). Kullanıcıya bu oran hiç gösterilmiyor — yalnız
+eski metin duruyor: *"Asma kat alanı sistem tarafından otomatik
+oluşturulur. Gerekirse kat tablosundan değiştirilebilir."* Excel
+raporundaki "zeminin %X'i önerisi" ibaresi de kaldırıldı, tutarlılık
+için (yalnız adet ve emsal durumu gösteriliyor artık).
 
-2. **Veri kalıcılığı — artık her açılışta boş başlıyor.** Arsa ve
-   Otel modülleri artık sayfa her açıldığında **temiz/sıfır** başlıyor.
-   Kayıtlı bir taslak varsa, üstte **"↺ Eski verileri geri getir"**
-   düğmesi çıkıyor — istersen tıklayıp devam edersin, istemezsen hiç
-   dokunmadan yeni bir hesaplamaya başlarsın.
+## 2) Kat Tablosu artık gerçek bir hibrit tablo
 
-3. **TAKS/KAKS tutarsızlık uyarısı — zaten var olduğu doğrulandı.**
-   Bir önceki NaN düzeltmesiyle bu uyarı artık doğru rakamlarla
-   çalışıyor. Elle kilitlenmiş kat alanları TAKS/KAKS değişince
-   otomatik silinmiyor (bilinçli tasarım — "↺" ile istenirse
-   sıfırlanabiliyor), ama tutarsızlık varsa ekranda net bir uyarı
-   çıkıyor.
+Önceki "büyük kartlar" yerine, **tek bir DOM yapısı** (gerçek
+`<table>`) kuruldu — CSS ile:
+- **Masaüstünde**: klasik tablo görünümü, tüm katlar satır satır,
+  sütunlar (Kat Alanı, Ortak Alan Payı, Satılabilir Alan, Ortak Alan)
+  hizalı — bir katı değiştirince diğerlerini karşılaştırmak artık çok
+  daha kolay.
+- **Dar ekranda (≤700px)**: otomatik olarak kart görünümüne dönüyor
+  (her satır kendi kartı, etiketler değerin üstünde) — dokunmatik
+  kullanılabilirlik korunuyor.
 
-4. **Adım birleştirme — hem Otel hem Arsa'da.**
-   - **Otel:** 2 adıma indi (Genel Bilgiler+Gelirler tek adımda,
-     Gider·Projeksiyon·İNA ayrı).
-   - **Arsa** (Konut/Karma/Ticari Apartman/Ticari İşletme — dört
-     varyantın hepsinde): "Değerleme Konusu" ayrı adımı kalktı,
-     taşınmaz bilgileriyle birleşti — 5 adımlık akışlar 4'e, 4 adımlık
-     Ticari İşletme akışı 3'e indi.
+Bu, JavaScript'te ekran genişliği kontrolü gerektirmeden, yalnız CSS
+ile çalışıyor — daha az kod, daha az risk.
 
-## Bu turda YAPILMAYAN — dürüst not
+## Dürüst not — bu turda YAPILMAYAN
 
-**Madde 5 (hibrit masaüstü-tablo/mobil-kart görünümü, 7 modülde ~10
-ekran) bu turda ele alınmadı** — kapsamı en büyük iş olduğu için,
-zaman/token bütçesini yukarıdaki 4 maddeyi sağlam tamamlamaya
-ayırdım. Bu, ayrı bir turda ele alınmayı bekliyor.
-
-## Yapılacaklar listesine eklenen (dokunulmadı, onayın olmadan
-başlamayacağım)
-
-- **"Site" — parsel içinde çok bloklu proje desteği** (Konut Proje
-  Tipi'nde "yakında hizmette" olarak duran seçenek). Büyük bir mimari
-  genişleme, ayrı bir tur/proje olarak ele alınacak.
+Hibrit tablo yaklaşımını yalnız **Kat Tablosu'na** uyguladım (en çok
+konuşulan, en değerli hedef). Aynı deseni **Oda Tipleri (Otel),
+Yapılar listeleri (Otel + Arsa Ticari), Ürün satırları (Tarım,
+Akaryakıt)** gibi diğer tekrarlayan veri girişi ekranlarına henüz
+yaymadım — zaman/token bütçesini Kat Tablosu'nu sağlam ve doğru
+tamamlamaya ayırdım. Bunlar ayrı bir turda bekliyor.
 
 ## Yükleme
 `src`/`public`/`package.json` → GitHub Upload files → üzerine yaz →

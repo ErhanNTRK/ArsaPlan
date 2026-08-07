@@ -44,6 +44,36 @@
    etiketli iki-katlı kartlar (Dora Toplu Excel'deki prop-card deseniyle
    aynı dil). Kat sayısı ne kadar artarsa artsın kutular üst üste binmez. */
 .floor-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; align-items: start; }
+
+/* Kat Tablosu — masaüstünde gerçek tablo, dar ekranda otomatik kart görünümü (tek DOM, yalnız CSS) */
+.floor-table-responsive { width: 100%; border-collapse: collapse; font-size: 13px; }
+.floor-table-responsive th {
+  text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--text-3, #94a1ae); font-weight: 700; padding: 6px 8px; border-bottom: 2px solid var(--line);
+}
+.floor-table-responsive th:not(:first-child), .floor-table-responsive td:not(:first-child) { text-align: right; }
+.floor-table-responsive td { padding: 8px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.floor-table-responsive .floor-table-label { font-weight: 700; white-space: nowrap; }
+.floor-table-responsive tfoot td { border-top: 2px solid var(--line); border-bottom: none; padding-top: 10px; }
+.floor-table-responsive td[data-label] input { width: 100px; text-align: right; }
+@media (max-width: 700px) {
+  .floor-table-responsive thead { display: none; }
+  .floor-table-responsive, .floor-table-responsive tbody, .floor-table-responsive tfoot,
+  .floor-table-responsive tr, .floor-table-responsive td { display: block; width: 100%; }
+  .floor-table-responsive tr {
+    margin-bottom: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px;
+    background: rgba(15,42,71,.02);
+  }
+  .floor-table-responsive td { border: none; padding: 6px 2px; text-align: right !important; display: flex; justify-content: space-between; align-items: center; }
+  .floor-table-responsive td.floor-table-label { font-size: 14px; padding-bottom: 2px; }
+  .floor-table-responsive td[data-label]::before {
+    content: attr(data-label); font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em;
+    color: var(--text-3, #94a1ae); font-weight: 700;
+  }
+  .floor-table-responsive td[data-label]:empty { display: none; }
+  .floor-table-responsive td:empty { display: none; }
+  .floor-table-responsive td[data-label] input { width: 90px; }
+}
 .floor-card.prop-card { padding: 10px 12px; margin: 0; }
 .floor-card__title { font-size: 13px; font-weight: 700; color: var(--text-1, #17202c); margin-bottom: 6px; }
 .floor-card .prop-card__top { gap: 10px 14px; }
