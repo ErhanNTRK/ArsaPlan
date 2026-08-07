@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { analyzeCostApproach, createDefaultCostInput, type CostApproachInput, type AdjustmentType } from './engine';
 import { PROPERTY_CATEGORIES, DIGER_KATEGORI } from './categories';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { BUILDING_TYPES as OTEL_BUILDING_TYPES } from '../usthakki/detailedEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
@@ -31,7 +32,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
 
   const fmt = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ₺';
   const cat = PROPERTY_CATEGORIES.find((c) => c.name === input.category);
-  const buildingSuggestions = cat?.buildingSuggestions ?? [];
+  const buildingSuggestions = input.category === 'Otel' ? OTEL_BUILDING_TYPES.filter((t) => t !== 'Diğer' && t !== 'Tüm Yapılar') : (cat?.buildingSuggestions ?? []);
 
   const patchBuilding = (id: string, p: Partial<CostApproachInput['buildings'][number]>) =>
     setInput((s) => ({ ...s, buildings: s.buildings.map((b) => (b.id === id ? { ...b, ...p } : b)) }));
