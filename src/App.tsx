@@ -6,6 +6,7 @@ import { Step1, Step2, Step3, Step4, Step5, type Upd, type SetTop } from './ui/S
 import { Choice } from './ui/fields';
 import { AgriApp } from './agri/AgriApp';
 import { FuelApp } from './fuel/FuelApp';
+import { CostApproachApp } from './cost/CostApproachApp';
 import { DetailedUstHakkiApp } from './usthakki/DetailedUstHakkiApp';
 import { SimpleUstHakkiApp } from './usthakki/SimpleUstHakkiApp';
 import { Result } from './ui/Result';
@@ -433,7 +434,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
    "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
-type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'usthakki-secim' | 'usthakki-detay' | 'usthakki-toplam' | 'usthakki-arsa';
+type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'maliyet' | 'usthakki-secim' | 'usthakki-detay' | 'usthakki-toplam' | 'usthakki-arsa';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   const [ver, date] = BRAND.version.split(' · ');
   return (
@@ -464,6 +465,9 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
             <Choice on={false} name="Akaryakıt Gelir Hesabı"
                     desc="Litre/ciro bazlı gelir yöntemi + opsiyonel maliyet yaklaşımı · KDV hariç fiyatlarla"
                     onClick={() => onSelect('akaryakit')} />
+            <Choice on={false} name="Maliyet Yaklaşımı"
+                    desc="Herhangi bir taşınmaz türü · Arsa + Yapılar + Şerefiye/Düzeltme/Çevre Düzenlemesi"
+                    onClick={() => onSelect('maliyet')} />
             <Choice on={false} name="Tarımsal Ürün Gelir Hesabı"
                     desc="Ekili / Dikili / Karma ürün deseni · verim kataloğu · amorti yılı yaklaşımı"
                     onClick={() => onSelect('tarimsal')} />
@@ -474,7 +478,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
         </div>
         <div className="landing-footer">
           <span>Sürüm {ver}</span><span>·</span><span>Son Güncelleme {date}</span>
-          <span>·</span><span>5 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
+          <span>·</span><span>8 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
         </div>
       </div>
     </div>
@@ -483,7 +487,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
 
 function modeFromHash(): AppMode {
   const h = window.location.hash.replace('#', '');
-  return (['arsa', 'otel', 'tarimsal', 'akaryakit', 'usthakki-secim', 'usthakki-detay', 'usthakki-toplam', 'usthakki-arsa'] as const).includes(h as never) ? (h as AppMode) : 'landing';
+  return (['arsa', 'otel', 'tarimsal', 'akaryakit', 'maliyet', 'usthakki-secim', 'usthakki-detay', 'usthakki-toplam', 'usthakki-arsa'] as const).includes(h as never) ? (h as AppMode) : 'landing';
 }
 
 export default function App() {
@@ -514,6 +518,7 @@ export default function App() {
   if (mode === 'otel') content = <HotelApp onBack={back} />;
   else if (mode === 'tarimsal') content = <AgriApp onBack={back} />;
   else if (mode === 'akaryakit') content = <FuelApp onBack={back} />;
+  else if (mode === 'maliyet') content = <CostApproachApp onBack={back} />;
   else if (mode === 'usthakki-detay') content = <DetailedUstHakkiApp onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
   else if (mode === 'usthakki-toplam') content = <SimpleUstHakkiApp method="toplam" onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
   else if (mode === 'usthakki-arsa') content = <SimpleUstHakkiApp method="arsa" onBack={() => { window.location.hash = 'usthakki-secim'; }} />;

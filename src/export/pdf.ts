@@ -603,7 +603,6 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits > 0 ? s.contractorUnits.toFixed(1) + ' villa · ' : ''}${m2(s.contractorArea)}`);
     row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValue), { bold: true });
     row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValue), { bold: true });
-    row('İki Yöntem Arasındaki Fark', `${tl(Math.abs(s.difference))} (${pct(Math.abs(s.differenceRate))})`);
     row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare));
     y += 4;
   }

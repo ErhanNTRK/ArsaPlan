@@ -330,8 +330,6 @@ export function Result({ input, result, version }: {
              value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
         <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValue)} />
         <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValue)} />
-        <Row label="İki Yöntem Arasındaki Fark"
-             value={`${fmtTL(Math.abs(s.difference))} (${fmtPct(Math.abs(s.differenceRate))})`} tone="total" />
         <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
         <div style={{ marginTop: 10 }}>
           <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>

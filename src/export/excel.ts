@@ -525,8 +525,6 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Müteahhit Payı', s.contractorShare],
     ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValue)],
     ['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValue)],
-    ['İki Yöntem Arasındaki Fark', Math.round(Math.abs(s.difference))],
-    ['Farkın Oranı', Math.abs(s.differenceRate)],
     ['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare],
     ['Değerlendirme', VERDICT_TEXT[s.verdict]],
   ], TL);

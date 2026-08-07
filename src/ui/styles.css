@@ -429,3 +429,10 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
   .h-row { grid-template-columns: 1.1fr 0.8fr 0.95fr 0.75fr 0.85fr 1fr 24px; gap: 4px; }
   .h-row .b-cell input { font-size: 11.5px; }
 }
+
+.result-hero {
+  background: var(--navy, #0F2A47); color: #fff; border-radius: 12px; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.result-hero span { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #C4D4E5; }
+.result-hero b { font-size: 26px; font-variant-numeric: tabular-nums; }
