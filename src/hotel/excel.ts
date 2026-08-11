@@ -13,6 +13,14 @@ import type { HotelIncomeInput, HotelIncomeResult } from './types';
 const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
 
 export async function downloadHotelExcel(input: HotelIncomeInput, r: HotelIncomeResult) {
+  const wb = await buildHotelExcelWorkbook(input, r);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  triggerDownload(blob, `Otel-Gelir-${(input.general?.facilityName || 'rapor').replace(/\s+/g, '-')}.xlsx`);
+}
+
+/** Tarayıcıdan bağımsız, saf işlev — testlerde ve olası başka çağıranlarda kullanılır. */
+export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelIncomeResult): Promise<ExcelJS.Workbook> {
   const sym = CUR_SYM[input.currency ?? 'TRY'] ?? '₺';
   const cur = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ' + sym;
   const NAVY = 'FF0F2A47';
@@ -84,21 +92,29 @@ export async function downloadHotelExcel(input: HotelIncomeInput, r: HotelIncome
     : r.capitalizedValue;
 
   section('SEÇİLEN NİHAİ YÖNTEM: ' + (methodLabel[method] ?? methodLabel.direkt).toUpperCase());
+  const showTl = (input.currency ?? 'TRY') !== 'TRY' && !!input.fxRate && input.fxRate > 0;
+  const tlEq = (v: number) => Math.round(v * (input.fxRate ?? 0)).toLocaleString('tr-TR') + ' ₺';
   ws.getCell(`B${row}`).value = 'NİHAİ DEĞER';
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
   ws.getCell(`B${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   ws.getCell(`B${row}`).alignment = { vertical: 'middle', indent: 1 };
-  ws.getCell(`C${row}`).value = cur(heroValue);
+  ws.getCell(`C${row}`).value = showTl ? `${cur(heroValue)} (≈ ${tlEq(heroValue)})` : cur(heroValue);
   ws.getCell(`C${row}`).font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
   ws.getCell(`C${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   ws.getCell(`C${row}`).alignment = { horizontal: 'right', vertical: 'middle', indent: 1 };
   ws.getRow(row).height = 20;
-  row += 2;
+  row += 1;
+  if (showTl) {
+    ws.getCell(`B${row}`).value = 'Kullanılan Kur';
+    ws.getCell(`C${row}`).value = `1 ${sym} = ${input.fxRate!.toLocaleString('tr-TR')} ₺`;
+    row += 1;
+  }
+  row += 1;
 
   section('YÖNTEMLERİN KARŞILAŞTIRMASI');
-  kv('Gelir (Direkt Kapitalizasyon)', cur(r.capitalizedValue));
-  if (r.ina) kv('İNA (NBD)', cur(r.ina.npv));
-  if (r.cost) kv('Maliyet Yaklaşımı', cur(r.cost.totalValueRounded));
+  kv('Gelir (Direkt Kapitalizasyon)', showTl ? `${cur(r.capitalizedValue)} (≈ ${tlEq(r.capitalizedValue)})` : cur(r.capitalizedValue));
+  if (r.ina) kv('İNA (NBD)', showTl ? `${cur(r.ina.npv)} (≈ ${tlEq(r.ina.npv)})` : cur(r.ina.npv));
+  if (r.cost) kv('Maliyet Yaklaşımı', showTl ? `${cur(r.cost.totalValueRounded)} (≈ ${tlEq(r.cost.totalValueRounded)})` : cur(r.cost.totalValueRounded));
   row++;
 
   if (r.cost) {
@@ -133,7 +149,5 @@ export async function downloadHotelExcel(input: HotelIncomeInput, r: HotelIncome
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
 
   attachDataSheet(wb, input);
-  const buf = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  triggerDownload(blob, `Otel-Gelir-${(input.general?.facilityName || 'rapor').replace(/\s+/g, '-')}.xlsx`);
+  return wb;
 }

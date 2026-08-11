@@ -67,10 +67,12 @@ describe('inwardOffset', () => {
     expect(inwardOffset(k.points, 100)).toBeNull();     // parseli tüketir
   });
 
-  it('sıfır/negatif çekme null döner (hesaplanmaz)', () => {
+  it('DÜZELTME: sıfır çekme artık geçerli — oturum parselin kendisine eşit döner; negatif çekme hâlâ null', () => {
     const sq = [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }, { x: 0, y: 10 }];
-    expect(inwardOffset(sq, 0)).toBeNull();
-    expect(inwardOffset(sq, -3)).toBeNull();
+    const zero = inwardOffset(sq, 0);
+    expect(zero).not.toBeNull();
+    expect(polygonArea(zero!)).toBeCloseTo(polygonArea(sq), 6); // yola/komşuya sıfır çekme: tam parsel
+    expect(inwardOffset(sq, -3)).toBeNull(); // negatif mesafe hâlâ anlamsız, reddedilir
   });
 });
 

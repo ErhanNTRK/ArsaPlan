@@ -176,10 +176,16 @@ export interface HotelPerformanceIndicators {
 export interface HotelInaResult {
   /** Yıl bazında nakit akımı (bakım düşülmüş, son yıla terminal eklenmiş) */
   cashFlows: number[];
-  /** Terminal değer (son yıl NOI ÷ terminal oran) */
+  /** Terminal değer (bir sonraki projeksiyon-ötesi yılın NOI'si ÷ terminal oran) */
   terminalValue: number;
   /** Net Bugünkü Değer — İNA yöntemi sonucu */
   npv: number;
+  /**
+   * Direkt Kapitalizasyon ile İNA arasındaki fark %5'i aşarsa, farkın
+   * nicel kaynağını açıklayan metin (Appraisal Institute "%5 kuralı").
+   * Fark küçükse null.
+   */
+  gapExplanation: string | null;
 }
 
 export interface HotelProjectionYear {

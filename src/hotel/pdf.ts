@@ -59,17 +59,24 @@ export async function buildHotelPdf(
     : r.capitalizedValue;
 
   const H = 27;
+  const showTl = (input.currency ?? 'TRY') !== 'TRY' && !!input.fxRate && input.fxRate > 0;
+  const tlEq = (v: number) => Math.round(v * (input.fxRate ?? 0)).toLocaleString('tr-TR') + ' ₺';
+  const boxH = showTl ? H + 5 : H;
   doc.setFillColor(...NAVY);
-  doc.roundedRect(M, y, W, H, 2.2, 2.2, 'F');
+  doc.roundedRect(M, y, W, boxH, 2.2, 2.2, 'F');
   doc.setFillColor(...GOLD);
-  doc.rect(M, y + H - 1.2, W, 1.2, 'F');
+  doc.rect(M, y + boxH - 1.2, W, 1.2, 'F');
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
   doc.text(methodLabel[method] ?? methodLabel.direkt, M + 5, y + 7);
   doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
   doc.text(cur(heroValue), M + 5, y + 18.5);
+  if (showTl) {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(168, 189, 212);
+    doc.text(`≈ ${tlEq(heroValue)}  ·  1 ${sym} = ${input.fxRate!.toLocaleString('tr-TR')} ₺`, M + 5, y + 24.5);
+  }
   const cx = M + W * 0.58;
   doc.setDrawColor(58, 88, 124);
-  doc.line(cx - 4, y + 4.5, cx - 4, y + H - 4.5);
+  doc.line(cx - 4, y + 4.5, cx - 4, y + boxH - 4.5);
   const stat = (label: string, val: string, sy: number) => {
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(168, 189, 212);
     doc.text(label, cx, sy);
@@ -86,7 +93,7 @@ export async function buildHotelPdf(
     stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 10.5);
     stat('KAPİTALİZASYON ORANI', pct(input.projection.capRate), y + 21.5);
   }
-  y += H + 6;
+  y += boxH + 6;
 
   /* İkincil yöntemler — işaretli ama seçilen nihai yöntem OLMAYAN diğerleri */
   const secondary: { label: string; value: number }[] = [];
@@ -99,7 +106,8 @@ export async function buildHotelPdf(
     for (const s of secondary) {
       doc.text(s.label, M + 3, y);
       doc.setFont('NTRK', 'bold'); doc.setTextColor(...INK);
-      doc.text(cur(s.value), PW - M - 3, y, { align: 'right' });
+      const valText = showTl ? `${cur(s.value)}  (≈ ${tlEq(s.value)})` : cur(s.value);
+      doc.text(valText, PW - M - 3, y, { align: 'right' });
       doc.setFont('NTRK', 'normal'); doc.setTextColor(...GRAY);
       y += 5.6;
     }

@@ -11,12 +11,24 @@ import { Field, Txt, Num, Pct, Sel, Seg } from '../ui/fields';
 
 const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
 const CurrencyCtx = createContext<string>('TRY');
+/** currency + fxRate birlikte — TL karşılığı gösterimi için. */
+const FxCtx = createContext<{ currency: 'TRY' | 'USD' | 'EUR'; fxRate: number | null | undefined }>({ currency: 'TRY', fxRate: null });
 function useFmt() {
   const cur = useContext(CurrencyCtx);
   return (v: number) => (isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ' + (CUR_SYM[cur] ?? '₺') : '–');
 }
+/** Ana sonuç kartlarında kullanılır: döviz + TL karşılığını birlikte gösterir. */
+function useFmtTl() {
+  const fx = useContext(FxCtx);
+  return (v: number) => (isFinite(v) ? fmtWithTlEquivalent(v, fx.currency, fx.fxRate) : '–');
+}
+/** Yalnız seçili para biriminin simgesini döner — Num alanlarının suffix'inde kullanılır. */
+function useCurSym() {
+  const cur = useContext(CurrencyCtx);
+  return CUR_SYM[cur] ?? '₺';
+}
 import {
-  analyzeHotel, createDefaultHotelInput, newId,
+  analyzeHotel, createDefaultHotelInput, newId, fmtWithTlEquivalent, gordonConsistentDiscountRate,
 } from './engine';
 import {
   ODA_TIPLERI, YARDIMCI_GELIR_KATALOGU, TICARI_KIRA_KATALOGU,
@@ -95,7 +107,8 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
     setInput((p) => ({ ...p, projection: { ...p.projection, ...patch } }));
 
   const blocker = (): string | null => {
-    if (step === 1 && !input.general.facilityName.trim()) return 'Tesis adını giriniz.';
+    // Tesis adı artık zorunlu değil — uzman ismi henüz belirlememiş olabilir,
+    // rapor tesis adı olmadan da ilerletilebilmeli (Erhan Öntürk kararı).
     if (step === 2 && input.projection.capRate <= 0) return 'Kapitalizasyon oranını giriniz (sıfır olamaz).';
     return null;
   };
@@ -103,6 +116,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
 
   return (
     <CurrencyCtx.Provider value={input.currency ?? 'TRY'}>
+    <FxCtx.Provider value={{ currency: input.currency ?? 'TRY', fxRate: input.fxRate }}>
     <div className="app" id="arsaplan-otel-root">
       <div className="topbar">
         <div className="topbar-inner">
@@ -188,6 +202,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
         </div>
       </div>
     </div>
+    </FxCtx.Provider>
     </CurrencyCtx.Provider>
   );
 }
@@ -257,6 +272,7 @@ function StepRooms({ rooms, setRooms, result, setInput }: {
   setInput: (fn: (p: HotelIncomeInput) => HotelIncomeInput) => void;
 }) {
   const fmt = useFmt();
+  const sym = useCurSym();
   const add = () => setRooms([...rooms, {
     id: newId(), roomType: ODA_TIPLERI[0], roomCount: 0, adr: 0, occupancy: 0, operatingDays: 365,
   }]);
@@ -307,7 +323,7 @@ function StepRooms({ rooms, setRooms, result, setInput }: {
                      options={ODA_TIPLERI.map((t) => ({ value: t, label: t }))} />
               </div>
               <div className="b-cell" data-label="Oda Sayısı"><Num value={r.roomCount} onChange={(n) => upd(i, { roomCount: n })} suffix="oda" /></div>
-              <div className="b-cell" data-label="Günlük Fiyat"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix="₺" /></div>
+              <div className="b-cell" data-label="Günlük Fiyat"><Num value={r.adr} onChange={(n) => upd(i, { adr: n })} suffix={sym} /></div>
               <div className="b-cell" data-label="Doluluk"><Pct value={r.occupancy} onChange={(n) => upd(i, { occupancy: n })} /></div>
               <div className="b-cell" data-label="Faaliyet Günü"><Num value={r.operatingDays} onChange={(n) => upd(i, { operatingDays: n })} suffix="gün" /></div>
               <div className="b-cell b-cost" data-label="Yıllık Gelir">{calc ? fmt(calc.annualRevenue) : '—'}</div>
@@ -338,6 +354,7 @@ function StepAncillary({ ancillary, setAncillary, result }: {
   ancillary: AncillaryIncomeRow[]; setAncillary: (a: AncillaryIncomeRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
   const fmt = useFmt();
+  const sym = useCurSym();
   const add = () => setAncillary([...ancillary, { id: newId(), name: YARDIMCI_GELIR_KATALOGU[0], annualIncome: 0, note: '' }]);
   useEffect(() => {
     if (ancillary.length === 0) add();
@@ -369,7 +386,7 @@ function StepAncillary({ ancillary, setAncillary, result }: {
             <div className="b-cell" data-label="Değer">
               {(a.mode ?? 'tutar') === 'oran'
                 ? <Pct value={a.rate ?? 0} onChange={(n) => upd(i, { rate: n })} />
-                : <Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix="₺" />}
+                : <Num value={a.annualIncome} onChange={(n) => upd(i, { annualIncome: n })} suffix={sym} />}
             </div>
             <div className="b-cell b-cost" data-label="Yıllık Gelir">
               {(() => { const c = result.ancillaryRows?.[i]; return c ? fmt(c.effectiveIncome) : fmt(a.annualIncome); })()}
@@ -400,6 +417,7 @@ function StepLeases({ leases, setLeases, result }: {
   leases: CommercialLeaseRow[]; setLeases: (l: CommercialLeaseRow[]) => void; result: ReturnType<typeof analyzeHotel>;
 }) {
   const fmt = useFmt();
+  const sym = useCurSym();
   const add = () => setLeases([...leases, {
     id: newId(), areaName: '', areaType: TICARI_KIRA_KATALOGU[0], tenant: '', inputMode: 'aylik', amount: 0, note: '',
   }]);
@@ -432,7 +450,7 @@ function StepLeases({ leases, setLeases, result }: {
                      options={[{ value: 'aylik', label: 'Aylık' }, { value: 'yillik', label: 'Yıllık' }]} />
               </Field>
               <Field label={l.inputMode === 'aylik' ? 'Aylık Kira' : 'Yıllık Kira'}>
-                <Num value={l.amount} onChange={(n) => upd(i, { amount: n })} suffix="₺" />
+                <Num value={l.amount} onChange={(n) => upd(i, { amount: n })} suffix={sym} />
               </Field>
               {calc && (
                 <div className="note-box" style={{ marginTop: 8 }}>
@@ -485,6 +503,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
   costOpen: boolean; setCostOpen: (v: boolean) => void; inaOpen: boolean; setInaOpen: (v: boolean) => void;
 }) {
   const fmt = useFmt();
+  const sym = useCurSym();
   const isTl = (input.currency ?? 'TRY') === 'TRY';
   return (
     <div className="cols">
@@ -531,6 +550,19 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         <div className="grid-2">
           <Field label="İskonto Oranı" hint="Risksiz + prim (elle de ezilebilir)">
             <Pct value={projection.discountRate ?? 0} onChange={(n) => setProjection({ discountRate: n > 0 ? n : null })} />
+            {(() => {
+              const consistent = gordonConsistentDiscountRate(projection.capRate, projection.incomeGrowthRate);
+              const cur = projection.discountRate ?? 0;
+              const offBy = Math.abs(cur - consistent) * 100;
+              if (cur <= 0 || offBy < 0.5) return null;
+              return (
+                <button type="button" className="link-btn" style={{ marginTop: 4, fontSize: 11.5 }}
+                        title="Kapitalizasyon Oranı + Gelir Artış Oranı — Direkt Kap ile İNA'yı matematiksel olarak tutarlı kılar"
+                        onClick={() => setProjection({ discountRate: consistent })}>
+                  Tutarlı iskonto oranını kullan (%{(consistent * 100).toFixed(1).replace('.', ',')})
+                </button>
+              );
+            })()}
           </Field>
           <Field label="Terminal Kap. Oranı" hint={projection.terminalCapRate == null ? 'Kapitalizasyon Oranı ile aynı' : 'Elle ayrı girildi'}>
             {projection.terminalCapRate == null ? (
@@ -547,6 +579,9 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             </button>
           </Field>
         </div>
+        {result.ina?.gapExplanation && (
+          <div className="hint hint--warn" style={{ marginTop: 8 }}>{result.ina.gapExplanation}</div>
+        )}
         <div className="grid-2">
           <Field label="Yenileme Fonu Oranı" hint="Her yıl için hesaplanır — %3-5 oranında önerilir">
             <Pct value={projection.renewalFundRate ?? 0} onChange={(n) => setProjection({ renewalFundRate: n > 0 ? n : null })} />
@@ -557,7 +592,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             <Num value={projection.maintenanceYear ?? 0} onChange={(n) => setProjection({ maintenanceYear: n > 0 ? Math.round(n) : null })} />
           </Field>
           <Field label="Periyodik Bakım — Tutar" hint="İlk tekrara yansır; sonraki tekrarlar Gider Artış Oranıyla büyür">
-            <Num value={projection.maintenanceAmount ?? 0} onChange={(n) => setProjection({ maintenanceAmount: n > 0 ? n : null })} suffix="₺" />
+            <Num value={projection.maintenanceAmount ?? 0} onChange={(n) => setProjection({ maintenanceAmount: n > 0 ? n : null })} suffix={sym} />
           </Field>
         </div>
         {(projection.maintenanceAmount ?? 0) > 0 && !projection.maintenanceYear && (
@@ -634,7 +669,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         }))}>➕ Yapı Ekle</button>
 
         <Field label="Şerefiye (opsiyonel)">
-          <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix="₺" />
+          <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix={sym} />
         </Field>
 
         {result.cost && (
@@ -680,6 +715,7 @@ function HotelResult({ input, result, setFinal }: {
   setFinal: (p: Partial<HotelIncomeInput>) => void;
 }) {
   const fmt = useFmt();
+  const fmtTl = useFmtTl();
   const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
     : input.finalMethod === 'maliyet' && result.cost ? result.cost.totalValueRounded
     : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
@@ -691,20 +727,23 @@ function HotelResult({ input, result, setFinal }: {
         <div className="dual-values">
           <div className={`dual-box${(input.finalMethod ?? 'direkt') === 'direkt' ? ' dual-box--chosen' : ''}`}>
             <span>DİREKT KAPİTALİZASYON</span>
-            <b>{fmt(result.capitalizedValue)}</b>
+            <b>{fmtTl(result.capitalizedValue)}</b>
             <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</em>
           </div>
           {result.ina && (
             <div className={`dual-box${input.finalMethod === 'ina' ? ' dual-box--chosen' : ''}`}>
               <span>İNA (NBD)</span>
-              <b>{fmt(result.ina.npv)}</b>
+              <b>{fmtTl(result.ina.npv)}</b>
               <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
+              {result.ina.gapExplanation && (
+                <div className="hint hint--warn" style={{ marginTop: 6, fontSize: 11.5 }}>{result.ina.gapExplanation}</div>
+              )}
             </div>
           )}
           {result.cost && (
             <div className={`dual-box${input.finalMethod === 'maliyet' ? ' dual-box--chosen' : ''}`}>
               <span>MALİYET YAKLAŞIMI</span>
-              <b>{fmt(result.cost.totalValueRounded)}</b>
+              <b>{fmtTl(result.cost.totalValueRounded)}</b>
               <em>Arsa + Yapı Değerleri</em>
             </div>
           )}
@@ -723,7 +762,7 @@ function HotelResult({ input, result, setFinal }: {
               <input type="number" value={input.finalManualValue ?? ''}
                      onChange={(e) => setFinal({ finalManualValue: Number(e.target.value) || 0 })} /></label>
           )}
-          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmt(finalValue)}</b></div>
+          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmtTl(finalValue)}</b></div>
         </div>
         <div className="kpi-grid" style={{ marginTop: 12 }}>
           <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmt(result.totalGrossRevenue)}</div></div>

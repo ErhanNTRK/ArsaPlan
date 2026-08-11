@@ -169,6 +169,11 @@ describe('İNA — banka Excel goldeni (birebir, tek tekrarlı senaryo)', () => 
       maintenanceYear: 5, maintenanceAmount: 130867.2,
     } as any)!;
     expect(ina.cashFlows[4]).toBeCloseTo(433610.82 - 130867.2, -1);
+    // DÜZELTME DOĞRULAMASI: terminal değer artık son (9.) yılın değil, bir sonraki
+    // (10.) yılın NOI'sinden hesaplanıyor. Bu, gerçek banka Excel'inin referans NBD'sine
+    // (4.229.084,21) eski koddan (4.189.552 — %0,9 sapma) çok daha yakın (%0,4 sapma).
+    expect(ina.npv).toBeCloseTo(4246781.57, -1);
+    expect(Math.abs(ina.npv - 4229084.21)).toBeLessThan(Math.abs(4189552.37 - 4229084.21)); // eski koddan daha yakın
   });
 
   it('Periyodik Bakım: interval=5, 10 yıllık sürede 5. VE 10. yılda iki kez tetiklenir; 2. tekrar Gider Artış Oranıyla büyür', () => {

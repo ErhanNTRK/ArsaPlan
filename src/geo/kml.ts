@@ -105,6 +105,11 @@ export function inwardOffset(pts: { x: number; y: number }[], d: number | number
   const n = pts.length;
   if (n < 3) return null;
   const dist = (i: number) => (Array.isArray(d) ? d[i] ?? 0 : d);
+  // Tüm çekme mesafeleri TAM SIFIR ise (yola/komşuya sıfır çekmeyle inşa
+  // edilebilen parseller için meşru bir durum) — oturum parselin kendisine
+  // eşittir, içe kaydırmaya gerek yoktur; poligonun bir kopyasını döndürüyoruz.
+  const arr = Array.isArray(d) ? d : [d];
+  if (arr.every((v) => v === 0)) return pts.map((p) => ({ ...p }));
   if (Array.isArray(d) ? d.every((v) => v <= 0) : d <= 0) return null;
   // CCW poligonda iç taraf, kenar yönünün SOLU'dur; sol normal = (-dy, dx)
   const lines: { p: { x: number; y: number }; dir: { x: number; y: number } }[] = [];
@@ -132,11 +137,18 @@ export function inwardOffset(pts: { x: number; y: number }[], d: number | number
   }
   const a0 = polygonArea(pts), a1 = polygonArea(out);
   if (!Number.isFinite(a1) || a1 <= 0 || a1 >= a0) return null;
-  // Kaba kendini-kesme koruması: ofset köşeleri orijinal poligonun çok dışına taşmasın
-  const dmax = Array.isArray(d) ? Math.max(...d) : d;
-  const dmin = Array.isArray(d) ? Math.min(...d.filter((v) => v > 0), dmax) : d;
-  const minD = offsetMinDistanceToPolygon(out, pts);
-  if (minD < Math.min(dmin, dmax) * 0.5) return null;
+  // Kaba kendini-kesme koruması: ofset köşeleri orijinal poligonun çok dışına taşmasın.
+  // Bu kontrol yalnız TÜM kenarlar pozitif mesafeyle çekildiğinde anlamlıdır — bir
+  // kenarda meşru şekilde çekme=0 varsa (o kenar boyunca sınıra tam temas), ofset
+  // poligonu o noktada orijinal sınıra değer; bu beklenen bir durumdur, bozuk
+  // geometri değildir, o yüzden sıfır-mesafeli kenar varken bu kontrolü atlıyoruz.
+  const hasZeroEdge = Array.isArray(d) && d.some((v) => v === 0);
+  if (!hasZeroEdge) {
+    const dmax = Array.isArray(d) ? Math.max(...d) : d;
+    const dmin = Array.isArray(d) ? Math.min(...d.filter((v) => v > 0), dmax) : d;
+    const minD = offsetMinDistanceToPolygon(out, pts);
+    if (minD < Math.min(dmin, dmax) * 0.5) return null;
+  }
   return out;
 }
 
