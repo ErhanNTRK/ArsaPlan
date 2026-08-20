@@ -230,37 +230,34 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
   const cur = input.currency ?? 'TRY';
   return (
     <div className="cols step-cols">
-      <div className="card">
-        <div className="card-title">Para Birimi</div>
-        <div className="hint" style={{ marginBottom: 8 }}>Seçilen para birimi tüm hesap, ekran ve rapor çıktılarına uygulanır.</div>
-        <div className="grid-2">
-          <Field label="Para Birimi">
-            <Sel value={cur} onChange={(v) => setInput((p) => ({ ...p, currency: v as HotelIncomeInput['currency'], fxRate: v === 'TRY' ? null : (p.fxRate ?? 1) }))}
-                 options={[{ value: 'TRY', label: 'TL (₺)' }, { value: 'USD', label: 'USD ($)' }, { value: 'EUR', label: 'EUR (€)' }]} />
-          </Field>
+      <div className="card card-wide">
+        <div className="card-title">Taşınmaz ve Tesis Bilgileri</div>
+        <div className="hrow-labeled">
+          <label className="pfield"><span>İl</span><input value={general.il} onChange={(e) => setGeneral({ il: e.target.value })} /></label>
+          <label className="pfield"><span>İlçe</span><input value={general.ilce} onChange={(e) => setGeneral({ ilce: e.target.value })} /></label>
+          <label className="pfield"><span>Mahalle</span><input value={general.mahalle} onChange={(e) => setGeneral({ mahalle: e.target.value })} /></label>
+          <label className="pfield"><span>Ada</span><input value={general.ada} onChange={(e) => setGeneral({ ada: e.target.value })} /></label>
+          <label className="pfield"><span>Parsel</span><input value={general.parsel} onChange={(e) => setGeneral({ parsel: e.target.value })} /></label>
+          <label className="pfield" style={{ flex: 1.4, minWidth: 180 }}>
+            <span>İşletme İsmi</span>
+            <input value={general.facilityName} onChange={(e) => setGeneral({ facilityName: e.target.value })} placeholder="Örn. Örnek Resort & Spa" />
+          </label>
+          <label className="pfield pfield--s">
+            <span>Para Birimi</span>
+            <select value={cur} onChange={(e) => setInput((p) => ({ ...p, currency: e.target.value as HotelIncomeInput['currency'], fxRate: e.target.value === 'TRY' ? null : (p.fxRate ?? 1) }))}>
+              <option value="TRY">TL (₺)</option>
+              <option value="USD">USD ($)</option>
+              <option value="EUR">EUR (€)</option>
+            </select>
+          </label>
           {cur !== 'TRY' && (
-            <Field label={`Kur (1 ${cur} = ? ₺)`}>
+            <label className="pfield pfield--s">
+              <span>Kur (1 {cur} = ? ₺)</span>
               <Num value={input.fxRate ?? 1} onChange={(n) => setInput((p) => ({ ...p, fxRate: n }))} />
-            </Field>
+            </label>
           )}
         </div>
-      </div>
-      <div className="card">
-        <div className="card-title">Tesis Bilgileri</div>
-        <Field label="Tesis Adı"><Txt value={general.facilityName} onChange={(v) => setGeneral({ facilityName: v })} placeholder="Örn. Örnek Resort & Spa" /></Field>
         <Field label="Adres"><Txt value={general.address} onChange={(v) => setGeneral({ address: v })} placeholder="Açık adres" /></Field>
-      </div>
-      <div className="card">
-        <div className="card-title">Taşınmaz Kimliği</div>
-        <div className="grid-2">
-          <Field label="İl"><Txt value={general.il} onChange={(v) => setGeneral({ il: v })} /></Field>
-          <Field label="İlçe"><Txt value={general.ilce} onChange={(v) => setGeneral({ ilce: v })} /></Field>
-        </div>
-        <Field label="Mahalle"><Txt value={general.mahalle} onChange={(v) => setGeneral({ mahalle: v })} /></Field>
-        <div className="grid-2">
-          <Field label="Ada"><Txt value={general.ada} onChange={(v) => setGeneral({ ada: v })} /></Field>
-          <Field label="Parsel"><Txt value={general.parsel} onChange={(v) => setGeneral({ parsel: v })} /></Field>
-        </div>
       </div>
     </div>
   );
@@ -292,20 +289,22 @@ function StepRooms({ rooms, setRooms, result, setInput }: {
     <div className="cols">
       {rooms.length === 0 && (
         <div className="card card-wide">
-          <div className="card-title">Hazır Profil ile Başla (opsiyonel)</div>
-          <div className="hint" style={{ marginBottom: 10 }}>
-            Bunlar <b>ÖRNEK/başlangıç verileridir</b>, gerçek piyasa verisi değildir — yalnızca hızlı bir
-            başlangıç noktası sunar. Seçtikten sonra tüm alanları kendi verilerinizle değiştirin.
-          </div>
-          <div className="choice-grid">
-            {HOTEL_PROFILES.map((p) => (
-              <button key={p.name} type="button" className="btn-ghost" style={{ textAlign: 'left', height: 'auto', padding: '10px 12px' }}
-                      onClick={() => applyProfile(p)}>
-                <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>{p.desc}</div>
-              </button>
-            ))}
-          </div>
+          <details>
+            <summary className="card-title" style={{ cursor: 'pointer' }}>Hazır Profil ile Başla (opsiyonel)</summary>
+            <div className="hint" style={{ marginBottom: 10, marginTop: 8 }}>
+              Bunlar <b>ÖRNEK/başlangıç verileridir</b>, gerçek piyasa verisi değildir — yalnızca hızlı bir
+              başlangıç noktası sunar. Seçtikten sonra tüm alanları kendi verilerinizle değiştirin.
+            </div>
+            <div className="choice-grid">
+              {HOTEL_PROFILES.map((p) => (
+                <button key={p.name} type="button" className="btn-ghost" style={{ textAlign: 'left', height: 'auto', padding: '10px 12px' }}
+                        onClick={() => applyProfile(p)}>
+                  <div style={{ fontWeight: 700, fontSize: 13 }}>{p.name}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-3)', marginTop: 2 }}>{p.desc}</div>
+                </button>
+              ))}
+            </div>
+          </details>
         </div>
       )}
       <div className="card card-wide">

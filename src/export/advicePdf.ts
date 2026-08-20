@@ -43,7 +43,7 @@ export async function downloadAdvicePdf(input: ProjectInput, r: AnalysisResult, 
   doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(...INK);
   doc.text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`, M + 4, y + 5.6);
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
-  doc.text(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Arsa Değeri (Gelir Projeksiyonu): ${tl(r.financial.residualLandValue)}`, M + 4, y + 10.6);
+  doc.text(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Arsa Değeri (Gelir Projeksiyonu): ${tl(r.financial.residualLandValueRounded)}`, M + 4, y + 10.6);
   doc.setFontSize(8.2);
   doc.text(`Tarih: ${tarih}`, PW - M - 4, y + 5.6, { align: 'right' });
   y += 20;

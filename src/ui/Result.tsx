@@ -183,12 +183,21 @@ export function Result({ input, result, version }: {
       <div className="kpi-grid">
         <div className="kpi hero">
           <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
-          <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValue)}</div>
-          <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b> (tapu alanı üzerinden)</div>
+          <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValueRounded)}</div>
+          {p.area === p.netArea ? (
+            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b></div>
+          ) : (
+            <>
+              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2(p.area)}</b> → <b>{fmtTLm2(f.landUnitValue)}</b></div>
+              <div className="kpi-sub" style={{ marginTop: 2 }}>
+                Net Alan: <b>{fmtM2(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}</b>
+              </div>
+            </>
+          )}
           {(input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null && (
             <div className="kpi-sub" style={{ marginTop: 4 }}>
               İndirgemeli Arsa Değeri ({input.residual.projectMonths} ay · %{((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())}):{' '}
-              <b>{fmtTL(f.discountedLandValue)}</b>
+              <b>{fmtTL(f.discountedLandValueRounded)}</b>
             </div>
           )}
           {fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l) => (
@@ -316,7 +325,7 @@ export function Result({ input, result, version }: {
         {f.gardenRevenue > 0 && <Row label="Bahçe Satış Hasılatı" value={fmtTL(f.gardenRevenue)} />}
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
         <Row label={`Müteahhit Kârı (${fmtPct(input.residual.profitRate, 0)})`} value={fmtTL(f.developerProfit)} tone="neg" />
-        <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(f.residualLandValue)} tone="total" />
+        <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(f.residualLandValueRounded)} tone="total" />
         <Row label="Arsa m² Birim Değeri" value={fmtTLm2(f.landUnitValue)} />
         <Row label="Arsa Değeri / Hasılat" value={fmtPct(f.landToRevenue)} />
       </div>
@@ -328,8 +337,8 @@ export function Result({ input, result, version }: {
              value={`${s.ownerUnits > 0 ? fmtNum(s.ownerUnits, 1) + ' villa · ' : ''}${fmtM2(s.ownerArea)}`} />
         <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`}
              value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
-        <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValue)} />
-        <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValue)} />
+        <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValueRounded)} />
+        <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValueRounded)} />
         <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
         <div style={{ marginTop: 10 }}>
           <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>

@@ -154,7 +154,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   hero.alignment = { vertical: 'middle', indent: 1, wrapText: true };
   ws1.mergeCells(`C${row}:D${row + 1}`);
   const hv = ws1.getCell(`C${row}`);
-  hv.value = Math.round(f.residualLandValue);
+  hv.value = Math.round(f.residualLandValueRounded);
   hv.numFmt = TL;
   hv.font = { name: 'Arial', size: 19, bold: true, color: { argb: 'FFFFFFFF' } };
   hv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
@@ -448,11 +448,15 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue), TL, false],
       ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue), TL, true],
       ['Müteahhit Kazancı', Math.round(f.developerProfit), TL, false],
-      ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue), TL, true],
+      ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded), TL, true],
       ['Arsa m² Birim Değeri', Math.round(f.landUnitValue), TLM2, false],
+      ...(p.area !== p.netArea ? [
+        ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round(f.landUnitValue).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
+        ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? f.residualLandValue / p.netArea : 0).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
+      ] : []),
       ['Arsa Değeri / Hasılat', f.landToRevenue, PCT, false],
       ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2), TLM2, false],
-      ...fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l): [string, number | string, string, boolean] => [
+      ...fxLines(input.fx, f.residualLandValueRounded, f.landUnitValue).map((l): [string, number | string, string, boolean] => [
         `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, '', true,
       ]),
@@ -491,11 +495,15 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue)],
     ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue)],
     ['Müteahhit Kazancı', Math.round(f.developerProfit)],
-    ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValue)],
+    ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded)],
     ['Arsa m² Birim Değeri', Math.round(f.landUnitValue)],
+    ...(p.area !== p.netArea ? [
+      ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round(f.landUnitValue).toLocaleString(LOC())} TL/m²`] as Row,
+      ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? f.residualLandValue / p.netArea : 0).toLocaleString(LOC())} TL/m²`] as Row,
+    ] : []),
     ['Arsa Değeri / Hasılat', f.landToRevenue],
     ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2)],
-    ...fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l): Row => [
+    ...fxLines(input.fx, f.residualLandValueRounded, f.landUnitValue).map((l): Row => [
       `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
       `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`,
     ]),
@@ -523,8 +531,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row = rows(ws1, row, [
     ['Arsa Sahibi Payı', s.ownerShare],
     ['Müteahhit Payı', s.contractorShare],
-    ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValue)],
-    ['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValue)],
+    ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValueRounded)],
+    ['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValueRounded)],
     ['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare],
     ['Değerlendirme', VERDICT_TEXT[s.verdict]],
   ], TL);

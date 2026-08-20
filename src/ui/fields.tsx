@@ -1,6 +1,52 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { LOC } from '../i18n';
 
+/**
+ * Türkçe (1.234,56) ve uluslararası (1,234.56 / 1234.56) sayı yazımlarını
+ * güvenilir şekilde ayrıştırır. Eski kod yalnızca `raw.replace(',', '.')`
+ * yapıyordu — "1.234,56" gibi hem binlik nokta hem ondalık virgül içeren bir
+ * girişte bu, "1.234.56" oluşturup parseFloat'ın yalnızca "1.234" kısmını
+ * (yani 1,234'ü) okumasına, değerin ~1000 kat küçük hesaba girmesine yol
+ * açıyordu. Bu fonksiyon, virgül ve nokta ikisi de varsa SONUNCUSUNU ondalık
+ * ayracı kabul eder, diğerini binlik ayracı olarak siler.
+ */
+export function parseLocaleNumber(input: string): number {
+  let s = (input ?? '').trim();
+  if (!s) return 0;
+  const negative = s.startsWith('-');
+  if (negative) s = s.slice(1);
+  const lastComma = s.lastIndexOf(',');
+  const lastDot = s.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      // "1.234,56" — nokta binlik, virgül ondalık (TR)
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      // "1,234.56" — virgül binlik, nokta ondalık (US/uluslararası)
+      s = s.replace(/,/g, '');
+    }
+  } else if (lastComma !== -1) {
+    // Yalnız virgül var — TR alışkanlığı: ondalık ayracı kabul ediyoruz.
+    // Birden fazla virgül varsa (örn. "1,234,56") sonuncusu ondalık sayılır.
+    const parts = s.split(',');
+    const decimalPart = parts.pop();
+    s = parts.join('') + '.' + decimalPart;
+  } else if (lastDot !== -1) {
+    // Yalnız nokta var — belirsiz bir durum: "21.050" hem "21,05" (basit
+    // ondalık) hem "21.050" (TR binlik, yani 21050) olabilir. Klasik TR
+    // binlik gruplama deseniyse (her nokta sonrası TAM 3 hane, örn.
+    // "21.050", "1.234.567") noktaları binlik ayracı sayıp siliyoruz;
+    // aksi halde ("21.05", "0.5", "1234.56") normal ondalık nokta kalır.
+    if (/^\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    }
+  }
+  // Yalnız nokta varsa (ya da hiçbiri yoksa) zaten geçerli ondalık biçim — dokunmuyoruz.
+  const n = parseFloat(s);
+  if (!isFinite(n)) return 0;
+  return negative ? -n : n;
+}
+
 export const fmtTL = (v: number) =>
   isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' ₺' : '–';
 export const fmtTLm2 = (v: number) =>
@@ -52,7 +98,7 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
         onChange={(e) => setRaw(e.target.value.replace(/[^\d.,-]/g, ''))}
         onBlur={() => {
           setFocused(false);
-          const n = parseFloat(raw.replace(',', '.')) || 0;
+          const n = parseLocaleNumber(raw);
           onChange(n);
         }}
       />

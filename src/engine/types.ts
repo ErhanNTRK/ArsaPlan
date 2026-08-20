@@ -419,6 +419,10 @@ export interface FinancialResult {
   /** İndirgemeli arsa değeri: hasılat proje sonundan, maliyet orta noktadan bugüne çekilir.
    *  projectMonths 0 iken residualLandValue ile birebir aynıdır. */
   discountedLandValue: number;
+  /** Final rapor değeri — 5.000 ve katlarına yuvarlanmış (Erhan Öntürk kararı). */
+  residualLandValueRounded: number;
+  /** discountedLandValue'nun 5.000'e yuvarlanmış hâli. */
+  discountedLandValueRounded: number;
   landUnitValue: number;
   landToRevenue: number;
   roi: number;
@@ -436,6 +440,8 @@ export interface ShareResult {
   contractorArea: number;
   /** Kat karşılığı yöntemine göre arsa değeri (arsa sahibi payının karşılığı) */
   shareLandValue: number;
+  /** Final rapor değeri — 5.000 ve katlarına yuvarlanmış. */
+  shareLandValueRounded: number;
   /** Müteahhide kalan hasılat */
   contractorValue: number;
   contractorNet: number;

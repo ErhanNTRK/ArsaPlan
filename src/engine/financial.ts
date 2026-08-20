@@ -9,6 +9,8 @@ import type {
 } from './types';
 
 const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
+/** Final arsa değerleri 5.000 ve katlarına yuvarlanarak raporlanır (diğer modüllerle aynı yerleşik desen). */
+const R5000 = (v: number) => Math.round(v / 5000) * 5000;
 
 export function computeFinancial(
   parcel: Parcel, capacity: CapacityResult, cost: CostInput,
@@ -52,6 +54,8 @@ export function computeFinancial(
   return {
     effectiveUnitCost, constructionCost, landscapeCost, extrasCost, financeCost, totalCost,
     buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue, discountedLandValue,
+    residualLandValueRounded: R5000(residualLandValue),
+    discountedLandValueRounded: R5000(discountedLandValue),
     landUnitValue: safeDiv(residualLandValue, parcel.area),
     landToRevenue: safeDiv(residualLandValue, revenue),
     roi: safeDiv(developerProfit, totalCost + residualLandValue),
@@ -69,6 +73,7 @@ export function computeShare(
   const balancedShare = safeDiv(financial.residualLandValue, financial.revenue);
   /** Kat karşılığı yöntemine göre arsa değeri = arsa sahibi payının hasılat karşılığı */
   const shareLandValue = financial.revenue * ownerShare;
+  const shareLandValueRounded = R5000(shareLandValue);
   const difference = shareLandValue - financial.residualLandValue;
   const differenceRate = safeDiv(difference, financial.residualLandValue);
 
@@ -83,7 +88,7 @@ export function computeShare(
     contractorUnits: capacity.unitCount * contractorShare,
     ownerArea: capacity.saleableArea * ownerShare,
     contractorArea: capacity.saleableArea * contractorShare,
-    shareLandValue,
+    shareLandValue, shareLandValueRounded,
     contractorValue: financial.revenue * contractorShare,
     contractorNet: financial.revenue * contractorShare - financial.totalCost,
     balancedShare, difference, differenceRate, verdict,

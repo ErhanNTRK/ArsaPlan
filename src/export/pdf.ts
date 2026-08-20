@@ -125,7 +125,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(168, 189, 212);
     doc.text(t('ARSA DEĞERİ (GELİR PROJEKSİYONU)'), M + 5, y + 7);
     doc.setFont('NTRK', 'bold'); doc.setFontSize(21); doc.setTextColor(255, 255, 255);
-    doc.text(tl(f.residualLandValue), M + 5, y + 18.5);
+    doc.text(tl(f.residualLandValueRounded), M + 5, y + 18.5);
     const cx = M + W * 0.56;
     doc.setDrawColor(58, 88, 124);
     doc.line(cx - 4, y + 4.5, cx - 4, y + H - 4.5);
@@ -141,6 +141,14 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     else stat(c.unitCount > 0 ? 'Villa Adedi' : 'Bahçe / Açık Alan',
               c.unitCount > 0 ? `${c.unitCount} adet` : m2(c.gardenArea), y + 22);
     y += H + 7;
+    if (p.area !== p.netArea) {
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(7.8); doc.setTextColor(...GRAY);
+      doc.text(
+        t(`Not: Tapu Alanı ${m2(p.area)} → ${tlm2(f.landUnitValue)}  ·  Net Alan (terk sonrası) ${m2(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}`),
+        M + 2, y,
+      );
+      y += 6;
+    }
   }
 
   /* ── Bölüm başlığı ── */
@@ -584,14 +592,14 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
   row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
-  row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValue), { band: true });
+  row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValueRounded), { band: true });
   if ((input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null) {
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
         tl(f.discountedLandValue), { bold: true });
   }
   row('Arsa m² Birim Değeri', tlm2(f.landUnitValue), { bold: true });
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
-  for (const l of fxLines(input.fx, f.residualLandValue, f.landUnitValue)) {
+  for (const l of fxLines(input.fx, f.residualLandValueRounded, f.landUnitValue)) {
     row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
   }
@@ -601,8 +609,8 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     section('ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
     row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits > 0 ? s.ownerUnits.toFixed(1) + ' villa · ' : ''}${m2(s.ownerArea)}`);
     row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits > 0 ? s.contractorUnits.toFixed(1) + ' villa · ' : ''}${m2(s.contractorArea)}`);
-    row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValue), { bold: true });
-    row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValue), { bold: true });
+    row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValueRounded), { bold: true });
+    row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValueRounded), { bold: true });
     row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare));
     y += 4;
   }

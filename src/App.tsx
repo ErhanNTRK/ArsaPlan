@@ -17,7 +17,7 @@ import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } 
 import HotelApp from './hotel/HotelApp';
 
 const VERSION = BRAND.version;
-const DRAFT_KEY = 'arsaplan-taslak-v7';
+const DRAFT_KEY = 'arsaplan-taslak-v9';
 
 const DEFAULT_INPUT: ProjectInput = {
   assetType: 'konut',

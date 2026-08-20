@@ -259,7 +259,7 @@ export function createDefaultHotelInput(): HotelIncomeInput {
     rooms: [],
     ancillary: [],
     leases: [],
-    opex: { expenseRate: 0.35 },
+    opex: { expenseRate: 0.60 },
     projection: {
       startYear: now, years: 10, incomeGrowthRate: 0.15, expenseGrowthRate: 0.15,
       capRate: 0.10, terminalCapRate: null, discountRate: null,

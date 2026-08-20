@@ -127,6 +127,8 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
     developerProfit: 0,
     residualLandValue: isletme.landValue,
     discountedLandValue: isletme.landValue,
+    residualLandValueRounded: Math.round(isletme.landValue / 5000) * 5000,
+    discountedLandValueRounded: Math.round(isletme.landValue / 5000) * 5000,
     landUnitValue: isletme.landUnitValue,
     landToRevenue: isletme.salesTotal > 0 ? isletme.landValue / isletme.salesTotal : 0,
     roi: 0,
@@ -137,7 +139,7 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
   };
   const share: ShareResult = {
     ownerShare: 0, contractorShare: 0, ownerUnits: 0, contractorUnits: 0,
-    ownerArea: 0, contractorArea: 0, shareLandValue: 0, contractorValue: 0,
+    ownerArea: 0, contractorArea: 0, shareLandValue: 0, shareLandValueRounded: 0, contractorValue: 0,
     contractorNet: 0, balancedShare: 0, difference: 0, differenceRate: 0, verdict: 'yakin',
   };
   return { capacity, financial, share, advice: [], isletme };
