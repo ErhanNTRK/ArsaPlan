@@ -1,149 +1,113 @@
-# ArsaPlan v9.3.0 — Otel Gelir Hesabı ve Arsa Gelir Projeksiyonu Düzeltmeleri
+# ArsaPlan v9.3.0 — Otel Adım 1 Yeniden Tasarımı + Arsa Gelir Projeksiyonu Düzeltmeleri
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **249/249 test yeşil** ·
-`npm run build` başarılı. Beş küçük düzeltme talebi olarak başladı, ikisi
-(çekme mesafesi 0 sorunu, Direkt Kap/İNA tutarsızlığı) gerçek kod hatası
-çıktı ve kök nedenden düzeltildi — kozmetik yama değil.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **266/266 test yeşil** ·
+`npm run build` başarılı. Bu tur, önceki "5 düzeltme notu" turunun devamı —
+o turda Otel modülünde bulunan Direkt Kap/İNA ve döviz sorunları
+düzeltilmişti; bu turda hem Otel'in Adım 1 ekranı yeniden tasarlandı hem de
+Arsa Gelir Projeksiyonu'nda konuşarak netleştirdiğimiz düzeltmeler
+tamamlandı.
 
-## 1. Otel Gelir Hesabı — "Tesis Adı" zorunluluğu kaldırıldı
+## 1. Otel Gelir Hesabı — Adım 1 yeniden tasarlandı (yatay, kompakt)
 
-Daha önce 1. adımda tesis adı girilmeden ilerlemek mümkün değildi. Artık
-uzman ismi henüz belirlememiş olsa bile rapor ilerletilebiliyor.
+Eskiden 3 ayrı büyük kutu (Para Birimi / Tesis Bilgileri / Taşınmaz Kimliği)
+dikey istiflenmişti, sayfa gereksiz uzundu. Artık:
 
-## 2. Arsa Gelir Projeksiyonu — çekme mesafelerine 0 girilebiliyor (gerçek hata düzeltmesi)
+- **Tek yatay şerit:** İl · İlçe · Mahalle · Ada · Parsel · İşletme İsmi ·
+  Para Birimi (döviz seçilirse Kur alanı da aynı şeride eklenir) — hepsi tek
+  satırda, kutucuklar küçültülmedi (mevcut `.pfield` deseni, min 120px
+  garantili).
+- **"Hazır Profil ile Başla"** artık `<details>` ile varsayılan **kapalı**
+  geliyor, başlığa tıklanınca açılıyor — tamamen kaldırılmadı, yalnız
+  katlandı.
+- **Oda Tipleri / Yardımcı Gelir / Ticari Kira** satırlarında dikey boşluk
+  azaltıldı (satır aralığı ve iç boşluk küçültüldü, okunabilirlik korunarak).
+- Varsayılan İşletme Gider Oranı **%35 → %60**.
 
-**Kök neden bulundu:** `src/geo/kml.ts` içindeki `inwardOffset` fonksiyonu,
-kendine-kesişme koruması için ofset poligonuyla orijinal poligon arasındaki
-en yakın mesafeyi ölçüp bekleneden "çok küçükse" reddediyordu. Ama gerçekten
-**0 girilen bir çekme mesafesi** (yola/komşuya sıfır çekmeyle inşa
-edilebilen parseller için meşru bir durum), tanım gereği orijinal sınıra tam
-temas eder — bu bozukluk değil, doğru sonuçtur. Kod bu ayrımı yapamıyor,
-meşru bir sıfırı hatayla karıştırıp `"Çekme mesafeleri bu parsel şekline
-uygulanamadı"` diye reddediyordu.
+## 2. Arsa Gelir Projeksiyonu — final değerler 5.000'e yuvarlanıyor
 
-**Düzeltme:** Sıfır-mesafeli bir kenar varken kendine-kesişme kontrolü
-atlanıyor (o kenarın sınıra değmesi zaten beklenen davranış). Ayrıca tüm
-kenarlar tam sıfırsa (yola/komşuya tamamen sıfır çekmeli bir parsel),
-oturum artık parselin kendisine eşit kabul ediliyor, `null` dönmüyor.
+`residualLandValueRounded`, `discountedLandValueRounded`,
+`shareLandValueRounded` alanları motora eklendi (diğer modüllerdeki
+`R5000` deseniyle birebir tutarlı). Ekran, PDF ve Excel'deki **ana/final**
+arsa değeri satırları artık bu yuvarlanmış değerleri gösteriyor — ama birim
+m² değeri ve fark oranı gibi ara hesaplar hâlâ **ham** değerden türetiliyor,
+oranlar bozulmuyor. Gerçekçi bir senaryoyla (Pendik/Kurtköy, bu sohbette
+daha önce Python ile elle doğruladığımız örnek — sonuç aynı büyüklük
+aralığında çıktı) çapraz doğrulandı.
 
-Gerçek geometriyle (40×30 dikdörtgen parsel) test edildi: karışık (ön=0,
-diğerleri>0), tam sıfır (hepsi=0), ve normal (sıfırsız) senaryoların
-üçü de doğrulandı; negatif/geçersiz mesafe hâlâ reddediliyor (geriye dönük
-uyumlu). `src/geo/kml.test.zero-setback.test.ts` — 6 yeni test.
+## 3. Arsa Gelir Projeksiyonu — Tapu Alanı / Net Alan ayrı gösterimi
 
-## 3. Otel Gelir Hesabı — para birimi simgesi artık tutarlı
+Tapu alanı (`parcel.area`) ile terk sonrası net alan (`parcel.netArea`)
+**farklıysa**, ekran/PDF/Excel'de artık ikisi ayrı ayrı, kendi birim m²
+değerleriyle gösteriliyor:
 
-Yalnız "Oda Tipleri" bölümünde değil, taradığımızda aynı hatanın **beş
-yerde daha** olduğu görüldü: Yardımcı Gelir, Ticari Kira, Bakım Tutarı,
-Şerefiye alanları da Dolar/Euro seçilse bile hep "₺" gösteriyordu. Hepsi
-düzeltildi — artık seçilen para birimine göre $/€/₺ doğru gösteriliyor.
+```
+Tapu Alanı: 1.000 m² → 25.000 TL/m²
+Net Alan: 850 m² → 29.412 TL/m²
+```
 
-**Not:** "Maliyet Yaklaşımı" (çapraz kontrol) bölümündeki arsa/bina m²
-birim değeri alanları **bilinçli olarak TL'de bırakıldı** — Türk ekspertiz
-pratiğinde inşaat/arsa maliyetleri, otel geliri döviz bazlı olsa bile
-genelde TL cinsinden verilir. İsterseniz bunu da döviz bazlı yapabiliriz,
-şimdilik dokunulmadı.
+İkisi **eşitse** eskisi gibi tek satır kalıyor, gereksiz tekrar olmuyor.
+Gerçek bir Excel üretip içeriği okuyarak (hem farklı hem eşit alan
+senaryosunda) doğrulandı.
 
-## 4. Otel Gelir Hesabı — PDF/Excel'de TL karşılığı eksikliği (gerçek veri kaybı düzeltmesi)
+## 4. Türkçe sayı girişi düzeltildi (gerçek, ciddi hata)
 
-**Kök neden:** Döviz kuru (`fxRate`) alanı veri modelinde ve arayüzde zaten
-vardı — kullanıcı kuru giriyordu, uygulama saklıyordu, ama `pdf.ts` ve
-`excel.ts` dosyalarının **hiçbirinde bir kez bile kullanılmıyordu.**
-Girilen kur sessizce kayboluyordu.
+Eski kod yalnızca `raw.replace(',', '.')` yapıyordu. "1.234,56" gibi hem
+binlik nokta hem ondalık virgül içeren bir girişte bu, "1.234.56" üretip
+`parseFloat`'ın yalnızca "1.234" (yani 1,234) kısmını okumasına yol
+açıyordu — **~1000 kat küçük bir değer**, fark edilmeden rapora gidebilirdi.
 
-**Düzeltme:** Yeni `fmtWithTlEquivalent()` yardımcı fonksiyonu eklendi.
-Artık TL dışı bir para birimi seçiliyse:
-- Ekrandaki NİHAİ DEĞER ve üç yöntem kartı (Direkt Kap, İNA, Maliyet)
-  TL karşılığını parantez içinde gösteriyor.
-- PDF'teki ana sonuç kutusu, altında "≈ X ₺ · 1 $ = Y ₺" satırıyla
-  genişliyor; ikincil yöntemler listesi de TL karşılığını içeriyor.
-- Excel'de "NİHAİ DEĞER" satırına TL karşılığı ekleniyor, altına ayrı bir
-  "Kullanılan Kur" satırı düşüyor; Yöntemlerin Karşılaştırması bölümündeki
-  üç değer de aynı şekilde güncelleniyor.
-- TL bazlı otellerde hiçbir ekstra satır eklenmiyor (gereksiz tekrar yok).
+Yeni `parseLocaleNumber()` fonksiyonu:
+- "1.234,56" (TR) → 1234.56
+- "1,234.56" (US) → 1234.56
+- "21.050" (TR binlik, ondalık yok) → 21050 — **akıllı tespit:** tam 3 haneli
+  gruplar hâlinde nokta varsa binlik ayracı sayılır; "21.05" gibi 2 haneli
+  bir ondalık ise dokunulmaz.
+- Negatif değerler, boş/geçersiz girdi (→0) doğru işleniyor.
 
-Gerçek bir dolar bazlı otel (150 $ ADR, kur 40,5) ile PDF+Excel üretilip
-doğrulandı: Excel'de `"12.455.000 $ (≈ 504.427.500 ₺)"` satırı gözle
-teyit edildi. `src/hotel/tl-equivalent.test.ts` — 3 yeni test.
+11 gerçek test senaryosuyla doğrulandı, bu sohbette defalarca kullandığımız
+"21.050 TL/m²" gibi gerçek örnekler dahil.
 
-(`excel.ts` test edilebilir olması için `buildHotelExcelWorkbook()` /
-`downloadHotelExcel()` olarak ikiye ayrıldı — `cost/ziraatExcel.ts`'te
-kullandığımız desenin aynısı.)
+## 5. Housekeeping (düşük öncelikli, "bana bırakıldı" dediğiniz kalemler)
 
-## 5. Otel Gelir Hesabı — Direkt Kap ve İNA arasındaki büyük fark (gerçek matematiksel düzeltme, uyarı değil)
-
-Bu, en çok tartıştığımız kalem oldu ve "yalnız uyarı yeterli değil, çözüm
-istiyorum" haklı itirazınız üzerine gerçek bir düzeltmeye dönüştü.
-
-**Bulunan İKİ gerçek hata:**
-
-1. **Terminal değer yanlış yılın NOI'sinden hesaplanıyordu.**
-   `computeIna()` fonksiyonu, uluslararası standardın (Appraisal
-   Institute / Gordon Büyüme kimliği) gerektirdiği gibi **bir sonraki**
-   yılın NOI'si yerine, projeksiyonun **son yılının kendi** NOI'sini
-   kullanıyordu — bu, İNA sonucunu sistematik olarak düşük gösteriyordu.
-   Düzeltme, gerçek bir **banka Excel'inden alınan golden referans
-   değerle** doğrulandı: eski kod gerçek değerden %0,9 sapıyordu, yeni kod
-   %0,4'e indi — sapma yarıya düştü.
-
-2. **İskonto oranı, cap rate ve büyüme oranıyla hiçbir matematiksel
-   bağlantısı olmadan, kullanıcı tarafından bağımsız giriliyordu.**
-   Gordon kimliğine göre (`iskonto oranı = cap rate + büyüme oranı`)
-   bunlar tutarlı olmalı; aksi halde iki yöntem farklı soruları
-   cevaplıyor demektir (biri büyümesiz, diğeri büyümeli bir gelecek
-   varsayıyor).
-
-**Gerçek çözüm (uyarı değil):**
-- `gordonConsistentDiscountRate(capRate, growthRate)` eklendi — Gordon
-  kimliğinden tutarlı iskonto oranını hesaplıyor.
-- İskonto Oranı alanının altına **"Tutarlı iskonto oranını kullan"**
-  hızlı düğmesi eklendi; kullanıcı mevcut cap rate + büyüme oranından
-  otomatik hesaplanan tutarlı değeri tek tıkla uygulayabiliyor.
-- `explainInaVsDirectGap()` eklendi — iki yöntem **%5'ten fazla**
-  ayrışırsa (Appraisal Institute'ün kurumsal pratikte kullandığı "%5
-  kuralı"), sistem yalnız "farklı" demiyor, **nicel olarak** açıklıyor:
-  "İskonto oranınız tutarlı değerden X puan sapıyor, bu yüzden İNA
-  Direkt Kap'tan %Y farklı çıkıyor." Bu mesaj hem sonuç ekranında hem
-  Projeksiyon adımında gösteriliyor.
-
-Gerçek testle doğrulandı: Gordon-tutarlı iskonto oranı kullanıldığında
-(cap %10 + büyüme %15 = iskonto %25), İNA ve Direkt Kap **matematiksel
-olarak sıfıra yakın farkla eşitleniyor** (< %0,01) — tam olarak Erhan
-Plaza Hotel örneğinde elle kanıtladığımız sonucun kodda birebir karşılığı.
-`src/hotel/gordon-consistency.test.ts` — 5 yeni test.
+- Taslak kayıt anahtarı `arsaplan-taslak-v7` → `arsaplan-taslak-v9`.
+- README.md'ye v6.1'den v9.3.0'a kadarki (Maliyet Yaklaşımı, Ziraat Tablosu,
+  Otel üç yöntem, bu turun tamamı) özet sürüm notları eklendi — önceden en
+  son v6.0.0'da kalmıştı.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**1, 2, 3, 4. kalemler hayır** — yalnız kısıtlama kaldırma, hata
-düzeltmesi (geometri), görsel simge, ve eksik gösterim tamamlama;
-mevcut hiçbir raporun sayısal sonucunu değiştirmiyor.
-
-**5. kalem EVET** — terminal değer formülü değiştiği için, **daha önce
-İNA (İndirgenmiş Nakit Akımı) kullanarak aldığınız raporlardaki NBD
-değerleri artık farklı (ve gerçek referansa göre daha isabetli) çıkacak.**
-Direkt Kapitalizasyon sonuçları etkilenmedi. Daha önce İNA ile teslim
-ettiğiniz raporları yeniden gözden geçirmek isteyebilirsiniz.
+**2, 3, 5. kalemler hayır** — yalnız gösterim/yuvarlama, mevcut hesap
+mantığına dokunulmadı. **4. kalem (sayı parse düzeltmesi) evet, ama yalnız
+düzeltici yönde:** yalnızca "1.234,56" gibi hem binlik hem ondalık ayracı
+birlikte içeren girişlerde daha önce yanlış (küçük) hesaplanan değerler
+artık doğru okunacak — bu girdiyi kullanmayan hiçbir rapor etkilenmez.
+**1. kalem (Adım 1 tasarımı)** yalnız görsel, veri modeline dokunmuyor.
 
 ## Değişen/Eklenen Dosyalar
 
 ```
-src/hotel/HotelApp.tsx        Tesis adı kısıtı kaldırıldı, para birimi simgesi (5 yer), TL karşılığı gösterimi, Gordon düğmesi + gap açıklaması
-src/hotel/engine.ts           computeIna terminal değer düzeltmesi, fmtWithTlEquivalent, gordonConsistentDiscountRate, explainInaVsDirectGap
-src/hotel/engine.test.ts      Golden test npv doğrulaması eklendi (gerçek banka Excel referansıyla)
-src/hotel/types.ts            HotelInaResult'a gapExplanation eklendi
-src/hotel/pdf.ts              Ana sonuç kutusu ve ikincil yöntemler listesine TL karşılığı
-src/hotel/excel.ts            buildHotelExcelWorkbook/downloadHotelExcel ayrımı, NİHAİ DEĞER + karşılaştırma satırlarına TL karşılığı
-src/hotel/tl-equivalent.test.ts       YENİ — 3 test
-src/hotel/gordon-consistency.test.ts  YENİ — 5 test
-src/geo/kml.ts                 inwardOffset: sıfır-mesafe düzeltmesi
-src/geo/kml.test.ts            Eski "sıfır=null" testi yeni davranışa güncellendi
-src/geo/kml.test.zero-setback.test.ts YENİ — 6 test
-package.json, src/brand/brand.ts      v9.3.0
+src/hotel/HotelApp.tsx      Adım 1 yeniden tasarımı, Hazır Profil accordion
+src/ui/styles.css           .h-row, .isletme-row kompakt satır yüksekliği
+src/hotel/engine.ts         Varsayılan işletme gider oranı %60
+src/ui/fields.tsx           parseLocaleNumber() — Türkçe sayı ayrıştırıcı
+src/ui/fields.test.ts       YENİ — 11 test
+src/engine/financial.ts     residualLandValueRounded, discountedLandValueRounded, shareLandValueRounded
+src/engine/types.ts         FinancialResult/ShareResult'a yuvarlanmış alanlar
+src/engine/index.ts         İşletme hattı için yuvarlanmış alan varsayılanları
+src/engine/rounding.test.ts YENİ — 4 test
+src/ui/Result.tsx           Final değerler + Tapu/Net Alan ayrı gösterimi
+src/export/pdf.ts           Yuvarlanmış değerler + Tapu/Net Alan notu
+src/export/excel.ts         Yuvarlanmış değerler + Tapu/Net Alan satırları
+src/export/advicePdf.ts     Yuvarlanmış değer
+src/export/dual-area.test.ts YENİ — 2 test
+src/App.tsx                 Taslak anahtarı v9
+README.md                   v6.1-v9.3.0 sürüm notları eklendi
 ```
 
 ## Yükleme
 
-`src` / `public` / `package.json` klasör ve dosyalarını GitHub'a sürükle
-→ önce kök dosyalar, sonra ayrı ayrı `src`, sonra ayrı ayrı `public` →
-Commit directly to main → Actions sekmesinde yeşile dönene kadar bekle →
-Ctrl+F5.
+`src` / `public` / `package.json` klasör ve dosyalarını GitHub'a sürükle —
+**önce kök dosyalar (klasörlere dokunmadan, ~11 dosya), sonra `src`
+klasörünün kendisi, sonra `public`, sonra `.github`** — dördü ayrı ayrı,
+tek seferde sürüklemeyin (100 dosya sınırı uyarısı çıkar). Her turdan sonra
+Actions sekmesinde yeşile dönmesini bekleyin. Son turdan sonra Ctrl+F5.

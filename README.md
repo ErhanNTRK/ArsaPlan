@@ -11,6 +11,37 @@ yöntemiyle arsa değerini hesaplayan, sunucusuz çalışan web uygulaması.
 - Mobil öncelikli; telefonda ana ekrana eklenebilir
 - Uzman yorumları kural bazlıdır: çevrimdışı çalışır, ücretsizdir, deterministiktir
 
+**v9.3.0 (2026.08.11)** — Otel/Arsa düzeltme turu. **Otel Gelir Hesabı Adım 1:**
+il/ilçe/mahalle/ada/parsel/işletme ismi tek yatay şeritte, kompakt kutucuklar
++ para birimi aynı satırda. **Hazır Profil ile Başla** artık varsayılan kapalı,
+tıklanınca açılan bir bölüm. Oda Tipleri/Yardımcı Gelir/Ticari Kira satırları
+daha kompakt. Varsayılan İşletme Gider Oranı %35→%60. **Arsa Gelir
+Projeksiyonu:** final arsa değerleri (Gelir Projeksiyonu ve Kat Karşılığı)
+5.000'e ve katlarına yuvarlanarak gösteriliyor; Tapu Alanı ile Net Alan
+farklıysa (DOP/terk senaryosu) ekran/PDF/Excel'de ikisi de ayrı birim
+değerleriyle gösteriliyor. **Sayı girişi:** Türkçe biçimli sayılar
+("1.234,56") artık doğru okunuyor — eski kod binlik nokta + ondalık virgülü
+karıştırıp değeri ~1000 kat küçük hesaplıyordu. **Otel — Direkt Kap/İNA
+tutarsızlığı:** terminal değer artık uluslararası standarda (RICS/Appraisal
+Institute) uygun şekilde bir sonraki yılın NOI'sinden hesaplanıyor; Gordon
+Büyüme kimliğinden türetilen "Tutarlı iskonto oranı" önerisi eklendi; iki
+yöntem %5'ten fazla ayrışırsa farkın nicel kaynağını açıklayan bir mesaj
+gösteriliyor. **Otel — döviz:** Dolar/Euro bazlı hesaplarda PDF/Excel'e artık
+TL karşılığı da yazılıyor (önceden girilen kur hiç kullanılmıyordu). **Arsa
+Gelir Projeksiyonu — çekme mesafesi:** ön/yan/arka bahçe çekme mesafesine 0
+girilebiliyor (önceden geometri hesaplanamıyordu). **Otel Gelir Hesabı:**
+tesis adı zorunluluğu kaldırıldı; para birimi simgesi artık Oda
+Tipleri/Yardımcı Gelir/Ticari Kira/Bakım/Şerefiye alanlarının hepsinde
+tutarlı. 266 test.
+
+**v9.2.0 (2026.08.07)** — Maliyet Yaklaşımı: Yasal/Mevcut Durum ayrımı +
+Ziraat Bankası "Değerleme Detay Tablosu" (gerçek Excel şablonu gömülü, canlı
+formüllü) export. Eski Excel dosyaları artık çökmeden yükleniyor.
+
+**v9.1.0 · v9.0.0 (2026.08.07)** — Otel Gelir Hesabı: Direkt Kapitalizasyon,
+İNA, Maliyet Yaklaşımı üç yöntem. Maliyet Yaklaşımı modülü — herhangi bir
+taşınmaz türü için Arsa + Yapılar + Şerefiye/Düzeltme/Çevre Düzenlemesi.
+
 **v6.0.0 (2026.07.26)** — İki yeni modül + PC odaklı büyük düzen turu.
 **Tarımsal Ürün Gelir Hesabı** (tek ekran): Ekili/Dikili/Karma; alan bütçeli
 ürün satırları; 21 ürünlük denetimli katalog (TMO 2025 vb., kaynak etiketli,
