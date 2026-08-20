@@ -9,6 +9,8 @@
  * Dağıtıcı kirası opsiyonel dahil edilir. Net kâr ÷ kap oranı = gelir değeri.
  * Maliyet yaklaşımı (opsiyonel): arsa alan×birim + yapı satırları → ikinci değer.
  */
+import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+
 export type FuelEntryMode = 'gunluk' | 'yillik' | 'cokyil' | 'kismi';
 
 export interface FuelProductInput {
@@ -34,11 +36,23 @@ export interface ExtraIncomeRow {
   netAmount: number;            // net modu: doğrudan yıllık net
 }
 
+export interface FuelCostBuildingRow {
+  id: string;
+  type: string;                      // BUILDING_TYPES'tan biri, ya da serbest metin
+  buildingClassCode: string | null;  // YAPI_SINIFLARI kodu — seçiliyse birim maliyet oradan gelir
+  area: number;
+  unitCostOverride: number | null;   // elle girilirse kataloğu ezer
+  depreciationPct: number;           // 0-100, kalan değer çarpanı (cost/hotel modülleriyle aynı mantık)
+}
+
 export interface FuelCostInput {
   enabled: boolean;
   parcelArea: number;           // m² (elle veya KML)
   landUnitValue: number;        // TL/m²
-  buildings: { id: string; name: string; area: number; unitCost: number }[];
+  buildings: FuelCostBuildingRow[];
+  /** Mevcut Durum Değeri Hesapla — opsiyonel, diğer modüllerle aynı desen. */
+  computeMevcutDurum?: boolean;
+  mevcutBuildings?: FuelCostBuildingRow[];
 }
 
 export interface FuelInput {
@@ -72,6 +86,8 @@ export interface FuelResult {
   costLand: number;
   costBuildings: number;
   costValue: number | null;     // maliyet yaklaşımı (enabled değilse null)
+  /** Mevcut Durum sonucu — opsiyon kapalıysa Yasal Durum'un birebir kopyası. */
+  costCurrent: { buildings: number; value: number | null };
   warnings: string[];
 }
 
@@ -125,15 +141,32 @@ export function computeFuel(input: FuelInput): FuelResult {
   const step = Math.max(0, input.rounding);
   const incomeValueRounded = step > 0 ? Math.round(incomeValue / step) * step : incomeValue;
 
+  const computeCostBuildings = (rows: import('./engine').FuelCostBuildingRow[]) => R(rows.reduce((s, b) => {
+    const cls = YAPI_SINIFLARI.find((c) => c.code === b.buildingClassCode);
+    const baseUnitCost = cls?.unitCost ?? 0;
+    const effectiveUnitCost = b.unitCostOverride != null ? b.unitCostOverride : baseUnitCost;
+    const dep = Math.min(100, Math.max(0, b.depreciationPct));
+    return s + Math.max(0, b.area) * Math.max(0, effectiveUnitCost) * (dep > 0 ? dep / 100 : 1);
+  }, 0));
+
   let costLand = 0, costBuildings = 0, costValue: number | null = null;
+  let costCurrentBuildings = 0, costCurrentValue: number | null = null;
   if (input.cost.enabled) {
     costLand = R(Math.max(0, input.cost.parcelArea) * Math.max(0, input.cost.landUnitValue));
-    costBuildings = R(input.cost.buildings.reduce((s, b) => s + Math.max(0, b.area) * Math.max(0, b.unitCost), 0));
-    if (costLand > 0 || costBuildings > 0) costValue = R(costLand + costBuildings);
+    costBuildings = computeCostBuildings(input.cost.buildings);
+    if (costLand > 0 || costBuildings > 0) costValue = Math.round(R(costLand + costBuildings) / 5000) * 5000;
+
+    const hasMevcutOverride = !!input.cost.computeMevcutDurum && (input.cost.mevcutBuildings?.length ?? 0) > 0;
+    costCurrentBuildings = hasMevcutOverride ? computeCostBuildings(input.cost.mevcutBuildings!) : costBuildings;
+    if (costLand > 0 || costCurrentBuildings > 0) {
+      costCurrentValue = Math.round(R(costLand + costCurrentBuildings) / 5000) * 5000;
+    }
   }
 
   return {
     products, fuelTurnover, fuelNet, extrasNet, otherIncomeFromPct, dealerRentApplied, totalNet,
-    incomeValue, incomeValueRounded, costLand, costBuildings, costValue, warnings,
+    incomeValue, incomeValueRounded, costLand, costBuildings, costValue,
+    costCurrent: { buildings: costCurrentBuildings, value: costCurrentValue },
+    warnings,
   };
 }

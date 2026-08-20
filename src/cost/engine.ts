@@ -17,6 +17,9 @@ export interface CostApproachInput {
   parcelArea: number | null;    // KML/elle — tapu alanı
   netParcelArea: number | null; // hesaba giren asıl alan
   landUnitValue: number;
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa (showReportDate=true) PDF/Excel'de gösterilir; reportDate boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
   fromKml: boolean;
   buildings: CostBuildingRow[];
   adjustmentType: AdjustmentType;
@@ -68,6 +71,8 @@ export function createDefaultCostInput(): CostApproachInput {
     computeMevcutDurum: false,
     mevcutBuildings: [],
     mevcutAdjustmentAmount: null,
+    showReportDate: false,
+    reportDate: null,
   };
 }
 
@@ -85,9 +90,9 @@ function computeBuildingRows(rows: CostBuildingRow[]): { buildingRows: CostBuild
   return { buildingRows, buildingsValue };
 }
 
-function computeStatus(landValue: number, buildingRows: CostBuildingRow[], adjustmentType: AdjustmentType, adjustmentAmount: number): CostStatusResult {
+function computeStatus(landValue: number, buildingRows: CostBuildingRow[], hasAdjustment: boolean, adjustmentAmount: number): CostStatusResult {
   const { buildingRows: rows, buildingsValue } = computeBuildingRows(buildingRows);
-  const adjustmentValue = adjustmentType === 'none' ? 0 : Math.max(0, adjustmentAmount);
+  const adjustmentValue = hasAdjustment ? Math.max(0, adjustmentAmount) : 0;
   const totalValue = landValue + buildingsValue + adjustmentValue;
   const totalValueRounded = Math.round(totalValue / 5000) * 5000;
   return { buildingRows: rows, buildingsValue, adjustmentValue, totalValue, totalValueRounded };
@@ -98,15 +103,21 @@ export function analyzeCostApproach(input: CostApproachInput): CostApproachResul
   const netArea = Math.max(0, input.netParcelArea ?? 0);
   const landValue = Math.round(netArea * Math.max(0, input.landUnitValue));
 
-  const legal = computeStatus(landValue, input.buildings, input.adjustmentType, input.adjustmentAmount);
+  const legal = computeStatus(landValue, input.buildings, input.adjustmentType !== 'none', input.adjustmentAmount);
 
   // Mevcut Durum: opsiyon kapalıysa ya da satır girilmemişse Yasal Durum'un aynısı.
   const hasMevcutOverride = input.computeMevcutDurum && input.mevcutBuildings.length > 0;
+  // DÜZELTME: Mevcut Durum'un düzeltme/şerefiye tutarı, Yasal Durum'un tür
+  // seçicisine (adjustmentType) bağımlı OLMAMALI — kullanıcı Mevcut Durum'a
+  // özel bir tutar girdiyse (mevcutAdjustmentAmount dolu), Yasal'da hiç tür
+  // seçilmemiş olsa bile uygulanır. Yalnız Mevcut tutarı boş bırakılırsa
+  // Yasal Durum'un kendi tür+tutarına geri dönülür.
+  const mevcutHasOwnAmount = input.mevcutAdjustmentAmount != null;
   const current = hasMevcutOverride
     ? computeStatus(
         landValue,
         input.mevcutBuildings,
-        input.adjustmentType,
+        mevcutHasOwnAmount || input.adjustmentType !== 'none',
         input.mevcutAdjustmentAmount ?? input.adjustmentAmount,
       )
     : legal;

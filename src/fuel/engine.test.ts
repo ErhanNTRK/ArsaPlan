@@ -60,14 +60,17 @@ describe('computeFuel — banka formatı goldeni', () => {
       extras: [], otherIncomePctOfFuel: 0, dealerRent: { include: false, yearlyAmount: 0 },
       capRate: 0.12, rounding: 50000,
       cost: { enabled: true, parcelArea: 5000, landUnitValue: 8000, buildings: [
-        { id: 'k', name: 'Kanopi+Satış Binası', area: 600, unitCost: 15000 },
-        { id: 'my', name: 'Madeni Yağ Tesisi', area: 2507, unitCost: 600 },
+        { id: 'k', type: 'Kanopi+Satış Binası', buildingClassCode: null, area: 600, unitCostOverride: 15000, depreciationPct: 100 },
+        { id: 'my', type: 'Madeni Yağ Tesisi', buildingClassCode: null, area: 2507, unitCostOverride: 600, depreciationPct: 100 },
       ] },
     });
     expect(r.incomeValueRounded % 50000).toBe(0);
     expect(r.costLand).toBe(40000000);
     expect(r.costBuildings).toBeCloseTo(600 * 15000 + 2507 * 600, 2);
-    expect(r.costValue).toBeCloseTo(r.costLand + r.costBuildings, 2);
+    // DÜZELTME: costValue artık 5.000 ve katlarına yuvarlanıyor (ham
+    // toplama değil) — Erhan Öntürk kararı.
+    expect(r.costValue! % 5000).toBe(0);
+    expect(Math.abs(r.costValue! - (r.costLand + r.costBuildings))).toBeLessThanOrEqual(2500);
   });
 });
 

@@ -21,7 +21,12 @@ export async function buildCostApproachPdf(
     .filter(Boolean).join(' · ');
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
   doc.text(kimlik || '—', M, y);
-  doc.text(`Rapor Tarihi: ${tarih}`, PW - M, y, { align: 'right' });
+  if (input.showReportDate) {
+    const gosterilecekTarih = input.reportDate
+      ? new Date(input.reportDate + 'T00:00:00').toLocaleDateString('tr-TR')
+      : tarih;
+    doc.text(`Rapor Tarihi: ${gosterilecekTarih}`, PW - M, y, { align: 'right' });
+  }
   y += 8;
 
   function pageBreak(need = 14) { if (y + need > 280) { doc.addPage(); y = 18; } }

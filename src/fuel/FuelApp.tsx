@@ -11,7 +11,9 @@ import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
 import { downloadFuelPdf } from './pdf';
 import { downloadFuelExcel } from './excel';
-import { Num } from '../ui/fields';
+import { Num, Sel, Txt } from '../ui/fields';
+import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { BUILDING_TYPES } from '../usthakki/detailedEngine';
 
 const DRAFT = 'arsaplan-fuel-draft-v1';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -45,7 +47,9 @@ const DEFAULT = {
   dealerRent: { include: false, yearlyAmount: 0 },
   capRate: 10, rounding: 50000,
   cost: { enabled: false, parcelArea: 0, landUnitValue: 0,
-    buildings: [] as { id: string; name: string; area: number; unitCost: number }[] },
+    buildings: [] as { id: string; type: string; buildingClassCode: string | null; area: number; unitCostOverride: number | null; depreciationPct: number }[],
+    computeMevcutDurum: false,
+    mevcutBuildings: [] as { id: string; type: string; buildingClassCode: string | null; area: number; unitCostOverride: number | null; depreciationPct: number }[] },
 };
 type S = typeof DEFAULT;
 
@@ -271,25 +275,112 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             </>)}
           </div>
           {state.cost.enabled && (<>
-            {state.cost.buildings.map((b) => (
+            <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Yapılar — Yasal Durum</div>
+            {state.cost.buildings.map((b) => {
+              const cls = YAPI_SINIFLARI.find((c) => c.code === b.buildingClassCode);
+              const effectiveUnitCost = b.unitCostOverride ?? cls?.unitCost ?? 0;
+              return (
               <div className="prop-card" key={b.id}><div className="prop-card__top">
-                <label className="pfield"><span>Yapı</span>
-                  <input value={b.name} placeholder="Kanopi, satış binası, madeni yağ tesisi…"
-                         onChange={(e) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, name: e.target.value } : x) } })} /></label>
+                <label className="pfield"><span>Yapı Türü</span>
+                  <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                       onChange={(v) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, type: v === 'Diğer' ? '' : v } : x) } })}
+                       options={[...BUILDING_TYPES.map((t) => ({ value: t, label: t })), { value: 'Diğer', label: 'Diğer (elle yaz)' }]} />
+                  {!BUILDING_TYPES.includes(b.type) && (
+                    <Txt value={b.type} placeholder="Yapı adını yazın"
+                         onChange={(v) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, type: v } : x) } })} />
+                  )}
+                </label>
+                <label className="pfield pfield--s"><span>Yapı Sınıfı</span>
+                  <Sel value={b.buildingClassCode ?? ''}
+                       onChange={(v) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, buildingClassCode: v || null, unitCostOverride: null } : x) } })}
+                       options={[{ value: '', label: '— elle gireceğim —' }, ...YAPI_SINIFLARI.map((c) => ({ value: c.code, label: c.code }))]} />
+                </label>
                 <label className="pfield pfield--s"><span>Alan m²</span>
-                  <input type="number" value={b.area || ''}
-                         onChange={(e) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, area: Number(e.target.value) || 0 } : x) } })} /></label>
+                  <Num value={b.area || 0} onChange={(n) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, area: n } : x) } })} /></label>
                 <label className="pfield pfield--s"><span>Birim ₺/m²</span>
-                  <input type="number" value={b.unitCost || ''}
-                         onChange={(e) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, unitCost: Number(e.target.value) || 0 } : x) } })} /></label>
-                <div className="pfield pfield--ro"><span>Maliyet</span><b>{TL(b.area * b.unitCost)}</b></div>
+                  <span className="floor-cell">
+                    <Num value={effectiveUnitCost} onChange={(n) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, unitCostOverride: n } : x) } })} />
+                    {b.unitCostOverride != null && (
+                      <button type="button" className="cell-reset" title="Tebliğ değerine dön"
+                              onClick={() => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, unitCostOverride: null } : x) } })}>↺</button>
+                    )}
+                  </span>
+                </label>
+                <label className="pfield pfield--s"><span>Amortisman %</span>
+                  <Num value={b.depreciationPct || 0} onChange={(n) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, depreciationPct: n } : x) } })} /></label>
+                <div className="pfield pfield--ro"><span>Maliyet</span><b>{TL(Math.max(0, b.area) * Math.max(0, effectiveUnitCost) * (b.depreciationPct > 0 ? Math.min(100, b.depreciationPct) / 100 : 1))}</b></div>
                 <button type="button" className="b-del" onClick={() => patch({ cost: { ...state.cost, buildings: state.cost.buildings.filter((x) => x.id !== b.id) } })}>✕</button>
               </div></div>
-            ))}
+              );
+            })}
             <button type="button" className="btn-ghost"
-                    onClick={() => patch({ cost: { ...state.cost, buildings: [...state.cost.buildings, { id: uid(), name: '', area: 0, unitCost: 0 }] } })}>
+                    onClick={() => patch({ cost: { ...state.cost, buildings: [...state.cost.buildings, { id: uid(), type: BUILDING_TYPES[0], buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] } })}>
               ➕ Yapı Ekle
             </button>
+
+            <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <input type="checkbox" checked={!!state.cost.computeMevcutDurum}
+                     onChange={() => patch({
+                       cost: state.cost.computeMevcutDurum
+                         ? { ...state.cost, computeMevcutDurum: false }
+                         : { ...state.cost, computeMevcutDurum: true,
+                             mevcutBuildings: state.cost.buildings.length > 0
+                               ? state.cost.buildings.map((b) => ({ ...b, id: uid() }))
+                               : (state.cost.mevcutBuildings ?? []) },
+                     })} />
+              <span><b>Mevcut Durum Değeri Hesapla</b> (opsiyonel)</span>
+            </label>
+            <div className="hint" style={{ marginTop: 4 }}>
+              Açarsanız yukarıdaki yapı satırları aşağıya kopyalanır; burada bağımsız olarak değiştirebilir,
+              silebilir veya yeni satır ekleyebilirsiniz. Kapalı kalırsa Mevcut Durum, Yasal Durum ile aynı görünür.
+            </div>
+
+            {state.cost.computeMevcutDurum && (
+              <>
+                <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Yapılar — Mevcut Durum</div>
+                {(state.cost.mevcutBuildings ?? []).map((b) => {
+                  const cls = YAPI_SINIFLARI.find((c) => c.code === b.buildingClassCode);
+                  const effectiveUnitCost = b.unitCostOverride ?? cls?.unitCost ?? 0;
+                  return (
+                  <div className="prop-card" key={b.id}><div className="prop-card__top">
+                    <label className="pfield"><span>Yapı Türü</span>
+                      <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                           onChange={(v) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, type: v === 'Diğer' ? '' : v } : x) } })}
+                           options={[...BUILDING_TYPES.map((t) => ({ value: t, label: t })), { value: 'Diğer', label: 'Diğer (elle yaz)' }]} />
+                      {!BUILDING_TYPES.includes(b.type) && (
+                        <Txt value={b.type} placeholder="Yapı adını yazın"
+                             onChange={(v) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, type: v } : x) } })} />
+                      )}
+                    </label>
+                    <label className="pfield pfield--s"><span>Yapı Sınıfı</span>
+                      <Sel value={b.buildingClassCode ?? ''}
+                           onChange={(v) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, buildingClassCode: v || null, unitCostOverride: null } : x) } })}
+                           options={[{ value: '', label: '— elle gireceğim —' }, ...YAPI_SINIFLARI.map((c) => ({ value: c.code, label: c.code }))]} />
+                    </label>
+                    <label className="pfield pfield--s"><span>Alan m²</span>
+                      <Num value={b.area || 0} onChange={(n) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, area: n } : x) } })} /></label>
+                    <label className="pfield pfield--s"><span>Birim ₺/m²</span>
+                      <span className="floor-cell">
+                        <Num value={effectiveUnitCost} onChange={(n) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, unitCostOverride: n } : x) } })} />
+                        {b.unitCostOverride != null && (
+                          <button type="button" className="cell-reset" title="Tebliğ değerine dön"
+                                  onClick={() => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, unitCostOverride: null } : x) } })}>↺</button>
+                        )}
+                      </span>
+                    </label>
+                    <label className="pfield pfield--s"><span>Amortisman %</span>
+                      <Num value={b.depreciationPct || 0} onChange={(n) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, depreciationPct: n } : x) } })} /></label>
+                    <div className="pfield pfield--ro"><span>Maliyet</span><b>{TL(Math.max(0, b.area) * Math.max(0, effectiveUnitCost) * (b.depreciationPct > 0 ? Math.min(100, b.depreciationPct) / 100 : 1))}</b></div>
+                    <button type="button" className="b-del" onClick={() => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).filter((x) => x.id !== b.id) } })}>✕</button>
+                  </div></div>
+                  );
+                })}
+                <button type="button" className="btn-ghost"
+                        onClick={() => patch({ cost: { ...state.cost, mevcutBuildings: [...(state.cost.mevcutBuildings ?? []), { id: uid(), type: BUILDING_TYPES[0], buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] } })}>
+                  ➕ Mevcut Duruma Yapı Ekle
+                </button>
+              </>
+            )}
           </>)}
         </div>
 

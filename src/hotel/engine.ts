@@ -234,7 +234,10 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const mevcutGoodwill = hasMevcutOverride ? Math.max(0, input.mevcutCostGoodwill ?? costGoodwill) : costGoodwill;
   const mevcutTotal = R(costLandValue + mevcutBuildingsValue + mevcutGoodwill);
 
-  const cost = (costLandValue > 0 || costBuildingsValue > 0)
+  // DÜZELTME: Yasal Durum'da hiç değer girilmemiş olsa bile (yalnız Mevcut
+  // Durum'a veri girilmişse) sonuç görünür olmalı — kapı yalnız Yasal'a
+  // kilitli olmamalı.
+  const cost = (costLandValue > 0 || costBuildingsValue > 0 || (hasMevcutOverride && mevcutBuildingsValue > 0))
     ? {
         landValue: costLandValue, buildingsValue: costBuildingsValue, goodwill: costGoodwill, totalValue: costTotal, totalValueRounded: Math.round(costTotal / 5000) * 5000,
         current: { buildingsValue: mevcutBuildingsValue, goodwill: mevcutGoodwill, totalValue: mevcutTotal, totalValueRounded: Math.round(mevcutTotal / 5000) * 5000 },

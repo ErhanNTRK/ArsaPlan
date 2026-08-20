@@ -12,8 +12,9 @@ const VERDICT_TEXT: Record<string, string> = {
   'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
 };
 
-export function Result({ input, result, version }: {
+export function Result({ input, result, version, setInput }: {
   input: ProjectInput; result: AnalysisResult; version: string;
+  setInput?: (fn: (prev: ProjectInput) => ProjectInput) => void;
 }) {
   const { capacity: c, financial: f, share: s, advice, apartment: apt, isletme } = result;
   const p = input.parcel;
@@ -50,6 +51,18 @@ export function Result({ input, result, version }: {
     <>
       <div className="card no-print">
         <div className="card-title">Raporu İndir</div>
+        <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <input type="checkbox" checked={!!input.showReportDate}
+                 onChange={(e) => setInput?.((s) => ({ ...s, showReportDate: e.target.checked }))} />
+          <span>Rapor Tarihini Göster (opsiyonel)</span>
+        </label>
+        {input.showReportDate && (
+          <label className="pfield" style={{ marginBottom: 10, maxWidth: 220 }}>
+            <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+            <input type="date" value={input.reportDate ?? ''}
+                   onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
+          </label>
+        )}
         <div className="dl-grid">
           <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
             {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}

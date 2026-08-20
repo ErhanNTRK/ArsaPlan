@@ -864,6 +864,18 @@ function HotelResult({ input, result, setFinal }: {
           <label className="pdf-toggle"><input type="checkbox" checked={input.showCostInPdf ?? true}
                    onChange={(e) => setFinal({ showCostInPdf: e.target.checked })} /> Maliyet Yaklaşımı</label>
         </div>
+        <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <input type="checkbox" checked={!!input.showReportDate}
+                 onChange={(e) => setFinal({ showReportDate: e.target.checked })} />
+          <span>Rapor Tarihini Göster (opsiyonel)</span>
+        </label>
+        {input.showReportDate && (
+          <label className="pfield" style={{ marginBottom: 10, maxWidth: 220 }}>
+            <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+            <input type="date" value={input.reportDate ?? ''}
+                   onChange={(e) => setFinal({ reportDate: e.target.value || null })} />
+          </label>
+        )}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy}
                 onClick={async () => {

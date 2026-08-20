@@ -137,6 +137,9 @@ export interface HotelIncomeInput {
   costBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
   /** Şerefiye — konum/ticari potansiyel primi, elle girilen tek tutar. Maliyet Yaklaşımı toplamına eklenir. */
   costGoodwill?: number | null;
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
   /**
    * Mevcut Durum Değeri Hesapla — opsiyonel. Açılırsa Yasal Durum'daki yapı
    * satırları kopyalanıp bağımsız, düzenlenebilir ikinci bir listeye

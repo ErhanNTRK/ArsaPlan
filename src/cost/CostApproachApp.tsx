@@ -6,6 +6,7 @@ import { BUILDING_TYPES as OTEL_BUILDING_TYPES } from '../usthakki/detailedEngin
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
+import { Num, parseLocaleNumber } from '../ui/fields';
 import { downloadCostApproachPdf } from './pdf';
 import { downloadCostApproachExcel } from './excel';
 import { RTable, RRow, RCell } from '../ui/RTable';
@@ -146,14 +147,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
             </div>
             <div className="hrow-labeled" style={{ marginTop: 10 }}>
               <label className="pfield"><span>Arsa Alanı (Tapu) m²</span>
-                <input type="number" value={input.parcelArea ?? ''}
-                       onChange={(e) => setInput((s) => ({ ...s, parcelArea: Number(e.target.value) || null, fromKml: false }))} /></label>
+                <Num value={input.parcelArea ?? 0} onChange={(n) => setInput((s) => ({ ...s, parcelArea: n || null, fromKml: false }))} /></label>
               <label className="pfield"><span>Net Arsa Alanı m²</span>
-                <input type="number" value={input.netParcelArea ?? ''}
-                       onChange={(e) => setInput((s) => ({ ...s, netParcelArea: Number(e.target.value) || null }))} /></label>
+                <Num value={input.netParcelArea ?? 0} onChange={(n) => setInput((s) => ({ ...s, netParcelArea: n || null }))} /></label>
               <label className="pfield"><span>Arsa m² Birim Değeri (₺)</span>
-                <input type="number" value={input.landUnitValue || ''}
-                       onChange={(e) => setInput((s) => ({ ...s, landUnitValue: Number(e.target.value) || 0 }))} /></label>
+                <Num value={input.landUnitValue || 0} onChange={(n) => setInput((s) => ({ ...s, landUnitValue: n }))} /></label>
             </div>
             <div className="hint" style={{ marginTop: 8 }}>Hesaba <b>Net Arsa Alanı</b> girer.</div>
           </div>
@@ -182,12 +180,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                       </select>
                     </RCell>
                     <RCell label="Alan m²">
-                      <input type="number" value={b.area || ''} onChange={(e) => patchBuilding(b.id, { area: Number(e.target.value) || 0 })} />
+                      <Num value={b.area || 0} onChange={(n) => patchBuilding(b.id, { area: n })} />
                     </RCell>
                     <RCell label="Birim Maliyet">
                       <span className="floor-cell">
-                        <input type="number" value={b.effectiveUnitCost || ''}
-                               onChange={(e) => patchBuilding(b.id, { unitCostOverride: Number(e.target.value) || 0 })} />
+                        <Num value={b.effectiveUnitCost || 0} onChange={(n) => patchBuilding(b.id, { unitCostOverride: n })} />
                         {b.overridden && (
                           <button type="button" className="cell-reset" title="Tebliğ değerine dön"
                                   onClick={() => patchBuilding(b.id, { unitCostOverride: null })}>↺</button>
@@ -195,7 +192,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                       </span>
                     </RCell>
                     <RCell label="Amortisman %">
-                      <input type="number" value={b.depreciationPct || ''} onChange={(e) => patchBuilding(b.id, { depreciationPct: Number(e.target.value) || 0 })} />
+                      <Num value={b.depreciationPct || 0} onChange={(n) => patchBuilding(b.id, { depreciationPct: n })} />
                     </RCell>
                     <RCell label="Değer"><b>{fmt(b.buildingValue)}</b></RCell>
                     <RCell label="">
@@ -225,8 +222,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
               </label>
               {input.adjustmentType !== 'none' && (
                 <label className="pfield"><span>Tutar (₺)</span>
-                  <input type="number" value={input.adjustmentAmount || ''}
-                         onChange={(e) => setInput((s) => ({ ...s, adjustmentAmount: Number(e.target.value) || 0 }))} /></label>
+                  <Num value={input.adjustmentAmount || 0} onChange={(n) => setInput((s) => ({ ...s, adjustmentAmount: n }))} /></label>
               )}
             </div>
           </div>
@@ -266,12 +262,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           </select>
                         </RCell>
                         <RCell label="Alan m²">
-                          <input type="number" value={b.area || ''} onChange={(e) => patchMevcutBuilding(b.id, { area: Number(e.target.value) || 0 })} />
+                          <Num value={b.area || 0} onChange={(n) => patchMevcutBuilding(b.id, { area: n })} />
                         </RCell>
                         <RCell label="Birim Maliyet">
                           <span className="floor-cell">
-                            <input type="number" value={b.effectiveUnitCost || ''}
-                                   onChange={(e) => patchMevcutBuilding(b.id, { unitCostOverride: Number(e.target.value) || 0 })} />
+                            <Num value={b.effectiveUnitCost || 0} onChange={(n) => patchMevcutBuilding(b.id, { unitCostOverride: n })} />
                             {b.overridden && (
                               <button type="button" className="cell-reset" title="Tebliğ değerine dön"
                                       onClick={() => patchMevcutBuilding(b.id, { unitCostOverride: null })}>↺</button>
@@ -279,7 +274,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           </span>
                         </RCell>
                         <RCell label="Amortisman %">
-                          <input type="number" value={b.depreciationPct || ''} onChange={(e) => patchMevcutBuilding(b.id, { depreciationPct: Number(e.target.value) || 0 })} />
+                          <Num value={b.depreciationPct || 0} onChange={(n) => patchMevcutBuilding(b.id, { depreciationPct: n })} />
                         </RCell>
                         <RCell label="Değer"><b>{fmt(b.buildingValue)}</b></RCell>
                         <RCell label="">
@@ -296,9 +291,10 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                 </button>
                 <div className="hrow-labeled" style={{ marginTop: 10 }}>
                   <label className="pfield"><span>Mevcut Durum için ayrı Şerefiye/Düzeltme Tutarı (₺, opsiyonel)</span>
-                    <input type="number" placeholder={`Boş bırakılırsa Yasal Durum tutarı kullanılır (${fmt(input.adjustmentAmount)})`}
-                           value={input.mevcutAdjustmentAmount ?? ''}
-                           onChange={(e) => setInput((s) => ({ ...s, mevcutAdjustmentAmount: e.target.value === '' ? null : Number(e.target.value) || 0 }))} />
+                    <input type="text" inputMode="decimal" placeholder={`Boş bırakılırsa Yasal Durum tutarı kullanılır (${fmt(input.adjustmentAmount)})`}
+                           defaultValue={input.mevcutAdjustmentAmount != null ? String(input.mevcutAdjustmentAmount) : ''}
+                           key={input.mevcutAdjustmentAmount}
+                           onBlur={(e) => setInput((s) => ({ ...s, mevcutAdjustmentAmount: e.target.value.trim() === '' ? null : parseLocaleNumber(e.target.value) }))} />
                   </label>
                 </div>
               </>
@@ -323,6 +319,18 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
               </div>
             )}
             {result.warnings.map((w, i) => <div className="hint" key={i} style={{ marginTop: 6 }}>{w}</div>)}
+            <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
+              <input type="checkbox" checked={!!input.showReportDate}
+                     onChange={(e) => setInput((s) => ({ ...s, showReportDate: e.target.checked }))} />
+              <span>Rapor Tarihini Göster (opsiyonel)</span>
+            </label>
+            {input.showReportDate && (
+              <label className="pfield" style={{ marginTop: 6, maxWidth: 220 }}>
+                <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+                <input type="date" value={input.reportDate ?? ''}
+                       onChange={(e) => setInput((s) => ({ ...s, reportDate: e.target.value || null }))} />
+              </label>
+            )}
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy !== null}
                       onClick={async () => { setBusy('pdf'); try { await downloadCostApproachPdf(input, result); } finally { setBusy(null); } }}>

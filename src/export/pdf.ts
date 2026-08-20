@@ -104,7 +104,12 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
     doc.text(t(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2(p.area)}`) + ' · ' + (input.zoning.lejant.trim() || t('Lejant girilmedi')), M + 4, y + 10.6);
     doc.setFontSize(8.2);
-    doc.text(t(`Rapor Tarihi: ${tarih}`), PW - M - 4, y + 5.6, { align: 'right' });
+    if (input.showReportDate) {
+      const gosterilecekTarih = input.reportDate
+        ? new Date(input.reportDate + 'T00:00:00').toLocaleDateString('tr-TR')
+        : tarih;
+      doc.text(t(`Rapor Tarihi: ${gosterilecekTarih}`), PW - M - 4, y + 5.6, { align: 'right' });
+    }
     doc.text(
       t(isletme ? 'Ticari İşletme'
         : apt

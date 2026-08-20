@@ -364,6 +364,9 @@ export interface ProjectInput {
   fx?: FxInput;
   /** Rapor PDF'inde kroki ve yapı kesiti çizilsin mi (varsayılan: evet) */
   reportVisuals?: boolean;
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
 }
 
 export interface CapacityResult {

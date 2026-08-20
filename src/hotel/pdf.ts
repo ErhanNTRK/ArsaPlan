@@ -42,7 +42,12 @@ export async function buildHotelPdf(
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
   doc.text(`Ada ${g.ada || '—'} · Parsel ${g.parsel || '—'}`, M + 4, y + 10.6);
   doc.setFontSize(8.2);
-  doc.text(`Rapor Tarihi: ${tarih}`, PW - M - 4, y + 5.6, { align: 'right' });
+  if (input.showReportDate) {
+    const gosterilecekTarih = input.reportDate
+      ? new Date(input.reportDate + 'T00:00:00').toLocaleDateString('tr-TR')
+      : tarih;
+    doc.text(`Rapor Tarihi: ${gosterilecekTarih}`, PW - M - 4, y + 5.6, { align: 'right' });
+  }
   y += 19;
 
   /* Sonuç şeridi — SEÇİLEN nihai yönteme göre dinamik */
@@ -145,6 +150,17 @@ export async function buildHotelPdf(
     y += 6;
   };
 
+  if (r.roomRows.length > 0) {
+    sectionTitle('Oda Dağılım Tablosu');
+    table(
+      ['Oda Tipi', 'Adet', 'Fiyat', 'Doluluk', 'Yıllık Gelir'],
+      r.roomRows.map((row) => [
+        row.roomType, String(row.roomCount), cur(row.adr), pct(row.occupancy, 0), cur(row.annualRevenue),
+      ]),
+      [55, 20, 35, 30, 40],
+    );
+  }
+
   sectionTitle('Gelir Özeti');
   table(
     ['Gelir Kalemi', 'Yıllık Tutar'],
@@ -158,17 +174,6 @@ export async function buildHotelPdf(
     ],
     [110, 70],
   );
-
-  if (r.roomRows.length > 0) {
-    sectionTitle('Oda Dağılım Tablosu');
-    table(
-      ['Oda Tipi', 'Adet', 'Fiyat', 'Doluluk', 'Yıllık Gelir'],
-      r.roomRows.map((row) => [
-        row.roomType, String(row.roomCount), cur(row.adr), pct(row.occupancy, 0), cur(row.annualRevenue),
-      ]),
-      [55, 20, 35, 30, 40],
-    );
-  }
 
   if (r.leaseRows.length > 0) {
     sectionTitle('Ticari Kira Tablosu');

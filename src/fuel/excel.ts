@@ -19,6 +19,13 @@ const BOX = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
 
 export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
+  const wb = await buildFuelExcelWorkbook(input, r);
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  triggerDownload(blob, 'Akaryakit-Gelir-Hesabi.xlsx');
+}
+
+export async function buildFuelExcelWorkbook(input: FuelInput, r: FuelResult): Promise<ExcelJS.Workbook> {
   const wb = new ExcelJS.Workbook();
   wb.creator = `${BRAND.company} · ${BRAND.author}`;
   wb.company = BRAND.company;
@@ -73,8 +80,8 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
     row++;
   }
 
-  section('AKARYAKIT SATIŞLARI');
-  const heads = ['Ürün', 'Yıllık Litre', 'Ciro', 'Kazanç %', 'Net Kazanç'];
+  section('AKARYAKIT SATIŞLARI (KDV HARİÇ)');
+  const heads = ['Ürün', 'Birim Fiyat', 'Yıllık Litre', 'Ciro', 'Kazanç %', 'Net Kazanç'];
   heads.forEach((hh, i) => {
     const cell = ws.getCell(row, 2 + i);
     cell.value = hh;
@@ -86,16 +93,18 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
   row++;
   for (const p of r.products) {
     ws.getCell(row, 2).value = p.name;
-    ws.getCell(row, 3).value = Math.round(p.yearlyLitersUsed);
-    ws.getCell(row, 3).numFmt = '#,##0 "Lt"';
-    ws.getCell(row, 4).value = p.turnover;
-    ws.getCell(row, 4).numFmt = TL;
-    ws.getCell(row, 5).value = p.profitPct / 100;
-    ws.getCell(row, 5).numFmt = '0.0%';
-    ws.getCell(row, 6).value = p.net;
-    ws.getCell(row, 6).numFmt = TL;
-    ws.getCell(row, 6).font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E6B41' } };
-    for (let c = 2; c <= 6; c++) {
+    ws.getCell(row, 3).value = p.unitPrice;
+    ws.getCell(row, 3).numFmt = '#,##0.00 "₺/Lt"';
+    ws.getCell(row, 4).value = Math.round(p.yearlyLitersUsed);
+    ws.getCell(row, 4).numFmt = '#,##0 "Lt"';
+    ws.getCell(row, 5).value = p.turnover;
+    ws.getCell(row, 5).numFmt = TL;
+    ws.getCell(row, 6).value = p.profitPct / 100;
+    ws.getCell(row, 6).numFmt = '0.0%';
+    ws.getCell(row, 7).value = p.net;
+    ws.getCell(row, 7).numFmt = TL;
+    ws.getCell(row, 7).font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E6B41' } };
+    for (let c = 2; c <= 7; c++) {
       ws.getCell(row, c).border = BOX;
       if (!ws.getCell(row, c).font) ws.getCell(row, c).font = { name: 'Arial', size: 9 };
       if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' };
@@ -109,17 +118,17 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
         if (v <= 0) return;
         ws.getCell(row, 2).value = `  ${labels[i] ?? `${i + 1}. Yıl`}`;
         ws.getCell(row, 2).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
-        ws.getCell(row, 3).value = Math.round(v); ws.getCell(row, 3).numFmt = '#,##0 "Lt"';
-        ws.getCell(row, 3).alignment = { horizontal: 'right' };
-        ws.getCell(row, 4).value = v * p.unitPrice; ws.getCell(row, 4).numFmt = TL;
+        ws.getCell(row, 4).value = Math.round(v); ws.getCell(row, 4).numFmt = '#,##0 "Lt"';
         ws.getCell(row, 4).alignment = { horizontal: 'right' };
+        ws.getCell(row, 5).value = v * p.unitPrice; ws.getCell(row, 5).numFmt = TL;
+        ws.getCell(row, 5).alignment = { horizontal: 'right' };
         row++;
       });
       if (vals.length > 0) {
         ws.getCell(row, 2).value = `  ${vals.length} Yıllık Ortalama`;
         ws.getCell(row, 2).font = { name: 'Arial', size: 8.5, bold: true };
-        ws.getCell(row, 3).value = Math.round(p.yearlyLitersUsed); ws.getCell(row, 3).numFmt = '#,##0 "Lt"';
-        ws.getCell(row, 3).alignment = { horizontal: 'right' };
+        ws.getCell(row, 4).value = Math.round(p.yearlyLitersUsed); ws.getCell(row, 4).numFmt = '#,##0 "Lt"';
+        ws.getCell(row, 4).alignment = { horizontal: 'right' };
         row++;
       }
     }
@@ -151,13 +160,27 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
   if (r.costValue != null) {
     ws.mergeCells(`B${row}:E${row}`);
     const ccell = ws.getCell(`B${row}`);
-    ccell.value = `MALİYET YAKLAŞIMI (Arsa ${r.costLand.toLocaleString('tr-TR')} + Yapılar ${r.costBuildings.toLocaleString('tr-TR')})`;
+    ccell.value = `MALİYET YAKLAŞIMI — YASAL DURUM (Arsa ${r.costLand.toLocaleString('tr-TR')} + Yapılar ${r.costBuildings.toLocaleString('tr-TR')})`;
     ccell.font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
     ws.getCell(`F${row}`).value = r.costValue;
     ws.getCell(`F${row}`).numFmt = TL;
     ws.getCell(`F${row}`).font = { name: 'Arial', size: 10, bold: true };
     ws.getCell(`F${row}`).alignment = { horizontal: 'right' };
     row++;
+
+    const showMevcutFuelCost = !!input.cost.computeMevcutDurum && (input.cost.mevcutBuildings?.length ?? 0) > 0
+      && r.costCurrent.value != null;
+    if (showMevcutFuelCost) {
+      ws.mergeCells(`B${row}:E${row}`);
+      const mcell = ws.getCell(`B${row}`);
+      mcell.value = `MALİYET YAKLAŞIMI — MEVCUT DURUM (Arsa ${r.costLand.toLocaleString('tr-TR')} + Yapılar ${r.costCurrent.buildings.toLocaleString('tr-TR')})`;
+      mcell.font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
+      ws.getCell(`F${row}`).value = r.costCurrent.value;
+      ws.getCell(`F${row}`).numFmt = TL;
+      ws.getCell(`F${row}`).font = { name: 'Arial', size: 10, bold: true };
+      ws.getCell(`F${row}`).alignment = { horizontal: 'right' };
+      row++;
+    }
   }
   ws.getCell(`B${row}`).value = 'Kapitalizasyon Oranı';
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 9, color: { argb: 'FF5A6774' } };
@@ -175,7 +198,5 @@ export async function downloadFuelExcel(input: FuelInput, r: FuelResult) {
   ws.getCell(`B${row}`).font = { name: 'Arial', size: 7.5, color: { argb: 'FF8C98A5' } };
 
   attachDataSheet(wb, input);
-  const buf = await wb.xlsx.writeBuffer();
-  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  triggerDownload(blob, 'Akaryakit-Gelir-Hesabi.xlsx');
+  return wb;
 }

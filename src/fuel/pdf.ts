@@ -32,15 +32,16 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
 
   sectionTitle('AKARYAKIT SATIŞLARI (KDV HARİÇ)');
   const h = 6.2;
-  const C = [M + 3, M + W * 0.42, M + W * 0.62, M + W * 0.80, PW - M - 3];
+  const C = [M + 3, M + W * 0.32, M + W * 0.48, M + W * 0.66, M + W * 0.82, PW - M - 3];
   doc.setFillColor(...FAINT);
   doc.rect(M, y - 4, W, h, 'F');
   doc.setFont('NTRK', 'bold'); doc.setFontSize(7); doc.setTextColor(...GRAY);
   doc.text('ÜRÜN', C[0], y);
-  doc.text('YILLIK LİTRE', C[1], y, { align: 'right' });
-  doc.text('CİRO', C[2], y, { align: 'right' });
-  doc.text('KAZANÇ %', C[3], y, { align: 'right' });
-  doc.text('NET KAZANÇ', C[4], y, { align: 'right' });
+  doc.text('BİRİM FİYAT', C[1], y, { align: 'right' });
+  doc.text('YILLIK LİTRE', C[2], y, { align: 'right' });
+  doc.text('CİRO', C[3], y, { align: 'right' });
+  doc.text('KAZANÇ %', C[4], y, { align: 'right' });
+  doc.text('NET KAZANÇ', C[5], y, { align: 'right' });
   y += h + 1;
   let z = false;
   for (const p of r.products) {
@@ -48,11 +49,12 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
     z = !z;
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.3); doc.setTextColor(...INK);
     doc.text(p.name, C[0], y);
-    doc.text(Math.round(p.yearlyLitersUsed).toLocaleString('tr-TR') + ' Lt', C[1], y, { align: 'right' });
-    doc.text(tl(p.turnover), C[2], y, { align: 'right' });
-    doc.text('%' + p.profitPct.toLocaleString('tr-TR'), C[3], y, { align: 'right' });
+    doc.text(tl(p.unitPrice) + '/Lt', C[1], y, { align: 'right' });
+    doc.text(Math.round(p.yearlyLitersUsed).toLocaleString('tr-TR') + ' Lt', C[2], y, { align: 'right' });
+    doc.text(tl(p.turnover), C[3], y, { align: 'right' });
+    doc.text('%' + p.profitPct.toLocaleString('tr-TR'), C[4], y, { align: 'right' });
     doc.setFont('NTRK', 'bold'); doc.setTextColor(...GREEN);
-    doc.text(tl(p.net), C[4], y, { align: 'right' });
+    doc.text(tl(p.net), C[5], y, { align: 'right' });
     y += h;
 
     if (p.mode === 'cokyil') {
@@ -62,14 +64,14 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
         if (v <= 0) return;
         doc.setFont('NTRK', 'normal'); doc.setFontSize(7.4); doc.setTextColor(...GRAY);
         doc.text(`  ${labels[i] ?? `${i + 1}. Yıl`}`, C[0] + 2, y);
-        doc.text(Math.round(v).toLocaleString('tr-TR') + ' Lt', C[1], y, { align: 'right' });
-        doc.text(tl(v * p.unitPrice), C[2], y, { align: 'right' });
+        doc.text(Math.round(v).toLocaleString('tr-TR') + ' Lt', C[2], y, { align: 'right' });
+        doc.text(tl(v * p.unitPrice), C[3], y, { align: 'right' });
         y += h - 1.4;
       });
       if (vals.length > 0) {
         doc.setFont('NTRK', 'bold'); doc.setFontSize(7.4); doc.setTextColor(...INK);
         doc.text(`  ${vals.length} Yıllık Ortalama`, C[0] + 2, y);
-        doc.text(Math.round(p.yearlyLitersUsed).toLocaleString('tr-TR') + ' Lt', C[1], y, { align: 'right' });
+        doc.text(Math.round(p.yearlyLitersUsed).toLocaleString('tr-TR') + ' Lt', C[2], y, { align: 'right' });
         y += h - 1.4;
       }
     }
@@ -105,6 +107,19 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
     doc.text(`Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costBuildings)}`, M + halfW + 13, y + 25);
   }
   y += boxH + 6;
+
+  const showMevcutFuelCost = !!input.cost.computeMevcutDurum && (input.cost.mevcutBuildings?.length ?? 0) > 0
+    && r.costCurrent.value != null;
+  if (showMevcutFuelCost) {
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(9); doc.setTextColor(...INK);
+    doc.text('Maliyet Yaklaşımı — Mevcut Durum', M + 3, y);
+    doc.setFont('NTRK', 'bold'); doc.setTextColor(...GREEN);
+    doc.text(tl(r.costCurrent.value!), PW - M - 3, y, { align: 'right' });
+    y += 5.6;
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+    doc.text(`Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costCurrent.buildings)}`, M + 3, y);
+    y += 7;
+  }
 
   doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
   doc.text('Kapitalizasyon Oranı', M + 3, y);

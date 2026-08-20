@@ -396,7 +396,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
         {step === 2 && <Step3 {...P} />}
         {step === 3 && <Step4 {...P} />}
         {step === 4 && <Step5 {...P} />}
-        {isResult && <Result input={input} result={result} version={VERSION} />}
+        {isResult && <Result input={input} result={result} version={VERSION} setInput={setInput} />}
 
         {stop && !isResult && (
           <div className="card blocker">{stop}</div>
