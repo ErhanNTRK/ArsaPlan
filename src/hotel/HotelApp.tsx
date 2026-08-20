@@ -671,10 +671,69 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
           <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix={sym} />
         </Field>
 
+        <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+          <input type="checkbox" checked={!!input.computeMevcutDurum}
+                 onChange={() => setInput((p) => {
+                   if (p.computeMevcutDurum) return { ...p, computeMevcutDurum: false };
+                   const copied = (p.costBuildings ?? []).map((b) => ({ ...b, id: newId() }));
+                   return { ...p, computeMevcutDurum: true, mevcutCostBuildings: copied.length > 0 ? copied : p.mevcutCostBuildings };
+                 })} />
+          <span><b>Mevcut Durum Değeri Hesapla</b> (opsiyonel)</span>
+        </label>
+        <div className="hint" style={{ marginTop: 4 }}>
+          Açarsanız yukarıdaki yapı satırları aşağıya kopyalanır; burada bağımsız olarak değiştirebilir,
+          silebilir veya yeni satır ekleyebilirsiniz. Kapalı kalırsa Mevcut Durum, Yasal Durum ile aynı görünür.
+        </div>
+
+        {input.computeMevcutDurum && (
+          <>
+            <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Yapılar — Mevcut Durum</div>
+            {(input.mevcutCostBuildings ?? []).length > 0 && (
+              <RTable headers={['Yapı Türü', 'Alan m²', 'Birim Maliyet', 'Amortisman %', '']}>
+                {(input.mevcutCostBuildings ?? []).map((b, i) => (
+                  <RRow key={b.id}>
+                    <RCell label="Yapı Türü">
+                      <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
+                           onChange={(v) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                           options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
+                      {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
+                        <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
+                             onChange={(v) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, type: v || 'Diğer' } : x) }))} />
+                      )}
+                    </RCell>
+                    <RCell label="Alan m²">
+                      <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
+                    </RCell>
+                    <RCell label="Birim Maliyet">
+                      <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
+                    </RCell>
+                    <RCell label="Amortisman %">
+                      <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
+                    </RCell>
+                    <RCell label="">
+                      <button type="button" className="b-del" title="Satırı sil" onClick={() => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).filter((_, j) => j !== i) }))}>✕</button>
+                    </RCell>
+                  </RRow>
+                ))}
+              </RTable>
+            )}
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => ({
+              ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
+            }))}>➕ Mevcut Duruma Yapı Ekle</button>
+
+            <Field label="Mevcut Durum için ayrı Şerefiye (opsiyonel)">
+              <Num value={input.mevcutCostGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, mevcutCostGoodwill: n > 0 ? n : null }))} suffix={sym} />
+            </Field>
+          </>
+        )}
+
         {result.cost && (
           <div className="note-box" style={{ marginTop: 10 }}>
             Arsa {fmt(result.cost.landValue)} + Yapılar {fmt(result.cost.buildingsValue)}{result.cost.goodwill > 0 ? ` + Şerefiye ${fmt(result.cost.goodwill)}` : ''} =
-            <b> Maliyet Yaklaşımı Değeri: {fmt(result.cost.totalValueRounded)}</b>
+            <b> Maliyet Yaklaşımı Değeri (Yasal Durum): {fmt(result.cost.totalValueRounded)}</b>
+            {input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0 && (
+              <div style={{ marginTop: 4 }}><b>Maliyet Yaklaşımı Değeri (Mevcut Durum): {fmt(result.cost.current.totalValueRounded)}</b></div>
+            )}
           </div>
         )}
         </details>

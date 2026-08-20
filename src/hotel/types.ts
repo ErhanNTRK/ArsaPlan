@@ -137,6 +137,14 @@ export interface HotelIncomeInput {
   costBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
   /** Şerefiye — konum/ticari potansiyel primi, elle girilen tek tutar. Maliyet Yaklaşımı toplamına eklenir. */
   costGoodwill?: number | null;
+  /**
+   * Mevcut Durum Değeri Hesapla — opsiyonel. Açılırsa Yasal Durum'daki yapı
+   * satırları kopyalanıp bağımsız, düzenlenebilir ikinci bir listeye
+   * dönüşür (Maliyet Yaklaşımı modülüyle aynı desen).
+   */
+  computeMevcutDurum?: boolean;
+  mevcutCostBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
+  mevcutCostGoodwill?: number | null;
   /** PDF'te hangi yöntemlerin gösterileceği (varsayılan hepsi açık) */
   showIncomeInPdf?: boolean;
   showInaInPdf?: boolean;
@@ -223,7 +231,11 @@ export interface HotelIncomeResult {
   /** İNA sonucu (discountRate girilmişse) */
   ina: HotelInaResult | null;
   /** Maliyet Yaklaşımı sonucu (bina/arsa girilmişse) */
-  cost: { landValue: number; buildingsValue: number; goodwill: number; totalValue: number; totalValueRounded: number } | null;
+  cost: {
+    landValue: number; buildingsValue: number; goodwill: number; totalValue: number; totalValueRounded: number;
+    /** Mevcut Durum sonucu — opsiyon kapalıysa Yasal Durum'un birebir kopyası. */
+    current: { buildingsValue: number; goodwill: number; totalValue: number; totalValueRounded: number };
+  } | null;
 
   warnings: HotelWarning[];
   summaryText: string;

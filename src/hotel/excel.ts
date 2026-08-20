@@ -118,11 +118,21 @@ export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelI
   row++;
 
   if (r.cost) {
-    section('MALİYET YAKLAŞIMI DETAYI');
+    const showMevcutCost = !!input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0;
+    section(showMevcutCost ? 'MALİYET YAKLAŞIMI DETAYI — YASAL DURUM' : 'MALİYET YAKLAŞIMI DETAYI');
     kv('Arsa Değeri', cur(r.cost.landValue));
     kv('Yapı Değerleri', cur(r.cost.buildingsValue));
     if (r.cost.goodwill > 0) kv('Şerefiye', cur(r.cost.goodwill));
+    kv('Maliyet Yaklaşımı Değeri', cur(r.cost.totalValueRounded));
     row++;
+    if (showMevcutCost) {
+      section('MALİYET YAKLAŞIMI DETAYI — MEVCUT DURUM');
+      kv('Arsa Değeri', cur(r.cost.landValue));
+      kv('Yapı Değerleri', cur(r.cost.current.buildingsValue));
+      if (r.cost.current.goodwill > 0) kv('Şerefiye', cur(r.cost.current.goodwill));
+      kv('Maliyet Yaklaşımı Değeri', cur(r.cost.current.totalValueRounded));
+      row++;
+    }
   }
 
   section('YILLIK PROJEKSİYON TABLOSU');

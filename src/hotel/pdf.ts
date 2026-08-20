@@ -191,7 +191,8 @@ export async function buildHotelPdf(
   }
 
   if ((input.showCostInPdf ?? true) && r.cost) {
-    sectionTitle('Maliyet Yaklaşımı');
+    const showMevcutCost = !!input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0;
+    sectionTitle(showMevcutCost ? 'Maliyet Yaklaşımı — Yasal Durum' : 'Maliyet Yaklaşımı');
     table(
       ['Kalem', 'Değer'],
       [
@@ -202,6 +203,19 @@ export async function buildHotelPdf(
       ],
       [110, 70],
     );
+    if (showMevcutCost) {
+      sectionTitle('Maliyet Yaklaşımı — Mevcut Durum');
+      table(
+        ['Kalem', 'Değer'],
+        [
+          ['Arsa Değeri', cur(r.cost.landValue)],
+          ['Yapı Değerleri', cur(r.cost.current.buildingsValue)],
+          ...(r.cost.current.goodwill > 0 ? [['Şerefiye', cur(r.cost.current.goodwill)]] : []),
+          ['Maliyet Yaklaşımı Değeri', cur(r.cost.current.totalValueRounded)],
+        ],
+        [110, 70],
+      );
+    }
   }
 
   if (secondary.length > 0) {

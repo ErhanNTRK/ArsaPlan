@@ -223,12 +223,22 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   }, CUR_SYM[input.currency ?? 'TRY'] ?? '₺');
 
   const costLandValue = R((input.costParcelArea ?? 0) * (input.costLandUnitValue ?? 0));
-  const costBuildingsValue = R((input.costBuildings ?? []).reduce((s, b) =>
+  const computeCostBuildings = (rows: typeof input.costBuildings) => R((rows ?? []).reduce((s, b) =>
     s + Math.max(0, b.area) * Math.max(0, b.unitCost) * (b.depreciationPct > 0 ? Math.min(100, b.depreciationPct) / 100 : 1), 0));
+  const costBuildingsValue = computeCostBuildings(input.costBuildings);
   const costGoodwill = Math.max(0, input.costGoodwill ?? 0);
   const costTotal = R(costLandValue + costBuildingsValue + costGoodwill);
+
+  const hasMevcutOverride = !!input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0;
+  const mevcutBuildingsValue = hasMevcutOverride ? computeCostBuildings(input.mevcutCostBuildings) : costBuildingsValue;
+  const mevcutGoodwill = hasMevcutOverride ? Math.max(0, input.mevcutCostGoodwill ?? costGoodwill) : costGoodwill;
+  const mevcutTotal = R(costLandValue + mevcutBuildingsValue + mevcutGoodwill);
+
   const cost = (costLandValue > 0 || costBuildingsValue > 0)
-    ? { landValue: costLandValue, buildingsValue: costBuildingsValue, goodwill: costGoodwill, totalValue: costTotal, totalValueRounded: Math.round(costTotal / 5000) * 5000 }
+    ? {
+        landValue: costLandValue, buildingsValue: costBuildingsValue, goodwill: costGoodwill, totalValue: costTotal, totalValueRounded: Math.round(costTotal / 5000) * 5000,
+        current: { buildingsValue: mevcutBuildingsValue, goodwill: mevcutGoodwill, totalValue: mevcutTotal, totalValueRounded: Math.round(mevcutTotal / 5000) * 5000 },
+      }
     : null;
 
   return {
