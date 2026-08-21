@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ProjectInput, AnalysisResult } from '../engine';
-import { fmtTL, fmtTLm2, fmtM2, fmtPct, fmtNum, Row } from './fields';
+import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
 import { BRAND } from '../brand/brand';
 import { fxLines, fxMoney } from '../export/fx';
@@ -201,13 +201,13 @@ export function Result({ input, result, version, setInput }: {
             <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b></div>
           ) : (
             <>
-              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2(p.area)}</b> → <b>{fmtTLm2(f.landUnitValue)}</b></div>
+              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2Precise(p.area)}</b> → <b>{fmtTLm2(f.landUnitValue)}</b></div>
               <div className="kpi-sub" style={{ marginTop: 2 }}>
-                Net Alan: <b>{fmtM2(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}</b>
+                Net Alan: <b>{fmtM2Precise(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}</b>
               </div>
             </>
           )}
-          {(input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null && (
+          {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null && (
             <div className="kpi-sub" style={{ marginTop: 4 }}>
               İndirgemeli Arsa Değeri ({input.residual.projectMonths} ay · %{((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())}):{' '}
               <b>{fmtTL(f.discountedLandValueRounded)}</b>
@@ -238,8 +238,8 @@ export function Result({ input, result, version, setInput }: {
       {apt ? (
       <div className="card">
         <div className="card-title">Kapasite ve Kat Tablosu</div>
-        <Row label="Parsel Alanı (tapu)" value={fmtM2(p.area)} />
-        <Row label="Net Parsel Alanı" value={fmtM2(p.netArea)} />
+        <Row label="Parsel Alanı (tapu)" value={fmtM2Precise(p.area)} />
+        <Row label="Net Parsel Alanı" value={fmtM2Precise(p.netArea)} />
         <Row label="Hesap Yöntemi" value={apt.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Doğrudan Alan'} />
         {apt.mode === 'taks-kaks' && (
           <>
@@ -275,8 +275,8 @@ export function Result({ input, result, version, setInput }: {
       ) : (
       <div className="card">
         <div className="card-title">Kapasite ve İmar</div>
-        <Row label="Parsel Alanı (tapu)" value={fmtM2(p.area)} />
-        <Row label="Net Parsel Alanı" value={fmtM2(p.netArea)} />
+        <Row label="Parsel Alanı (tapu)" value={fmtM2Precise(p.area)} />
+        <Row label="Net Parsel Alanı" value={fmtM2Precise(p.netArea)} />
         <Row label="TAKS / KAKS" value={`${input.zoning.taks != null ? fmtNum(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? fmtNum(input.zoning.kaks) : '—'}`} />
         <Row label="Taban Oturumu" value={fmtM2(c.footprintArea)} />
         <Row label="Emsale Dahil Alan" value={fmtM2(c.emsalArea)} />
@@ -351,12 +351,12 @@ export function Result({ input, result, version, setInput }: {
         <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`}
              value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
         <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValueRounded)} />
-        {(input.residual.projectMonths ?? 0) > 0 && (
+        {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
           <Row label={`İndirgemeli Kat Karşılığı Değeri (${input.residual.projectMonths} ay · %${((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())})`}
                value={fmtTL(s.discountedShareLandValueRounded)} />
         )}
         <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValueRounded)} />
-        {(input.residual.projectMonths ?? 0) > 0 && (
+        {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
           <Row label="İndirgemeli Gelir Projeksiyonu Değeri" value={fmtTL(f.discountedLandValueRounded)} />
         )}
         <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />

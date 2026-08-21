@@ -575,10 +575,14 @@ export function Step5({ input, upd, setTop }: P) {
 
       <div className="card">
         <div className="card-title">Rapor Görselleri</div>
-        <Field label="PDF'te parsel krokisi ve yapı kesiti"
-               hint="Kroki için KML gerekir; kesit, kat kurgusunun temsili çizimidir (mimari proje değildir).">
-          <Seg value={input.reportVisuals === false ? 'hayir' : 'evet'}
-               onChange={(v) => setTop('reportVisuals', v === 'evet')}
+        <Field label="PDF'te Parsel Krokisi" hint="KML gerekir. TAKS/KAKS modunda taban oturumu temsili bir dikdörtgenle gösterilir.">
+          <Seg value={(input.showParcelSketch ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
+               onChange={(v) => setTop('showParcelSketch', v === 'evet')}
+               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+        </Field>
+        <Field label="PDF'te Yapı Kesiti" hint="Kat kurgusunun temsili çizimidir (mimari proje değildir).">
+          <Seg value={(input.showBuildingSection ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
+               onChange={(v) => setTop('showBuildingSection', v === 'evet')}
                options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
         </Field>
       </div>

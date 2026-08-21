@@ -373,6 +373,10 @@ export interface ProjectInput {
   fx?: FxInput;
   /** Rapor PDF'inde kroki ve yapı kesiti çizilsin mi (varsayılan: evet) */
   reportVisuals?: boolean;
+  /** Yalnız Parsel Krokisi — girilmezse reportVisuals'a düşer (geriye dönük uyumlu). */
+  showParcelSketch?: boolean;
+  /** Yalnız Yapı Kesiti — girilmezse reportVisuals'a düşer (geriye dönük uyumlu). */
+  showBuildingSection?: boolean;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
   reportDate?: string | null;

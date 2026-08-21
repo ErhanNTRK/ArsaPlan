@@ -179,8 +179,8 @@ export function Step4Isletme({ input, upd, setTop }: P) {
         <div className="card-title">Rapor Görselleri</div>
         <Field label="PDF'te parsel krokisi"
                hint="Kroki için Taşınmaz adımında KML yüklenmiş olmalıdır.">
-          <Seg value={input.reportVisuals === false ? 'hayir' : 'evet'}
-               onChange={(v: string) => setTop('reportVisuals', v === 'evet')}
+          <Seg value={(input.showParcelSketch ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
+               onChange={(v: string) => setTop('showParcelSketch', v === 'evet')}
                options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
         </Field>
       </div>

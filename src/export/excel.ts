@@ -31,6 +31,8 @@ const VERDICT_TEXT: Record<string, string> = {
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
 const TLM2 = '#,##0 "₺/m²";[Red]-#,##0 "₺/m²";"–"';
 const M2 = '#,##0 "m²";[Red]-#,##0 "m²";"–"';
+/** Parsel/Tapu alanı gibi tapu kaydından gelen KESİN rakamlar için — 2 ondalık korunur. */
+const M2P = '#,##0.00 "m²";[Red]-#,##0.00 "m²";"–"';
 const PCT = '0.0%;[Red]-0.0%;"–"';
 const NUM2 = '0.00';
 
@@ -190,8 +192,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Net Parsel Alanı', p.netArea, 'm²'],
       ['Değerleme Konusu', 'Ticari İşletme'],
     ]);
-    ws1.getCell(`C${row - 3}`).numFmt = M2;
-    ws1.getCell(`C${row - 2}`).numFmt = M2;
+    ws1.getCell(`C${row - 3}`).numFmt = M2P;
+    ws1.getCell(`C${row - 2}`).numFmt = M2P;
     row++;
 
     row = section(ws1, row, 'YAPILAR');
@@ -331,8 +333,8 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['KAKS / Emsal', input.zoning.kaks ?? '—'],
     ['Hmax', input.zoning.hmax ?? '—'],
   ]);
-  ws1.getCell(`C${row - 9}`).numFmt = M2;
-  ws1.getCell(`C${row - 8}`).numFmt = M2;
+  ws1.getCell(`C${row - 9}`).numFmt = M2P;
+  ws1.getCell(`C${row - 8}`).numFmt = M2P;
   ws1.getCell(`C${row - 3}`).numFmt = NUM2;
   ws1.getCell(`C${row - 2}`).numFmt = NUM2;
   row++;
@@ -528,7 +530,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   if (input.share.enabled) {
   row = section(ws1, row, 'ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
   const shStart = row;
-  const showDiscounted = (input.residual.projectMonths ?? 0) > 0;
+  const showDiscounted = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
   const shareRows: Row[] = [
     ['Arsa Sahibi Payı', s.ownerShare],
     ['Müteahhit Payı', s.contractorShare],
@@ -549,12 +551,6 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ws1.getCell(`B${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
     ws1.getCell(`C${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
   });
-  if (s.gapExplanation) {
-    ws1.getCell(`B${row}`).value = s.gapExplanation;
-    ws1.getCell(`B${row}`).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF8A5A00' } };
-    ws1.mergeCells(`B${row}:F${row}`);
-    row += 1;
-  }
   }
   row += 2;
 

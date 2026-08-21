@@ -53,6 +53,9 @@ export const fmtTLm2 = (v: number) =>
   isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' ₺/m²' : '–';
 export const fmtM2 = (v: number) =>
   isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' m²' : '–';
+/** Parsel/Tapu alanı gibi tapu kaydından gelen KESİN rakamlar için — 2 ondalık korunur, yuvarlanmaz. */
+export const fmtM2Precise = (v: number) =>
+  isFinite(v) ? v.toLocaleString(LOC(), { maximumFractionDigits: 2 }) + ' m²' : '–';
 export const fmtPct = (v: number, d = 1) =>
   isFinite(v) ? '%' + (v * 100).toFixed(d).replace('.', ',') : '–';
 export const fmtNum = (v: number, d = 2) =>

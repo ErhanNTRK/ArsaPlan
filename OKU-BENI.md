@@ -1,47 +1,70 @@
-# ArsaPlan v9.8.0 — TAKS Boşken Otomatik Zemin Kat (Konut 3-8 Katlı ve Karma Kullanım)
+# ArsaPlan v9.9.0 — Acil Düzeltme Turu: İndirgeme, Parsel Alanı, Kroki, Görsel Anahtarları, Banka Notu
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **339/339 test yeşil** ·
-`npm run build` başarılı.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **346/346 test yeşil** ·
+`npm run build` başarılı. Beş kalem, hepsi kodlandı ve test edildi.
 
-## Bir önceki turda eksik kalan kapsam tamamlandı
+## 1. İndirgemeli değer artık yalnız gerçekten indirgenmişse gösteriliyor
 
-v9.7.0'da TAKS boşken otomatik taban oturumu türetmeyi yalnızca **basit
-Villa akışına** eklemiştim — **Konut (3-8 Katlı Bina)** ve **Karma
-Kullanım** akışlarına hiç yansımamıştı, siz bunu test ederken fark ettiniz.
+Önceki hata: "İndirgemeli Değer" satırlarının görünüp görünmeyeceği yalnızca
+**Proje Süresi**'ne bakıyordu, **Yıllık İndirgeme Oranı**'na hiç bakmıyordu.
+Yalnız birini doldurup diğerini boş bırakırsanız, gerçek indirgeme
+uygulanmadığı hâlde "İndirgemeli Değer" diye bir satır çıkıyor, ama sayı
+indirgemesiz değerle birebir aynı oluyordu — kafa karıştırıcıydı. Artık
+kontrol her iki alanı da (`ay > 0 VE oran > 0`) gerektiriyor — hem Kat
+Karşılığı hem Gelir Projeksiyonu tarafında, hem PDF hem Excel hem ekranda.
 
-**Kök neden:** Bu iki akış (`computeApartment`, ortak motor), TAKS'ı
-yalnızca **Zemin Kat**'ın otomatik alanını belirlemek için kullanıyor —
-normal katlar TAKS'tan bağımsız, "satılabilir alan havuzu"ndan
-paylaştırılarak hesaplanıyor. TAKS boşken Zemin Kat'ın otomatik değeri
-sıfır kalıyordu.
+## 2. Parsel Alanı artık tam sayıya yuvarlanmıyor
 
-**Düzeltme:** TAKS girilmemişse, Taban Oturumu (ve Zemin Kat'ın otomatik
-değeri) artık şu formülle türetiliyor:
+10.000,33 m² gibi tapu kaydından gelen kesin bir rakam, önceden "10.000 m²"
+diye tam sayıya yuvarlanıyordu. Yeni bir biçimlendirici (`m2p`/`fmtM2Precise`/
+`M2P`) eklendi — yalnız Parsel Alanı (tapu) ve Net Parsel Alanı için 2
+ondalık korunuyor; diğer (hesaplanan/tahmini) alanlar okunabilirlik için
+hâlâ tam sayıya yuvarlanıyor, bu değişmedi.
 
-```
-Taban Oturumu = Satılabilir Havuz ÷ (1 [Zemin] + Normal Kat Sayısı + Piyes Payı [varsa])
-```
+## 3. Parsel krokisine TAKS/KAKS modunda taban oturumu eklendi
 
-- **Konut (3-8 Katlı Bina) ve Karma Kullanım aynı motoru paylaştığı için
-  tek düzeltme ikisini birden kapsıyor.**
-- TAKS zaten girilen projelerde hiçbir şey değişmiyor.
-- Zemin Kat'ı elle girerseniz bu otomatik öneri hiç devreye girmiyor.
-- Villa akışındaki (v9.7.0) özellik korunuyor, ayrıca değiştirilmedi.
+Daha önce TAKS/KAKS modunda kroki hiçbir zaman bina oturumunu göstermiyordu
+— yalnız "Çekme Mesafesi" modunda çiziliyordu. Artık TAKS/KAKS modunda da,
+taban oturumu m²'si (TAKS'tan ya da otomatik türetilmişse ondan) parselin
+genel oranlarına uygun, ortalanmış temsili bir dikdörtgenle gösteriliyor —
+altına "Taban Oturumu (temsili): X m²" notu düşülüyor. Gerçek mimari
+yerleşim değil, yalnız büyüklük göstergesi olduğu açık.
 
-6 yeni test — biri özellikle "Zemin Kat'ın otomatik alanı artık sıfır
-değil" diye sizin bildirdiğiniz sorunu doğrudan doğruluyor.
+## 4. Parsel Krokisi ve Yapı Kesiti artık ayrı ayrı açılıp kapatılabiliyor
+
+Önceden tek bir "PDF'te parsel krokisi ve yapı kesiti" anahtarı ikisini
+birlikte kontrol ediyordu. Artık iki ayrı anahtar var — yalnız birini
+isteyip diğerini kapatabilirsiniz. Eski taslaklarda (`reportVisuals` hâlâ
+girilmiş, yeni alanlar boşsa) eski davranış korunuyor, geriye dönük uyumlu.
+
+## 5. Tutarsızlık notu artık bankaya giden PDF/Excel'e yazılmıyor
+
+Geçen turda eklediğim "%5 tutarlılık uyarısı" (kat karşılığı oranı ile
+müteahhit kâr oranı arasındaki olası tutarsızlığı açıklayan not), sistemin
+kendi hesaplamasında (ekranda, siz kontrol ederken) kalmaya devam ediyor —
+ama artık PDF ve Excel çıktısına hiç yazılmıyor. Bankaya gönderilecek
+resmi rapor, yalnız sonuç rakamlarını içeriyor.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Yalnızca TAKS boş bırakılmış Konut (3-8 Katlı)/Karma Kullanım projelerini
-etkiler.** TAKS her zaman girildiği projelerde hiçbir şey değişmiyor.
+**Hiçbirinde hesap mantığı değişmedi** — yalnızca gösterim/görünürlük
+düzeltmeleri. Tek davranış değişikliği: yalnız Proje Süresi VEYA yalnız
+İskonto Oranı girip diğerini boş bırakmış olduğunuz raporlarda, artık
+"İndirgemeli Değer" satırı hiç görünmeyecek (önceden yanlışlıkla,
+indirgemesiz değerle aynı sayıyla görünüyordu) — bu raporları gözden
+geçirmek isteyebilirsiniz.
 
 ## Değişen Dosyalar
 
 ```
-src/engine/apartment.ts   Taban oturumu/Zemin Kat otomatik türetme (havuz+kat sayısı formülü)
-src/engine/types.ts       ApartmentCapacity.footprintSuggested
-src/engine/apartman-zemin-otomatik.test.ts   YENİ — 6 test
+src/export/pdf.ts       İndirgeme koşulu, m2p, kroki taban oturumu, ayrı görsel anahtarları, gapExplanation kaldırıldı
+src/export/excel.ts     İndirgeme koşulu, M2P, gapExplanation kaldırıldı
+src/ui/Result.tsx       İndirgeme koşulu, fmtM2Precise
+src/ui/fields.tsx       fmtM2Precise eklendi
+src/ui/Steps.tsx        Parsel Krokisi/Yapı Kesiti ayrı anahtarlar (Konut/Ticari/Karma)
+src/ui/StepsIsletme.tsx showParcelSketch'e geçirildi
+src/engine/types.ts     showParcelSketch, showBuildingSection
+src/engine/acil-5-kalem.test.ts   YENİ — 7 test
 ```
 
 ## Beklemede — henüz karar verilmedi

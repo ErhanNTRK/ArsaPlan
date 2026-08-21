@@ -28,6 +28,8 @@ export const RED: [number, number, number] = [180, 35, 24];
 export const tl = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺';
 export const tlm2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺/m²';
 export const m2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' m²';
+/** Parsel/Tapu alanı gibi tapu kaydından gelen KESİN rakamlar için — 2 ondalık korunur, yuvarlanmaz. */
+export const m2p = (v: number) => v.toLocaleString(LOC(), { maximumFractionDigits: 2 }) + ' m²';
 export const pct = (v: number, d = 1) => '%' + (v * 100).toFixed(d).replace('.', ',');
 const num2 = (v: number) => v.toLocaleString(LOC(), { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -102,7 +104,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(...INK);
     doc.text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`, M + 4, y + 5.6);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
-    doc.text(t(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2(p.area)}`) + ' · ' + (input.zoning.lejant.trim() || t('Lejant girilmedi')), M + 4, y + 10.6);
+    doc.text(t(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2p(p.area)}`) + ' · ' + (input.zoning.lejant.trim() || t('Lejant girilmedi')), M + 4, y + 10.6);
     doc.setFontSize(8.2);
     if (input.showReportDate) {
       const gosterilecekTarih = input.reportDate
@@ -149,7 +151,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (p.area !== p.netArea) {
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.8); doc.setTextColor(...GRAY);
       doc.text(
-        t(`Not: Tapu Alanı ${m2(p.area)} → ${tlm2(f.landUnitValue)}  ·  Net Alan (terk sonrası) ${m2(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}`),
+        t(`Not: Tapu Alanı ${m2p(p.area)} → ${tlm2(f.landUnitValue)}  ·  Net Alan (terk sonrası) ${m2p(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}`),
         M + 2, y,
       );
       y += 6;
@@ -237,6 +239,18 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       if (fp) inner = fp.polygon;
     } else if (k.setback > 0) {
       inner = inwardOffset(k.points, k.setback);
+    } else if (zc.mode === 'taks-kaks' && c.footprintArea > 0) {
+      // TAKS/KAKS modunda gerçek çekme geometrisi yok — Taban Oturumu m²'sini
+      // temsili, parselin genel oranlarına uygun ortalanmış bir dikdörtgenle
+      // gösteriyoruz (gerçek mimari yerleşim değildir).
+      const aspect = spanX / spanY;
+      const h = Math.sqrt(c.footprintArea / aspect);
+      const w = c.footprintArea / h;
+      const cx = minX + spanX / 2, cy = minY + spanY / 2;
+      inner = [
+        { x: cx - w / 2, y: cy - h / 2 }, { x: cx + w / 2, y: cy - h / 2 },
+        { x: cx + w / 2, y: cy + h / 2 }, { x: cx - w / 2, y: cy + h / 2 },
+      ];
     }
     if (inner) draw(inner, [243, 235, 219], GOLD, true);
     // kuzey oku
@@ -251,6 +265,8 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     const parts = [`${t('Parsel Alanı')}: ${p.area.toLocaleString(LOC(), { maximumFractionDigits: 2 })} m²`];
     if (input.zoning.mode === 'cekme') {
       parts.push(`${t('Çekme')}: ${t('ön')} ${input.zoning.cekmeFront.toLocaleString(LOC())} · ${t('yan')} ${input.zoning.cekmeSide.toLocaleString(LOC())} · ${t('arka')} ${input.zoning.cekmeRear.toLocaleString(LOC())} m`);
+    } else if (input.zoning.mode === 'taks-kaks' && c.footprintArea > 0) {
+      parts.push(`Taban Oturumu (temsili): ${m2(c.footprintArea)}`);
     }
     doc.text(parts.join('  ·  '), M + 3, y);
     y += 7;
@@ -259,7 +275,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   /** YAPI KESİTİ — kat genişlikleri alanla orantılı; pencere dizileri, bodrum
    *  taraması ve zemin çizgisiyle mimari kesit diline yaklaşan şematik çizim. */
   function buildingSection() {
-    if (input.reportVisuals === false) return;
+    if ((input.showBuildingSection ?? input.reportVisuals ?? true) === false) return;
     const FH = 5.2;
     type Row = { label: string; kind: string; area: number };
     const rows: Row[] = [];
@@ -529,8 +545,8 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   hero();
 
   section('PARSEL VE İMAR');
-  row('Parsel Alanı (tapu)', m2(p.area));
-  row('Net Parsel Alanı', m2(p.netArea));
+  row('Parsel Alanı (tapu)', m2p(p.area));
+  row('Net Parsel Alanı', m2p(p.netArea));
   row('Plan Lejantı', input.zoning.lejant.trim() || '—');
   row('Hesap Yöntemi', input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Alan Bilgisi Girilerek');
   if (input.zoning.mode === 'cekme') {
@@ -543,7 +559,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   }
   y += 4;
 
-  if (input.reportVisuals !== false) parcelSketch();
+  if ((input.showParcelSketch ?? input.reportVisuals ?? true) !== false) parcelSketch();
   buildingSection();
 
   if (apt) {
@@ -598,7 +614,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
   row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValueRounded), { band: true });
-  if ((input.residual.projectMonths ?? 0) > 0 && f.discountedLandValue != null) {
+  if ((input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null) {
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
         tl(f.discountedLandValue), { bold: true });
   }
@@ -615,15 +631,14 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits > 0 ? s.ownerUnits.toFixed(1) + ' villa · ' : ''}${m2(s.ownerArea)}`);
     row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits > 0 ? s.contractorUnits.toFixed(1) + ' villa · ' : ''}${m2(s.contractorArea)}`);
     row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValueRounded), { bold: true });
-    if ((input.residual.projectMonths ?? 0) > 0) {
+    if ((input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0) {
       row('İndirgemeli Kat Karşılığı Değeri', tl(s.discountedShareLandValueRounded), { bold: true });
     }
     row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValueRounded), { bold: true });
-    if ((input.residual.projectMonths ?? 0) > 0) {
+    if ((input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0) {
       row('İndirgemeli Gelir Projeksiyonu Değeri', tl(f.discountedLandValueRounded), { bold: true });
     }
     row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare));
-    if (s.gapExplanation) paragraph(s.gapExplanation);
     y += 4;
   }
 
