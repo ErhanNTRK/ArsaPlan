@@ -59,6 +59,8 @@ function analyzeApartment(input: ProjectInput, variant: 'konut' | 'karma'): Anal
   /* Finansal motorun beklediği kapasite görünümü — villa alanları nötr */
   const capacity: CapacityResult = {
     footprintArea: apartment.footprintArea,
+    footprintSuggested: false,        // Apartman modu TAKS ihtiyacı duymaz (kat tablosu elle girilir), otomatik türetme burada devreye girmiyor
+    effectiveFloorsAboveGround: null,
     emsalArea: apartment.emsalArea,
     extraArea: apartment.extraSaleableArea,
     atticArea: apartment.areaByKind.piyes,
@@ -105,7 +107,8 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
   const isletme = computeIsletme(input.parcel, input.isletme);
 
   const capacity: CapacityResult = {
-    footprintArea: 0, emsalArea: 0, extraArea: 0, atticArea: 0, basementArea: 0,
+    footprintArea: 0, footprintSuggested: false, effectiveFloorsAboveGround: null,
+    emsalArea: 0, extraArea: 0, atticArea: 0, basementArea: 0,
     emsalConsumedByExtras: 0, aboveGroundArea: 0,
     totalArea: isletme.totalBuildingArea, saleableArea: isletme.totalBuildingArea,
     gardenArea: 0, extraFloorsShare: 0,

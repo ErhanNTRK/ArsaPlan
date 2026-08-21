@@ -234,9 +234,19 @@ function Step3Villa({ input, upd }: P) {
             <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
             {!z.taks && z.kaks != null && (
               <div className="hint" style={{ gridColumn: '1 / -1' }}>
-                TAKS girilmedi — gerçek taban oturumunuz farklıysa TAKS'ı elle girin. Kat alanlarınızı zaten biliyorsanız
-                (mimari projeden), <b>Doğrudan Alan Girişi</b> modunu kullanmanız daha güvenilir sonuç verir.
+                TAKS girilmedi — Kat Sayısı ({v.floorsAboveGround}) ve Emsal Alanından taban oturumu otomatik
+                türetiliyor{c.footprintSuggested ? `: ${Math.round(c.footprintArea).toLocaleString(LOC())} m²` : ''}.
+                Gerçek imar durumunuzdaki TAKS ile teyit edin; isterseniz aşağıya kendi taban oturumunuzu girerek
+                bu öneriyi değiştirebilirsiniz — kat sayısı buna göre otomatik güncellenir.
               </div>
+            )}
+            {!z.taks && z.kaks != null && (
+              <Field label="Taban Oturumu (elle, opsiyonel)"
+                     hint={c.effectiveFloorsAboveGround != null
+                       ? `Emsali tam tüketmek için gereken kat sayısı: ${c.effectiveFloorsAboveGround.toFixed(1)}`
+                       : 'Boş bırakılırsa yukarıdaki önerilen değer kullanılır.'}>
+                <Num value={z.footprintOverride ?? 0} onChange={(val) => upd('zoning', { footprintOverride: val > 0 ? val : null })} suffix="m²" />
+              </Field>
             )}
             {(() => {
               const k = input.parcel.kml;

@@ -54,6 +54,13 @@ export interface Zoning {
   cekmeRear: number;
   cekmeFrontEdge: number | null;
   planNotes: string;
+  /**
+   * TAKS girilmemişse (null), otomatik türetilen taban oturumu önerisini
+   * elle ezmek için kullanılır — girilirse kat sayısı otomatik olarak bu
+   * yeni taban oturumuna göre (emsali tam tüketecek şekilde) yeniden
+   * hesaplanır. TAKS zaten girilmişse hiçbir etkisi yoktur.
+   */
+  footprintOverride?: number | null;
 }
 
 /** Oran ile mi elle mi hesaplansın */
@@ -372,6 +379,18 @@ export interface ProjectInput {
 export interface CapacityResult {
   /** Taban oturumu (m²) */
   footprintArea: number;
+  /**
+   * true ise footprintArea, TAKS girilmediği için Emsal Alanı + Kat
+   * Sayısından OTOMATİK TÜRETİLMİŞ bir öneridir (kullanıcı henüz elle
+   * değiştirmedi) — UI'da bunu ayrıca belirtmek için kullanılır.
+   */
+  footprintSuggested: boolean;
+  /**
+   * Kullanıcı taban oturumu önerisini elle değiştirdiyse (footprintOverride),
+   * emsali tam tüketmek için gereken kat sayısı buraya yazılır (ondalıklı
+   * olabilir) — aksi hâlde null.
+   */
+  effectiveFloorsAboveGround: number | null;
   /** Emsale dahil alan (m²) */
   emsalArea: number;
   /** Emsal dışı satılabilir alan (m²) */

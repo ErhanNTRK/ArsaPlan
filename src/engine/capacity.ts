@@ -17,12 +17,42 @@ export function computeCapacity(
   const direct = zoning.mode === 'dogrudan';
 
   /* ── 1) İmar hakkı ── */
-  const footprintArea = direct
-    ? Math.max(0, zoning.directFootprint)
-    : (zoning.taks != null ? parcel.netArea * zoning.taks : 0);
   const emsalArea = direct
     ? Math.max(0, zoning.directEmsalArea)
     : (zoning.kaks != null ? parcel.netArea * zoning.kaks : 0);
+
+  /* TAKS girilmemişse (ör. imar durumunda yalnız Emsal + Yençok varsa, TAKS
+     hiç belirtilmemişse), kullanıcının girdiği "Kat Sayısı" (villa.floorsAboveGround)
+     ve Emsal Alanı'ndan taban oturumu otomatik türetilir:
+       Taban Oturumu = (Emsal Alanı − çatı katının sabit m² payı varsa)
+                        ÷ (Kat Sayısı + çatı katı oranı [emsale dahil ve oran modundaysa])
+     Kullanıcı önerilen bu değeri (zoning.footprintOverride ile) ELLE değiştirirse,
+     bu sefer TERSİNE çözülür: kat sayısı, girilen yeni taban oturumuyla emsali
+     tam tüketecek şekilde otomatik yeniden hesaplanır (effectiveFloorsAboveGround). */
+  let footprintArea: number;
+  let effectiveFloorsAboveGround: number | null = null;
+  let footprintSuggested = false;
+  if (direct) {
+    footprintArea = Math.max(0, zoning.directFootprint);
+  } else if (zoning.taks != null) {
+    footprintArea = parcel.netArea * zoning.taks;
+  } else if (emsalArea > 0 && villa.floorsAboveGround > 0) {
+    const desiredFloors = Math.max(1, Math.round(villa.floorsAboveGround));
+    const atticFactorOran = (emsal.hasAttic && emsal.atticInEmsal && emsal.atticMode === 'oran') ? Math.max(0, emsal.atticRate) : 0;
+    const atticFixed = (emsal.hasAttic && emsal.atticInEmsal && emsal.atticMode === 'manuel') ? Math.max(0, emsal.atticArea) : 0;
+    const emsalNetOfFixedAttic = Math.max(0, emsalArea - atticFixed);
+    if (zoning.footprintOverride != null && zoning.footprintOverride > 0) {
+      footprintArea = zoning.footprintOverride;
+      effectiveFloorsAboveGround = atticFactorOran > 0
+        ? safeDiv(emsalNetOfFixedAttic, footprintArea) - atticFactorOran
+        : safeDiv(emsalNetOfFixedAttic, footprintArea);
+    } else {
+      footprintArea = safeDiv(emsalNetOfFixedAttic, desiredFloors + atticFactorOran);
+      footprintSuggested = true;
+    }
+  } else {
+    footprintArea = 0;
+  }
 
   if (emsalArea <= 0) {
     warnings.push(direct
@@ -32,7 +62,23 @@ export function computeCapacity(
   if (footprintArea <= 0) {
     warnings.push(direct
       ? 'Taban oturumu girilmedi; çatı katı oranı ve bahçe alanı hesaplanamıyor.'
-      : 'TAKS girilmediği için taban oturumu hesaplanamıyor.');
+      : (zoning.taks != null
+          ? 'TAKS girilmediği için taban oturumu hesaplanamıyor.'
+          : 'TAKS girilmedi ve Kat Sayısı (0) belirtilmedi; taban oturumu otomatik türetilemiyor — Kat Sayısı alanını doldurun.'));
+  }
+  if (footprintSuggested) {
+    warnings.push(
+      `Taban oturumu, TAKS girilmediği için Emsal Alanı ve girdiğiniz Kat Sayısından (${Math.max(1, Math.round(villa.floorsAboveGround))}) ` +
+      `otomatik türetildi: ${m2(footprintArea)}. Gerçek imar durumunuzdaki TAKS ile teyit edin; isterseniz ` +
+      `"Taban Oturumu (elle)" alanına kendi değerinizi girerek bu öneriyi değiştirebilirsiniz.`,
+    );
+  }
+  if (effectiveFloorsAboveGround != null) {
+    warnings.push(
+      `Taban oturumunu elle ${m2(footprintArea)} olarak değiştirdiniz — emsali tam tüketmek için gereken kat ` +
+      `sayısı buna göre otomatik ${effectiveFloorsAboveGround.toFixed(1)} kata güncellendi (girdiğiniz ` +
+      `${Math.max(1, Math.round(villa.floorsAboveGround))} kat yerine).`,
+    );
   }
 
   /* ── 2) Emsal dışı satılabilir alan (emsale dahil alanın yüzdesi) ── */
@@ -81,7 +127,9 @@ export function computeCapacity(
   const unitCount = Math.max(0, Math.floor(villa.unitCount));
   const areaPerUnit = unitCount > 0 ? safeDiv(totalArea, unitCount) : 0;
 
-  const floorsAboveGround = Math.max(1, Math.round(villa.floorsAboveGround));
+  const floorsAboveGround = effectiveFloorsAboveGround != null
+    ? Math.max(1, Math.round(effectiveFloorsAboveGround))
+    : Math.max(1, Math.round(villa.floorsAboveGround));
   const usableAboveGround = Math.max(0, aboveGroundArea);
   const areaPerFloor = safeDiv(usableAboveGround, floorsAboveGround);
   const floorFits = footprintArea <= 0 || areaPerFloor <= footprintArea + 0.5;
@@ -98,7 +146,7 @@ export function computeCapacity(
   }
 
   return {
-    footprintArea, emsalArea, extraArea, atticArea, basementArea,
+    footprintArea, footprintSuggested, effectiveFloorsAboveGround, emsalArea, extraArea, atticArea, basementArea,
     emsalConsumedByExtras, aboveGroundArea: usableAboveGround,
     totalArea, saleableArea, gardenArea, extraFloorsShare,
     unitCount, areaPerUnit, floorsAboveGround, areaPerFloor, floorFits, minFloorsNeeded,
