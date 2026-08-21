@@ -1,45 +1,47 @@
-# ArsaPlan v9.7.0 — TAKS Boşken Otomatik Taban Oturumu Türetme
+# ArsaPlan v9.8.0 — TAKS Boşken Otomatik Zemin Kat (Konut 3-8 Katlı ve Karma Kullanım)
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **333/333 test yeşil** ·
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **339/339 test yeşil** ·
 `npm run build` başarılı.
 
-## TAKS girilmemişse, taban oturumu artık otomatik türetiliyor
+## Bir önceki turda eksik kalan kapsam tamamlandı
 
-Daha önce TAKS boş bırakılırsa taban oturumu sıfır kalıyordu, yalnız bir
-uyarı çıkıyordu — hesap orada tıkanıyordu. Artık:
+v9.7.0'da TAKS boşken otomatik taban oturumu türetmeyi yalnızca **basit
+Villa akışına** eklemiştim — **Konut (3-8 Katlı Bina)** ve **Karma
+Kullanım** akışlarına hiç yansımamıştı, siz bunu test ederken fark ettiniz.
 
-- **Kat Sayısı** (zaten var olan, "kaç kat üstü yapı" alanı) ve **Emsal
-  Alanı**'ndan taban oturumu otomatik hesaplanıyor. Çatı katı emsale dahil
-  ve oranlıysa (varsayılan davranış), formül buna göre ayarlanıyor:
-  `Taban Oturumu = Emsal Alanı ÷ (Kat Sayısı + Çatı Katı Oranı)`.
-- Ekranda bu önerilen değer ve nereden geldiği açıkça gösteriliyor.
-- **Yeni "Taban Oturumu (elle, opsiyonel)" alanı** eklendi — önerilen
-  değeri beğenmezseniz kendi rakamınızı girebilirsiniz. Girdiğinizde,
-  **Kat Sayısı emsali tam tüketecek şekilde otomatik yeniden hesaplanıyor**
-  (örn. önerilen 1.000 m²'yi 900 m²'ye çekerseniz, gereken kat sayısı
-  otomatik artıyor) — ekranda bu yeni kat sayısı da gösteriliyor.
-- TAKS zaten giriliyorsa hiçbir şey değişmiyor, bu özellik yalnız TAKS boş
-  bırakıldığında devreye giriyor.
+**Kök neden:** Bu iki akış (`computeApartment`, ortak motor), TAKS'ı
+yalnızca **Zemin Kat**'ın otomatik alanını belirlemek için kullanıyor —
+normal katlar TAKS'tan bağımsız, "satılabilir alan havuzu"ndan
+paylaştırılarak hesaplanıyor. TAKS boşken Zemin Kat'ın otomatik değeri
+sıfır kalıyordu.
 
-Denizli/Merkefendi/Çakmak örneğinizin gerçek sayılarıyla (10.000,33 m²
-parsel, Emsal 1,45, 12 kat, %35 çatı oranı) test edildi — elle
-hesapladığımız sonuçla birebir örtüşüyor. 7 yeni test.
+**Düzeltme:** TAKS girilmemişse, Taban Oturumu (ve Zemin Kat'ın otomatik
+değeri) artık şu formülle türetiliyor:
+
+```
+Taban Oturumu = Satılabilir Havuz ÷ (1 [Zemin] + Normal Kat Sayısı + Piyes Payı [varsa])
+```
+
+- **Konut (3-8 Katlı Bina) ve Karma Kullanım aynı motoru paylaştığı için
+  tek düzeltme ikisini birden kapsıyor.**
+- TAKS zaten girilen projelerde hiçbir şey değişmiyor.
+- Zemin Kat'ı elle girerseniz bu otomatik öneri hiç devreye girmiyor.
+- Villa akışındaki (v9.7.0) özellik korunuyor, ayrıca değiştirilmedi.
+
+6 yeni test — biri özellikle "Zemin Kat'ın otomatik alanı artık sıfır
+değil" diye sizin bildirdiğiniz sorunu doğrudan doğruluyor.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Yalnızca TAKS boş bırakılmış projeleri etkiler.** TAKS her zaman
-girildiği (mevcut kullanımınızın büyük kısmı) hiçbir mevcut rapor
-değişmiyor — bu, yalnızca önceden "hesaplanamıyor" diye tıkanan bir
-senaryoyu artık çalışır hâle getiriyor.
+**Yalnızca TAKS boş bırakılmış Konut (3-8 Katlı)/Karma Kullanım projelerini
+etkiler.** TAKS her zaman girildiği projelerde hiçbir şey değişmiyor.
 
 ## Değişen Dosyalar
 
 ```
-src/engine/types.ts      Zoning.footprintOverride, CapacityResult.footprintSuggested/effectiveFloorsAboveGround
-src/engine/capacity.ts   Otomatik türetme + elle geçersiz kılma mantığı
-src/engine/index.ts      İki hardcoded CapacityResult güncellendi (apartman/işletme hatları)
-src/engine/taks-otomatik-turetme.test.ts   YENİ — 7 test
-src/ui/Steps.tsx         "Taban Oturumu (elle)" alanı + güncellenmiş yönlendirici not
+src/engine/apartment.ts   Taban oturumu/Zemin Kat otomatik türetme (havuz+kat sayısı formülü)
+src/engine/types.ts       ApartmentCapacity.footprintSuggested
+src/engine/apartman-zemin-otomatik.test.ts   YENİ — 6 test
 ```
 
 ## Beklemede — henüz karar verilmedi

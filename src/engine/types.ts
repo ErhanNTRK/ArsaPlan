@@ -194,6 +194,8 @@ export interface AptFloor {
 export interface ApartmentCapacity {
   mode: ZoningMode;
   footprintArea: number;
+  /** TAKS girilmediği için taban oturumu havuz+kat sayısından otomatik türetildiyse true */
+  footprintSuggested: boolean;
   emsalArea: number;
   /** İlave (emsal dışı) satılabilir alan */
   extraSaleableArea: number;

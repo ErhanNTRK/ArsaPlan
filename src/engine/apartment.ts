@@ -38,6 +38,7 @@ import type {
 
 const R = Math.round;
 const m2 = (v: number) => `${R(v).toLocaleString('tr-TR')} m²`;
+const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
 
 /** Hmax → zemin dahil kat adedi. 6,50→2 … 24,50→8; ara değerler aşağı yuvarlanır. */
 export function floorsFromHmax(hmax: number | null): number | null {
@@ -166,7 +167,7 @@ function computeCekme(
   }
 
   return {
-    mode: 'cekme', footprintArea: R(footprintArea), emsalArea: 0,
+    mode: 'cekme', footprintArea: R(footprintArea), footprintSuggested: false, emsalArea: 0,
     extraSaleableArea: 0, saleablePool: 0, poolRemainder: 0,
     floors, totalArea, saleableTotal,
     saleableByKind: byKind((f) => f.saleable), areaByKind: byKind((f) => f.area),
@@ -195,18 +196,11 @@ export function computeApartment(
 
   const direct = zoning.mode === 'dogrudan';
 
-  /* ── İmar hakkı ── */
-  const footprintArea = direct
-    ? 0
-    : (zoning.taks != null ? parcel.netArea * zoning.taks : 0);
+  /* ── İmar hakkı: Emsal (KAKS) ve havuz — taban oturumundan ÖNCE hesaplanır,
+     çünkü TAKS boşken taban oturumu bunlardan türetilecek. ── */
   const emsalArea = direct
     ? 0
     : (zoning.kaks != null ? parcel.netArea * zoning.kaks : 0);
-
-  if (!direct && emsalArea <= 0) warnings.push('KAKS girilmediği için satılabilir alan havuzu hesaplanamıyor.');
-  if (!direct && footprintArea <= 0) warnings.push('TAKS girilmediği için taban oturumu hesaplanamıyor.');
-
-  /* ── İlave (emsal dışı) satılabilir alan → gizli havuz ── */
   const extraSaleableArea = direct || !apt.hasExtraSaleable ? 0
     : apt.extraMode === 'oran'
       ? R(emsalArea * Math.max(0, apt.extraRate))
@@ -222,6 +216,42 @@ export function computeApartment(
       : direct ? 3 : Math.max(1, (derivedFloorsFromHmax ?? 4) - 1));
 
   const basementCount = Math.min(8, Math.max(0, Math.round(apt.basementCount)));
+
+  /* ── Taban oturumu ── TAKS girilmişse doğrudan ondan; girilmemişse (ve
+     Doğrudan mod değilse), Zemin Kat'ın otomatik değerinin sıfır kalmaması
+     için, satılabilir havuzun katlar arasında NASIL paylaştırılacağı
+     mantığıyla TUTARLI bir taban oturumu öneriliyor:
+       Taban Oturumu = Havuz ÷ (1[Zemin] + Normal Kat Sayısı + Piyes payı)
+     Kullanıcı Zemin Kat'ı elle girerse (apt.zeminArea) bu öneri zaten hiç
+     kullanılmaz — yalnız otomatik değerin sıfır yerine anlamlı bir sayı
+     olmasını sağlıyoruz. */
+  let footprintArea: number;
+  let footprintSuggested = false;
+  if (direct) {
+    footprintArea = 0;
+  } else if (zoning.taks != null) {
+    footprintArea = parcel.netArea * zoning.taks;
+  } else if (saleablePool > 0) {
+    const piyesUnits = (apt.hasPiyes && apt.piyesInEmsal) ? Math.max(0, apt.piyesRate) : 0;
+    footprintArea = safeDiv(saleablePool, 1 + normalFloorCount + piyesUnits);
+    footprintSuggested = true;
+  } else {
+    footprintArea = 0;
+  }
+
+  if (!direct && emsalArea <= 0) warnings.push('KAKS girilmediği için satılabilir alan havuzu hesaplanamıyor.');
+  if (!direct && footprintArea <= 0) {
+    warnings.push(zoning.taks != null
+      ? 'TAKS girilmediği için taban oturumu hesaplanamıyor.'
+      : 'TAKS girilmedi ve satılabilir havuz/kat sayısı henüz belirlenemediği için taban oturumu otomatik türetilemiyor.');
+  }
+  if (footprintSuggested && footprintArea > 0) {
+    warnings.push(
+      `Taban Oturumu (ve Zemin Kat'ın otomatik değeri), TAKS girilmediği için satılabilir havuz ve kat ` +
+      `sayısından (${normalFloorCount} normal + zemin) otomatik türetildi: ${m2(footprintArea)}. Gerçek imar ` +
+      `durumunuzdaki TAKS ile teyit edin; Zemin Kat alanını elle girerseniz bu öneri geçersiz olur.`,
+    );
+  }
 
   const floors: AptFloor[] = [];
 
@@ -426,6 +456,7 @@ export function computeApartment(
   return {
     mode: zoning.mode,
     footprintArea: direct ? (groundFloor?.area ?? 0) : footprintArea,
+    footprintSuggested: direct ? false : footprintSuggested,
     emsalArea, extraSaleableArea, saleablePool, poolRemainder,
     floors, totalArea, saleableTotal, saleableByKind, areaByKind, bodrumSaleableByUse,
     normalFloorCount, derivedFloorsFromHmax, gardenArea, warnings,
