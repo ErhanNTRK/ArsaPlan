@@ -111,6 +111,16 @@ export interface HotelProjectionInput {
   capRate: number;            // Kapitalizasyon Oranı (Direkt Kapitalizasyon)
   /** İNA terminal kapitalizasyon oranı (null → capRate kullanılır) */
   terminalCapRate: number | null;
+  /**
+   * Uzun vadeli/terminal büyüme oranı (opsiyonel) — İKİ AŞAMALI BÜYÜME.
+   * Boş bırakılırsa mevcut davranış korunur: projeksiyon (incomeGrowthRate)
+   * sonsuza kadar sürüyormuş gibi terminal değer hesaplanır. Doldurulursa,
+   * terminal değer bu daha mütevazı, uzun vadede sürdürülebilir oranla
+   * hesaplanır — 10 yıl boyunca yüksek büyüyen ama sonsuza kadar aynı hızda
+   * büyümeyen gerçekçi bir otel senaryosunu temsil eder (RICS/Appraisal
+   * Institute pratiğiyle uyumlu).
+   */
+  longTermGrowthRate?: number | null;
   /** İNA iskonto oranı = risksiz + risk primi (null → İNA hesaplanmaz) */
   discountRate: number | null;
   /** İskonto bileşenleri (yalnız gösterim/öneri; discountRate esas) */
@@ -136,6 +146,17 @@ export interface HotelIncomeInput {
   costLandUnitValue?: number;
   costBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
   /** Şerefiye — konum/ticari potansiyel primi, elle girilen tek tutar. Maliyet Yaklaşımı toplamına eklenir. */
+  /** Bu otel henüz açılmamış/yeni mi? Evet ise oturma (ramp-up) dönemi ve
+   * bugüne indirgeme uygulanır — bkz. buildRampSchedule, applyStabilizationDiscount. */
+  isNewHotel?: boolean;
+  /** Oturma (stabilizasyon) süresi, yıl — varsayılan 3. Yalnız isNewHotel=true iken kullanılır. */
+  stabilizationYears?: number;
+  /**
+   * Şerefiye/Düzeltme/Çevre Düzenlemesi türü — Maliyet Yaklaşımı modülüyle
+   * aynı desen. Girilmemişse (eski taslaklar için) geriye dönük uyumluluk
+   * amacıyla costGoodwill > 0 ise yine uygulanır.
+   */
+  costAdjustmentType?: 'none' | 'serefiye' | 'duzeltme' | 'peyzaj';
   costGoodwill?: number | null;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
@@ -197,6 +218,11 @@ export interface HotelInaResult {
    * Fark küçükse null.
    */
   gapExplanation: string | null;
+  /**
+   * İskonto ve büyüme oranlarının birlikte piyasada gözlemlenmeyen bir
+   * kapitalizasyon oranı ima etmesi durumunda gösterilen uyarı (Kalem 1).
+   */
+  plausibilityWarning: string | null;
 }
 
 export interface HotelProjectionYear {
@@ -228,6 +254,12 @@ export interface HotelIncomeResult {
   totalExpense: number;
   noi: number;
   capitalizedValue: number;
+  /**
+   * Yeni/henüz açılmamış otel için, Direkt Kap'ın (capitalizedValue)
+   * oturma süresi kadar bugüne indirgenmiş hâli. isNewHotel=false ya da
+   * iskonto oranı girilmemişse null.
+   */
+  prospectiveValue: number | null;
 
   performance: HotelPerformanceIndicators;
   projectionTable: HotelProjectionYear[];

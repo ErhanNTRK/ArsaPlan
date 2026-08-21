@@ -88,6 +88,21 @@ export function computeCapitalizedValue(noi: number, capRate: number): number {
   return R(noi / capRate);
 }
 
+/**
+ * Yeni/henüz açılmamış bir otel, hedef dolulukları ilk günden itibaren
+ * yakalamaz — kademeli olarak "oturur". Her yıl, hedefe olan kalan mesafenin
+ * yarısını kapatan bir formül kullanıyoruz (1 − 0,5^k): 3 yıllık bir
+ * oturma süresi için bu, gerçek bir banka raporunda gördüğümüz %50 → %75 →
+ * %100 kademesini birebir üretir. stabilizationYears farklı girilirse aynı
+ * mantık genelleşir.
+ */
+export function buildRampSchedule(stabilizationYears: number): number[] {
+  const n = Math.max(1, Math.round(stabilizationYears));
+  const schedule: number[] = [];
+  for (let k = 1; k < n; k++) schedule.push(1 - Math.pow(0.5, k));
+  return schedule; // son eleman n. yıldan itibaren örtük olarak 1.0 (tam hedef)
+}
+
 /* ─────────────────── Yıllık Projeksiyon Tablosu ─────────────────── */
 /**
  * baseExpenseRate: 1. yıl için Toplam Gelir üzerinden uygulanan sabit gider oranı.
@@ -96,17 +111,23 @@ export function computeCapitalizedValue(noi: number, capRate: number): number {
  */
 export function computeProjection(
   baseRevenue: number, baseExpenseRate: number, input: HotelIncomeInput['projection'],
+  rampSchedule?: number[] | null,
 ): HotelProjectionYear[] {
   const table: HotelProjectionYear[] = [];
   const years = Math.max(3, Math.min(25, Math.round(input.years)));
   const z = (v: number) => (Object.is(v, -0) ? 0 : v);
   /* Gider, 1. yıl TUTARI üzerinden bileşik büyür (oran değil). Böylece gelir ve
      gider aynı oranda artarsa gider/gelir oranı sabit kalır ve NOI aynı oranda
-     büyür; gider artışı gelirden yüksekse marj gerçekçi biçimde daralır. */
+     büyür; gider artışı gelirden yüksekse marj gerçekçi biçimde daralır.
+     NOT: oturma (ramp-up) dönemindeki gider TUTARI kasıtlı olarak indirilmiyor
+     — sabit maliyetlerin (personel, enerji altyapısı) düşük dolulukta bile
+     büyük ölçüde devam etmesi gerçekçi bir varsayımdır; bu, oturma yıllarında
+     marjın gerçekçi biçimde daha ince çıkmasını sağlar. */
   const baseExpense = baseRevenue * Math.min(1, Math.max(0, baseExpenseRate));
   const renewalRate = Math.max(0, input.renewalFundRate ?? 0);
   for (let i = 1; i <= years; i++) {
-    const revenue = baseRevenue * Math.pow(1 + input.incomeGrowthRate, i - 1);
+    const rampFactor = rampSchedule && i <= rampSchedule.length ? rampSchedule[i - 1] : 1;
+    const revenue = baseRevenue * Math.pow(1 + input.incomeGrowthRate, i - 1) * rampFactor;
     const opExpense = baseExpense * Math.pow(1 + input.expenseGrowthRate, i - 1);
     const renewalFund = R(revenue * renewalRate);
     const expense = opExpense + renewalFund;
@@ -213,8 +234,21 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
 
   const performance = computePerformanceIndicators(roomCalc.rows);
 
-  const projectionTable = computeProjection(totalGrossRevenue, input.opex.expenseRate, input.projection);
+  const stabilizationYears = Math.max(1, Math.round(input.stabilizationYears ?? 3));
+  const rampSchedule = input.isNewHotel ? buildRampSchedule(stabilizationYears) : null;
+  const projectionTable = computeProjection(totalGrossRevenue, input.opex.expenseRate, input.projection, rampSchedule);
   const ina = computeIna(projectionTable, input.projection, capitalizedValue);
+
+  /**
+   * Yeni/henüz açılmamış bir otelde, "bugünkü" NOI hedef dolulukla hesaplanan
+   * bir gelecek değeri temsil eder — otel henüz o gelire ulaşmadı. Direkt
+   * Kap'ın (capitalizedValue) bugünkü karşılığını bulmak için, oturma
+   * süresi kadar iskonto oranıyla bugüne çekiyoruz. İskonto oranı
+   * girilmemişse (İNA hesaplanmıyorsa) indirgeme yapılamaz, null kalır.
+   */
+  const prospectiveValue = (input.isNewHotel && input.projection.discountRate)
+    ? R(capitalizedValue / Math.pow(1 + input.projection.discountRate, stabilizationYears))
+    : null;
 
   const warnings = buildWarnings(input, { totalRoomRevenue: roomCalc.total, totalGrossRevenue, noi });
   const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
@@ -226,7 +260,12 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const computeCostBuildings = (rows: typeof input.costBuildings) => R((rows ?? []).reduce((s, b) =>
     s + Math.max(0, b.area) * Math.max(0, b.unitCost) * (b.depreciationPct > 0 ? Math.min(100, b.depreciationPct) / 100 : 1), 0));
   const costBuildingsValue = computeCostBuildings(input.costBuildings);
-  const costGoodwill = Math.max(0, input.costGoodwill ?? 0);
+  // Geriye dönük uyumluluk: costAdjustmentType hiç girilmemişse (eski
+  // taslaklar), eski davranış korunur — costGoodwill > 0 ise uygulanır.
+  const hasAdjustment = input.costAdjustmentType != null
+    ? input.costAdjustmentType !== 'none'
+    : (input.costGoodwill ?? 0) > 0;
+  const costGoodwill = hasAdjustment ? Math.max(0, input.costGoodwill ?? 0) : 0;
   const costTotal = R(costLandValue + costBuildingsValue + costGoodwill);
 
   const hasMevcutOverride = !!input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0;
@@ -255,6 +294,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     totalExpense,
     noi,
     capitalizedValue: Math.round(capitalizedValue / 5000) * 5000,
+    prospectiveValue: prospectiveValue != null ? Math.round(prospectiveValue / 5000) * 5000 : null,
     performance,
     projectionTable,
     ina,
@@ -300,6 +340,33 @@ export function newId(): string {
  * Golden (banka Excel'i): NOI₁ 385.257,6 · artış %3 · iskonto %11 (7,5+3,5) ·
  * terminal %10 · bakım 5. yıl 130.867,2 → NBD 4.229.084,21.
  */
+/**
+ * İskonto oranı ile büyüme oranının BİRLİKTE piyasada gözlemlenen bir cap
+ * rate ima edip etmediğini kontrol eder (Gordon kimliği: cap = iskonto −
+ * büyüme). Bu, explainInaVsDirectGap'ten farklı — o iki SONUCUN (İNA/Direkt
+ * Kap) sayısal farkına bakar, bu ise GİRDİLERİN kendisinin piyasada
+ * anlamlı bir kapitalizasyon oranı ima edip etmediğine bakar; girdiler
+ * "tesadüfen" yakın bir İNA/Direkt Kap sonucu verse bile ima edilen cap
+ * rate saçma olabilir.
+ */
+export function checkImpliedCapPlausibility(
+  discountRate: number, growthRate: number, minCap = 0.05, maxCap = 0.25,
+): string | null {
+  const pct = (v: number) => (v * 100).toFixed(1).replace('.', ',');
+  const implied = discountRate - growthRate;
+  if (implied <= 0) {
+    return `İskonto oranınız (%${pct(discountRate)}) büyüme oranınıza (%${pct(growthRate)}) eşit ya da ` +
+      `düşük — bu, matematiksel olarak sonsuz ya da negatif bir terminal değer ima eder, sonuç güvenilir değildir. ` +
+      `İskonto oranını büyüme oranından yüksek tutun.`;
+  }
+  if (implied < minCap || implied > maxCap) {
+    return `İskonto ve büyüme oranlarınız birlikte %${pct(implied)} gibi piyasada nadiren gözlemlenen bir ` +
+      `kapitalizasyon oranı ima ediyor (makul aralık: %${(minCap * 100).toFixed(0)}-${(maxCap * 100).toFixed(0)}). ` +
+      `Bu, girdilerin birbiriyle tutarsız olabileceğine işaret eder — iskonto ve büyüme oranlarınızı gözden geçirin.`;
+  }
+  return null;
+}
+
 export function computeIna(
   table: import('./types').HotelProjectionYear[],
   p: import('./types').HotelProjectionInput,
@@ -309,14 +376,18 @@ export function computeIna(
   if (i == null || i <= 0 || table.length === 0) return null;
   const termCap = (p.terminalCapRate ?? p.capRate) || 0;
   const lastNoi = table[table.length - 1].noi;
-  // Bir sonraki (projeksiyon ötesi ilk) yılın NOI'sini, son iki yılın büyüme
-  // oranını kullanarak tahmin ediyoruz; tablo tek yıllıksa gelir artış oranını
-  // kullanırız (computeProjection'daki incomeGrowthRate ile tutarlı).
+  // Bir sonraki (projeksiyon ötesi ilk) yılın NOI'sini hesaplıyoruz:
+  // - longTermGrowthRate girilmişse (İKİ AŞAMALI BÜYÜME), o daha mütevazı,
+  //   sürdürülebilir oran kullanılır — terminal değer artık projeksiyonun
+  //   yüksek büyüme hızıyla sonsuza kadar şişmez.
+  // - girilmemişse eski davranış korunur: son iki yılın NOI'sinden
+  //   türetilen büyüme (tablo tek yıllıksa incomeGrowthRate).
   const secondLastNoi = table.length >= 2 ? table[table.length - 2].noi : null;
-  const impliedGrowth = secondLastNoi != null && secondLastNoi > 0
+  const shortTermImpliedGrowth = secondLastNoi != null && secondLastNoi > 0
     ? (lastNoi - secondLastNoi) / secondLastNoi
     : (p.incomeGrowthRate ?? 0);
-  const nextYearNoi = lastNoi * (1 + impliedGrowth);
+  const terminalGrowth = p.longTermGrowthRate ?? shortTermImpliedGrowth;
+  const nextYearNoi = lastNoi * (1 + terminalGrowth);
   const terminalValue = termCap > 0 ? nextYearNoi / termCap : 0;
   const maintInterval = Math.max(0, Math.round(p.maintenanceYear ?? 0));
   const maintBaseAmt = Math.max(0, p.maintenanceAmount ?? 0);
@@ -337,7 +408,8 @@ export function computeIna(
   const gapExplanation = directCapValue != null
     ? explainInaVsDirectGap(directCapValue, npv, p.capRate, p.incomeGrowthRate ?? 0, i)
     : null;
-  return { cashFlows, terminalValue, npv, gapExplanation };
+  const plausibilityWarning = checkImpliedCapPlausibility(i, terminalGrowth);
+  return { cashFlows, terminalValue, npv, gapExplanation, plausibilityWarning };
 }
 
 /**

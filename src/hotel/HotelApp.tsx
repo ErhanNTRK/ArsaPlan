@@ -258,6 +258,50 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
           )}
         </div>
         <Field label="Adres"><Txt value={general.address} onChange={(v) => setGeneral({ address: v })} placeholder="Açık adres" /></Field>
+        <label className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer', marginTop: 8 }}>
+          KML Yükle (İl/İlçe/Mahalle/Ada/Parsel/Arsa Alanı otomatik)
+          <input type="file" accept=".kml" hidden onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            try {
+              const parsed = parseKml(await f.text());
+              if (parsed) {
+                setGeneral({
+                  il: parsed.il || general.il, ilce: parsed.ilce || general.ilce,
+                  mahalle: parsed.mahalle || general.mahalle, ada: parsed.ada || general.ada,
+                  parsel: parsed.parsel || general.parsel,
+                });
+                if (parsed.deedArea > 0) {
+                  setInput((p) => ({ ...p, costParcelArea: Math.round(parsed.deedArea), costFromKml: true }));
+                }
+              }
+            } catch { /* yok say */ }
+            e.currentTarget.value = '';
+          }} />
+        </label>
+        <div className="hint" style={{ marginTop: 4 }}>
+          TKGM Parsel Sorgu'dan indirdiğiniz KML dosyasını yükleyin — taşınmaz kimliği alanları ve (Maliyet
+          Yaklaşımı açıksa) arsa alanı otomatik doldurulur.
+        </div>
+        <div className="hrow-labeled" style={{ marginTop: 10 }}>
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <input type="checkbox" checked={!!input.isNewHotel}
+                   onChange={(e) => setInput((p) => ({ ...p, isNewHotel: e.target.checked }))} />
+            <span><b>Bu otel yeni mi?</b> (henüz açılmamış/inşa hâlinde)</span>
+          </label>
+          {input.isNewHotel && (
+            <label className="pfield pfield--s" title="Otelin hedef dolulukları yakalaması beklenen yıl sayısı">
+              <span>Oturma Süresi (yıl)</span>
+              <Num value={input.stabilizationYears ?? 3} onChange={(n) => setInput((p) => ({ ...p, stabilizationYears: Math.max(1, Math.round(n || 3)) }))} />
+            </label>
+          )}
+        </div>
+        {input.isNewHotel && (
+          <div className="hint" style={{ marginTop: 4 }}>
+            Otel henüz hedef dolulukta değil — sistem ilk {input.stabilizationYears ?? 3} yıl için kademeli bir
+            oturma dönemi (%50 → %75 → %100 gibi) uygular ve Direkt Kap sonucunu bu süre kadar bugüne indirger.
+            Aktif/istikrarlı bir otel için bu kutuyu işaretlemeyin.
+          </div>
+        )}
       </div>
     </div>
   );
@@ -520,6 +564,26 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             <span>Gider Artış Oranı</span>
             <Pct value={projection.expenseGrowthRate} onChange={(n) => setProjection({ expenseGrowthRate: n })} /></label>
         </div>
+        <div className="hrow-labeled" style={{ marginTop: 4 }}>
+          <label className="pfield pfield--s"
+                 title="Boş bırakılırsa Gelir Artış Oranı sonsuza kadar sürüyormuş gibi terminal değer hesaplanır (eski davranış). Doldurulursa, terminal değer bu daha mütevazı, uzun vadede sürdürülebilir oranla hesaplanır.">
+            <span>Uzun Vadeli/Terminal Büyüme Oranı (opsiyonel)</span>
+            <Pct value={projection.longTermGrowthRate ?? 0} onChange={(n) => setProjection({ longTermGrowthRate: n > 0 ? n : null })} />
+          </label>
+          {(projection.longTermGrowthRate ?? 0) > 0 && (
+            <button type="button" className="link-btn" style={{ marginTop: 4, fontSize: 11.5, alignSelf: 'end' }}
+                    onClick={() => setProjection({ longTermGrowthRate: null })}>
+              Kaldır (eski davranışa dön)
+            </button>
+          )}
+        </div>
+        <div className="hint" style={{ marginTop: 4 }}>
+          <b>İki Aşamalı Büyüme:</b> Boş bırakırsanız, {projection.years} yıllık projeksiyon büyümesi
+          (%{(projection.incomeGrowthRate * 100).toLocaleString('tr-TR')}) terminal değer için de sonsuza kadar
+          sürüyormuş gibi hesaplanır. Doldurursanız, otelin kısa/orta vadede hızlı büyüyüp uzun vadede daha
+          mütevazı, sürdürülebilir bir hıza (örn. enflasyona yakın) yerleştiğini varsayan daha gerçekçi bir
+          terminal değer elde edersiniz.
+        </div>
         <Field label="Kapitalizasyon Oranı" hint={isTl ? 'NOI ÷ Kapitalizasyon Oranı — Türkiye otelcilikte piyasa aralığı ~%7-11' : 'NOI ÷ Kapitalizasyon Oranı — döviz bazlı piyasalarda ~%6-9'}>
           <Pct value={projection.capRate} onChange={(n) => setProjection({ capRate: n })} />
         </Field>
@@ -578,6 +642,9 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             </button>
           </Field>
         </div>
+        {result.ina?.plausibilityWarning && (
+          <div className="hint hint--warn" style={{ marginTop: 8 }}>{result.ina.plausibilityWarning}</div>
+        )}
         {result.ina?.gapExplanation && (
           <div className="hint hint--warn" style={{ marginTop: 8 }}>{result.ina.gapExplanation}</div>
         )}
@@ -617,18 +684,9 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             <Num value={input.costLandUnitValue ?? 0} onChange={(n) => setInput((p) => ({ ...p, costLandUnitValue: n }))} suffix="₺/m²" />
           </Field>
         </div>
-        <label className="btn-ghost" style={{ display: 'inline-block', cursor: 'pointer', marginTop: 4 }}>
-          KML Yükle (Arsa Alanı otomatik)
-          <input type="file" accept=".kml" hidden onChange={async (e) => {
-            const f = e.target.files?.[0]; if (!f) return;
-            try {
-              const parsed = parseKml(await f.text());
-              const area = parsed?.deedArea || parsed?.polygonArea || 0;
-              if (area > 0) setInput((p) => ({ ...p, costParcelArea: Math.round(area), costFromKml: true }));
-            } catch { /* yok say */ }
-            e.currentTarget.value = '';
-          }} />
-        </label>
+        <div className="hint" style={{ marginTop: 4 }}>
+          Arsa alanını Adım 1'deki "KML Yükle" düğmesiyle otomatik doldurabilir, ya da burada elle girebilirsiniz.
+        </div>
         {input.costParcelArea != null && input.costParcelArea > 0 && !input.costFromKml && (
           <div className="hint" style={{ marginTop: 4 }}>Arsa alanı elle girildi/değiştirildi.</div>
         )}
@@ -667,9 +725,23 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
           ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
         }))}>➕ Yapı Ekle</button>
 
-        <Field label="Şerefiye (opsiyonel)">
-          <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix={sym} />
-        </Field>
+        <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi (opsiyonel)</div>
+        <div className="hrow-labeled">
+          <label className="pfield"><span>Tip</span>
+            <select value={input.costAdjustmentType ?? 'none'}
+                    onChange={(e) => setInput((p) => ({ ...p, costAdjustmentType: e.target.value as HotelIncomeInput['costAdjustmentType'] }))}>
+              <option value="none">Yok</option>
+              <option value="serefiye">Şerefiye</option>
+              <option value="duzeltme">Düzeltme</option>
+              <option value="peyzaj">Çevre Düzenlemesi</option>
+            </select>
+          </label>
+          {(input.costAdjustmentType ?? 'none') !== 'none' && (
+            <label className="pfield"><span>Tutar</span>
+              <Num value={input.costGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, costGoodwill: n > 0 ? n : null }))} suffix={sym} />
+            </label>
+          )}
+        </div>
 
         <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
           <input type="checkbox" checked={!!input.computeMevcutDurum}
@@ -786,13 +858,22 @@ function HotelResult({ input, result, setFinal }: {
           <div className={`dual-box${(input.finalMethod ?? 'direkt') === 'direkt' ? ' dual-box--chosen' : ''}`}>
             <span>DİREKT KAPİTALİZASYON</span>
             <b>{fmtTl(result.capitalizedValue)}</b>
-            <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}</em>
+            <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}{input.isNewHotel ? ' (istikrar kazandığında)' : ''}</em>
+            {result.prospectiveValue != null && (
+              <div style={{ marginTop: 6, fontSize: 12 }}>
+                <span style={{ color: 'var(--text-3)' }}>Bugünkü karşılığı ({input.stabilizationYears ?? 3} yıl oturma indirgemesiyle): </span>
+                <b>{fmtTl(result.prospectiveValue)}</b>
+              </div>
+            )}
           </div>
           {result.ina && (
             <div className={`dual-box${input.finalMethod === 'ina' ? ' dual-box--chosen' : ''}`}>
               <span>İNA (NBD)</span>
               <b>{fmtTl(result.ina.npv)}</b>
               <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
+              {result.ina.plausibilityWarning && (
+                <div className="hint hint--warn" style={{ marginTop: 6, fontSize: 11.5 }}>{result.ina.plausibilityWarning}</div>
+              )}
               {result.ina.gapExplanation && (
                 <div className="hint hint--warn" style={{ marginTop: 6, fontSize: 11.5 }}>{result.ina.gapExplanation}</div>
               )}
