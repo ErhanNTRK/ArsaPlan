@@ -351,16 +351,27 @@ export function Result({ input, result, version, setInput }: {
         <Row label={`Müteahhit Payı (%${(s.contractorShare * 100).toFixed(0)})`}
              value={`${s.contractorUnits > 0 ? fmtNum(s.contractorUnits, 1) + ' villa · ' : ''}${fmtM2(s.contractorArea)}`} />
         <Row label="Kat Karşılığı Yöntemine Göre Arsa Değeri" value={fmtTL(s.shareLandValueRounded)} />
+        {(input.residual.projectMonths ?? 0) > 0 && (
+          <Row label={`İndirgemeli Kat Karşılığı Değeri (${input.residual.projectMonths} ay · %${((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())})`}
+               value={fmtTL(s.discountedShareLandValueRounded)} />
+        )}
         <Row label="Gelir Projeksiyonuna Göre Arsa Değeri" value={fmtTL(f.residualLandValueRounded)} />
+        {(input.residual.projectMonths ?? 0) > 0 && (
+          <Row label="İndirgemeli Gelir Projeksiyonu Değeri" value={fmtTL(f.discountedLandValueRounded)} />
+        )}
         <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
         <div style={{ marginTop: 10 }}>
           <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>
             {VERDICT_TEXT[s.verdict]}
           </span>
         </div>
-        <div className="hint" style={{ marginTop: 8 }}>
-          İki yöntem farklı varsayımlardan hareket ettiği için sonuçları ayrışabilir; bu bölüm karşılaştırma amaçlıdır.
-        </div>
+        {s.gapExplanation ? (
+          <div className="hint hint--warn" style={{ marginTop: 8 }}>{s.gapExplanation}</div>
+        ) : (
+          <div className="hint" style={{ marginTop: 8 }}>
+            İki yöntem farklı varsayımlardan hareket ettiği için sonuçları ayrışabilir; bu bölüm karşılaştırma amaçlıdır.
+          </div>
+        )}
       </div>
       )}
 

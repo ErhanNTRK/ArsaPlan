@@ -1,103 +1,102 @@
-# ArsaPlan v9.5.0 — Otel Gelir Hesabı: Gordon Uyarısı, İki Aşamalı Büyüme, Yeni/Aktif Otel Ayrımı, KML+Şerefiye
+# ArsaPlan v9.6.0 — Kat Karşılığı İndirgemesi, Şerefiye Tür Seçicileri, Plan Lejantı Düzeltmesi
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **314/314 test yeşil** ·
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **326/326 test yeşil** ·
 `npm run build` başarılı. Dört düzeltme kalemi, hepsi kodlandı ve test edildi.
 
-## 1. Gordon Tutarlılık Uyarı Sistemi
+## 1. Otel Maliyet Yaklaşımı — Mevcut Durum Şerefiye artık tür seçici
 
-Otel Gelir Hesabı'nda iskonto oranı ile büyüme oranı birlikte, piyasada
-gözlemlenmeyen bir kapitalizasyon oranı ima ediyorsa (Gordon kimliği:
-`cap = iskonto − büyüme`, sonuç %5'in altında ya da %25'in üstündeyse),
-İNA sonucunun yanında otomatik bir uyarı çıkıyor: *"İskonto ve büyüme
-oranlarınız birlikte %X gibi piyasada nadiren gözlemlenen bir kapitalizasyon
-oranı ima ediyor."* İskonto oranı büyüme oranına eşit ya da düşükse (sonsuz/
-negatif terminal değer riski) ayrıca, daha güçlü bir uyarı gösteriliyor.
-Bu, bu sohbette bizzat yaşadığımız "%40 iskonto + %5 büyüme" gibi tutarsız
-kombinasyonları artık kullanıcıya önceden gösteriyor. 6 yeni test.
+Geçen turda Yasal Durum'a eklediğimiz Şerefiye/Düzeltme/Çevre Düzenlemesi
+tür seçicisi, Mevcut Durum bölümüne hiç yansımamıştı — orası hâlâ düz bir
+sayı kutusuydu. Artık aynı yapıda: **Tip** (Yok/Şerefiye/Düzeltme/Çevre
+Düzenlemesi) + tutar. Yasal Durum'daki Kalem 2 mantığıyla birebir aynı:
+Mevcut Durum'un kendi türü Yasal'dan **bağımsız** — tür hiç seçilmemişse
+(eski taslaklar), kendi tutarı girilmişse yine uygulanır; girilmemişse
+Yasal'ın tür+tutarına düşer. 4 yeni test.
 
-## 2. İki Aşamalı Büyüme
+## 2. Arsa Gelir Projeksiyonu — Kat Karşılığı yöntemine de indirgeme uygulandı
 
-Projeksiyon büyüme oranının yanına opsiyonel **"Uzun Vadeli/Terminal Büyüme
-Oranı"** alanı eklendi. Boş bırakılırsa eski davranış korunur (projeksiyon
-büyümesi sonsuza kadar sürüyormuş gibi terminal değer hesaplanır).
-Doldurulursa, terminal değer artık bu daha mütevazı, sürdürülebilir oranla
-hesaplanıyor — otelin ilk 10 yıl hızlı büyüyüp sonra normal bir hıza
-yerleştiği gerçekçi bir senaryoyu temsil ediyor. 2034'te 2 milyar TL'ye
-çıkan "kapitalizasyon değeri" sorununu bu alanla kontrol altına alabilirsiniz.
-4 yeni test.
+Daha önce yalnızca Gelir Projeksiyonu (Artık Değer) yöntemi Proje Süresi +
+Yıllık İndirgeme Oranı ile bugüne çekiliyordu; Kat Karşılığı hep "bugünkü"
+bir sayı olarak kalıyordu — aynı projenin iki yöntemi farklı zaman
+temelinde karşılaştırılıyordu. Artık:
 
-## 3. Yeni/Aktif Otel Ayrımı
+- **İndirgemeli Kat Karşılığı Değeri** hesaplanıyor — Gelir Projeksiyonu'nun
+  kullandığı **aynı** proje-sonu indirgeme faktörüyle (arsa sahibinin
+  daireleri de proje bittiğinde teslim alınıyor, aynı zamanlama).
+- İki yöntem arasındaki karşılaştırma (`differenceRate`, "yakın/kat
+  karşılığı yüksek/gelir yöntemi yüksek" rozeti) artık **indirgenmiş**
+  değerler üzerinden yapılıyor — indirgeme kapalıyken (Proje Süresi=0)
+  davranış birebir eskisiyle aynı kalıyor, geriye dönük uyumlu.
+- **%5 tutarlılık uyarısı** eklendi: fark %5'i aşarsa, altında nicel bir
+  açıklama çıkıyor — *"...kat karşılığı oranınız (%X) ile müteahhit kâr
+  oranınız (%Y) arasında bir tutarsızlığa işaret edebilir."*
 
-Adım 1'e **"Bu otel yeni mi?"** anahtarı eklendi (henüz açılmamış/inşa
-hâlinde). İşaretlenirse:
+**Tek bir düzeltme, Konut, Karma Kullanım ve Ticari Apartman'ın üçünü
+birden kapsıyor** — hepsi aynı paylaşılan `computeShare` fonksiyonunu
+kullanıyor (yalnızca Ticari İşletme türünde Kat Karşılığı kavramı zaten
+yok, oraya dokunulmadı). 8 yeni test.
 
-- **Oturma Süresi (yıl)** alanı çıkar (varsayılan 3).
-- Projeksiyona otomatik bir **kademeli oturma (ramp-up)** uygulanır — gerçek
-  bir banka raporunda gördüğümüz %50 → %75 → %100 kademesini birebir üreten
-  bir formülle (`1 − 0,5^yıl`), farklı oturma süreleri için de genelleşir.
-- Direkt Kapitalizasyon sonucunun **bugüne indirgenmiş hâli** ("Bugünkü
-  karşılığı") ayrıca gösterilir — oturma süresi kadar iskonto oranıyla
-  bugüne çekilmiş.
+## 3. Plan Lejantı — "Diğer (elle yazınız)" alanında boşluk artık yazılabiliyor
 
-Bu, kozmetik bir etiket değişikliği değil — **aynı hedef sayılarla girilse
-bile**, "yeni" işaretlenen bir otelin değeri "aktif" işaretlenenden
-gerçekten düşük çıkıyor, çünkü ilk yılların düşük doluluğu hesaba giriyor.
-7 yeni test.
+Gerçek bir hata: alan, kullanıcı canlı yazarken her tuş vuruşunda değeri
+`.trim()`'liyordu — "Gelişme " yazıp boşluğa basar basmaz o boşluk anlık
+olarak siliniyor, sonraki harf bitişik ekleniyordu ("GelişmeKonut" gibi).
+Hem ana Arsa Gelir Projeksiyonu hem 3-8 Katlı Bina modülünde aynı hata
+vardı, ikisi de düzeltildi — artık çok kelimeli lejant adları sorunsuz
+yazılabiliyor.
 
-## 4. KML Otomatik Doldurma + Şerefiye Tür Seçici
+## 4. Proje Süresi / Yıllık İndirgeme Oranı — açıklayıcı ipuçları eklendi
 
-- **KML yükleme artık Adım 1'de** — önceden yalnız Maliyet Yaklaşımı
-  bölümünde, yalnız arsa alanını dolduran bir düğmeydi. Kontrol ederken
-  önemli bir şey keşfettik: KML ayrıştırıcısı **zaten** TKGM'nin
-  `<ExtendedData>` alanlarından İl/İlçe/Mahalle/Ada/ParselNo/Alan bilgisini
-  çıkarıyordu — yalnız Otel modülü bunu kullanmıyordu. Artık tek bir KML
-  yüklemesi hem taşınmaz kimliği alanlarını hem de (Maliyet Yaklaşımı
-  açıksa) arsa alanını otomatik dolduruyor.
-- **Şerefiye alanı artık Maliyet Yaklaşımı modülüyle aynı yapıda:** düz bir
-  sayı kutusu yerine önce bir **tür seçici** (Yok / Şerefiye / Düzeltme /
-  Çevre Düzenlemesi), seçilirse altında tutar kutusu. Eski taslaklarda tür
-  hiç seçilmemişse (geriye dönük uyumluluk), tutar > 0 ise yine uygulanıyor
-  — hiçbir eski rapor sessizce bozulmuyor.
+- **Proje Süresi:** *"Küçük/orta ölçekli projelerde ~12-18 ay, çok katlı/
+  büyük ölçekli projelerde ~24-36 ay tipiktir."*
+- **Yıllık İndirgeme Oranı:** *"TCMB politika faizine yakın bir risksiz
+  getiri (ör. %35-38) + geliştirme riski için bir risk primi (ör. %5-10)
+  toplamı önerilir."*
 
-4 yeni test — biri gerçek bir TKGM tarzı KML örneğiyle il/ilçe/ada/parsel/
-alanın doğru çıkarıldığını kanıtlıyor.
+Bu alanlar (Step4) zaten tüm türlerde (Konut, Karma, Ticari Apartman)
+ortak kullanıldığı için tek bir yerde düzeltme yeterli oldu.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**1 ve 4. kalemler hayır** — yalnız uyarı mesajı ve gösterim/veri girişi
-değişikliği, mevcut hiçbir hesaba dokunmuyor (Şerefiye'nin geriye dönük
-uyumluluk davranışı özellikle test edildi). **2 ve 3. kalemler yalnız
-alanları DOLDURURSANIZ etkiler** — "Uzun Vadeli Büyüme Oranı" ve "Bu otel
-yeni mi?" ikisi de varsayılan **boş/kapalı** geliyor; boş/kapalı bıraktığınız
-sürece hiçbir mevcut raporunuz değişmez.
+**1, 3, 4. kalemler hayır** — yalnız gösterim/veri girişi/açıklama, hiçbir
+mevcut hesaba dokunmuyor. **2. kalem, yalnızca Proje Süresi > 0 girilmiş
+raporları etkiler** — Proje Süresi hep 0 (varsayılan) bırakılan raporlarda
+Kat Karşılığı sonucu birebir eskisiyle aynı. **Proje Süresi > 0 girip Kat
+Karşılığı karşılaştırmasına bakmış olduğunuz raporlarda**, karşılaştırma
+artık indirgenmiş değerler üzerinden yapıldığı için "yakın/yüksek" rozeti
+değişmiş olabilir — bu raporları gözden geçirmek isteyebilirsiniz.
 
 ## Değişen/Eklenen Dosyalar
 
 ```
-src/hotel/engine.ts                 checkImpliedCapPlausibility, buildRampSchedule, prospectiveValue, longTermGrowthRate, costAdjustmentType
-src/hotel/types.ts                  plausibilityWarning, longTermGrowthRate, isNewHotel, stabilizationYears, prospectiveValue, costAdjustmentType
-src/hotel/HotelApp.tsx              Gordon uyarısı gösterimi, İki Aşamalı Büyüme UI, Yeni/Aktif Otel UI, KML Adım 1'e taşındı, Şerefiye tür seçici
-src/hotel/kalem1-gordon-uyari.test.ts        YENİ — 6 test
-src/hotel/kalem2-iki-asamali-buyume.test.ts  YENİ — 4 test
-src/hotel/kalem3-yeni-aktif-otel.test.ts     YENİ — 7 test
-src/hotel/kalem4-serefiye-kml.test.ts        YENİ — 4 test
+src/hotel/types.ts                        mevcutCostAdjustmentType
+src/hotel/engine.ts                       Mevcut Durum şerefiye — Yasal'dan bağımsız tür mantığı
+src/hotel/HotelApp.tsx                    Mevcut Durum Şerefiye tür seçici UI
+src/hotel/kalem1-mevcut-serefiye-tur.test.ts   YENİ — 4 test
+src/engine/types.ts                       ShareResult: discountedShareLandValue(Rounded), gapExplanation
+src/engine/financial.ts                   computeShare: indirgeme + %5 tutarlılık uyarısı
+src/engine/index.ts                       computeShare çağrıları residual parametresiyle güncellendi
+src/engine/kalem2-kat-karsiligi-indirgeme.test.ts  YENİ — 8 test
+src/ui/Result.tsx                         İndirgemeli Kat Karşılığı Değeri gösterimi + gapExplanation
+src/export/pdf.ts                         Aynı gösterim PDF'te
+src/export/excel.ts                       Aynı gösterim Excel'de (dinamik satır indeksleme ile)
+src/ui/Steps.tsx                          Plan Lejantı trim düzeltmesi + Proje Süresi/İndirgeme Oranı ipuçları
+src/ui/StepsApartment.tsx                 Plan Lejantı trim düzeltmesi
 ```
 
-## Yükleme — artık GitHub Desktop ile (100 dosya sınırı yok)
-
-Daha önce klonladığınız ArsaPlan deposunu kullanın ("Current repository"
-alanının **ArsaPlan** olduğundan emin olun, Dora Değerleme Pro değil):
+## Yükleme — GitHub Desktop ile
 
 1. Bu zip'i indirip **içeriğini** çıkarın (zip'in kendisini değil).
 2. Çıkan klasördeki HER ŞEYİ seçip kopyalayın, klonladığınız ArsaPlan
    klasörünün üzerine yapıştırın — "üzerine yaz" onayı verin.
-3. GitHub Desktop'ı açın, sol tarafta "Changes" sekmesinde tüm değişen
-   dosyaların otomatik listelendiğini göreceksiniz.
-4. Sol alttaki "Summary" kutusuna kısa bir not yazın (örn. "v9.5.0").
+3. GitHub Desktop'ı açın (Current repository: **ArsaPlan** olduğundan emin
+   olun), "Changes" sekmesinde tüm değişen dosyaların otomatik
+   listelendiğini göreceksiniz.
+4. Sol alttaki "Summary" kutusuna kısa bir not yazın (örn. "v9.6.0").
 5. "Commit to main" → sonra üstteki "Push origin" düğmesine tıklayın.
 6. GitHub.com'da "Actions" sekmesinin yeşile dönmesini bekleyip Ctrl+F5.
 
 ## Beklemede — henüz karar verilmedi
 
 - "İndirgenmiş Kat Karşılığı Yöntemi" (bağımsız Maliyet Yaklaşımı'na üçüncü
-  yöntem) — şimdilik eklenmiyor, karar vermediniz.
+  yöntem) — şimdilik eklenmiyor.

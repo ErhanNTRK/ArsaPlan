@@ -615,8 +615,15 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row(`Arsa Sahibi Payı (${pct(s.ownerShare, 0)})`, `${s.ownerUnits > 0 ? s.ownerUnits.toFixed(1) + ' villa · ' : ''}${m2(s.ownerArea)}`);
     row(`Müteahhit Payı (${pct(s.contractorShare, 0)})`, `${s.contractorUnits > 0 ? s.contractorUnits.toFixed(1) + ' villa · ' : ''}${m2(s.contractorArea)}`);
     row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValueRounded), { bold: true });
+    if ((input.residual.projectMonths ?? 0) > 0) {
+      row('İndirgemeli Kat Karşılığı Değeri', tl(s.discountedShareLandValueRounded), { bold: true });
+    }
     row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValueRounded), { bold: true });
+    if ((input.residual.projectMonths ?? 0) > 0) {
+      row('İndirgemeli Gelir Projeksiyonu Değeri', tl(f.discountedLandValueRounded), { bold: true });
+    }
     row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare));
+    if (s.gapExplanation) paragraph(s.gapExplanation);
     y += 4;
   }
 

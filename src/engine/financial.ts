@@ -66,7 +66,7 @@ export function computeFinancial(
 }
 
 export function computeShare(
-  capacity: CapacityResult, financial: FinancialResult, share: ShareInput,
+  capacity: CapacityResult, financial: FinancialResult, share: ShareInput, residual: ResidualInput,
 ): ShareResult {
   const ownerShare = Math.min(1, Math.max(0, share.ownerShare));
   const contractorShare = 1 - ownerShare;
@@ -74,13 +74,38 @@ export function computeShare(
   /** Kat karşılığı yöntemine göre arsa değeri = arsa sahibi payının hasılat karşılığı */
   const shareLandValue = financial.revenue * ownerShare;
   const shareLandValueRounded = R5000(shareLandValue);
-  const difference = shareLandValue - financial.residualLandValue;
-  const differenceRate = safeDiv(difference, financial.residualLandValue);
+
+  /* Kat Karşılığı payı da, Gelir Projeksiyonu'nun hasılatı indirgediği AYNI
+     proje-sonu (dEnd) faktörüyle bugüne çekilir — arsa sahibinin daireleri
+     de proje bittiğinde teslim alınır, aynı zamanlama. Süre 0 ise (varsayılan)
+     eski davranışla birebir aynı kalır. */
+  const months = Math.max(0, residual.projectMonths ?? 0);
+  const rate = Math.max(0, residual.timeDiscountRate ?? 0);
+  let discountedShareLandValue = shareLandValue;
+  if (months > 0 && rate > 0) {
+    const yEnd = months / 12;
+    const dEnd = Math.pow(1 + rate, -yEnd);
+    discountedShareLandValue = shareLandValue * dEnd;
+  }
+  const discountedShareLandValueRounded = R5000(discountedShareLandValue);
+
+  /* Karşılaştırma artık İNDİRGENMİŞ değerler üzerinden yapılır — indirgeme
+     kapalıyken (süre=0) discountedX === x olduğu için davranış değişmez. */
+  const difference = discountedShareLandValue - financial.discountedLandValue;
+  const differenceRate = safeDiv(difference, financial.discountedLandValue);
 
   /* İki yöntem %5 bandındaysa "yakın" kabul edilir — biri diğerinden üstün değildir. */
   let verdict: ShareResult['verdict'] = 'yakin';
   if (differenceRate > 0.05) verdict = 'kat-karsiligi-yuksek';
   else if (differenceRate < -0.05) verdict = 'gelir-yontemi-yuksek';
+
+  const pct = (v: number) => (v * 100).toFixed(1).replace('.', ',');
+  const gapExplanation = Math.abs(differenceRate) > 0.05
+    ? `İndirgemeli Kat Karşılığı Değeri ile İndirgemeli Gelir Projeksiyonu Değeri %${pct(Math.abs(differenceRate))} ` +
+      `oranında ayrışıyor. Bu, kat karşılığı oranınız (%${pct(ownerShare)}) ile müteahhit kâr oranınız ` +
+      `(%${pct(residual.profitRate)}) arasında bir tutarsızlığa işaret edebilir — ikisini birlikte gözden ` +
+      `geçirmeniz önerilir.`
+    : null;
 
   return {
     ownerShare, contractorShare,
@@ -89,8 +114,9 @@ export function computeShare(
     ownerArea: capacity.saleableArea * ownerShare,
     contractorArea: capacity.saleableArea * contractorShare,
     shareLandValue, shareLandValueRounded,
+    discountedShareLandValue, discountedShareLandValueRounded,
     contractorValue: financial.revenue * contractorShare,
     contractorNet: financial.revenue * contractorShare - financial.totalCost,
-    balancedShare, difference, differenceRate, verdict,
+    balancedShare, difference, differenceRate, verdict, gapExplanation,
   };
 }

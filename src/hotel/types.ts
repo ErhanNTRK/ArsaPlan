@@ -168,6 +168,13 @@ export interface HotelIncomeInput {
    */
   computeMevcutDurum?: boolean;
   mevcutCostBuildings?: { id: string; type: string; area: number; unitCost: number; depreciationPct: number }[];
+  /**
+   * Mevcut Durum'un kendi Şerefiye/Düzeltme/Çevre Düzenlemesi türü — Yasal
+   * Durum'daki tür seçiciyle aynı desen. null/undefined ise (Kalem 2
+   * öncesindeki geriye dönük uyumluluk mantığıyla aynı): mevcutCostGoodwill
+   * > 0 ise yine uygulanır (Yasal Durum'un türünden BAĞIMSIZ).
+   */
+  mevcutCostAdjustmentType?: 'none' | 'serefiye' | 'duzeltme' | 'peyzaj';
   mevcutCostGoodwill?: number | null;
   /** PDF'te hangi yöntemlerin gösterileceği (varsayılan hepsi açık) */
   showIncomeInPdf?: boolean;

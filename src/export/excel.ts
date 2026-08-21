@@ -528,22 +528,33 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   if (input.share.enabled) {
   row = section(ws1, row, 'ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
   const shStart = row;
-  row = rows(ws1, row, [
+  const showDiscounted = (input.residual.projectMonths ?? 0) > 0;
+  const shareRows: Row[] = [
     ['Arsa Sahibi Payı', s.ownerShare],
     ['Müteahhit Payı', s.contractorShare],
     ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValueRounded)],
-    ['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValueRounded)],
-    ['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare],
-    ['Değerlendirme', VERDICT_TEXT[s.verdict]],
-  ], TL);
-  ws1.getCell(`C${shStart}`).numFmt = PCT;
-  ws1.getCell(`C${shStart + 1}`).numFmt = PCT;
-  ws1.getCell(`C${shStart + 5}`).numFmt = PCT;
-  ws1.getCell(`C${shStart + 6}`).numFmt = PCT;
-  [shStart + 2, shStart + 3].forEach((i) => {
-    ws1.getCell(`B${i}`).font = { name: 'Arial', size: 10, bold: true };
-    ws1.getCell(`C${i}`).font = { name: 'Arial', size: 10, bold: true };
+  ];
+  if (showDiscounted) shareRows.push(['İndirgemeli Kat Karşılığı Değeri', Math.round(s.discountedShareLandValueRounded)]);
+  shareRows.push(['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValueRounded)]);
+  if (showDiscounted) shareRows.push(['İndirgemeli Gelir Projeksiyonu Değeri', Math.round(f.discountedLandValueRounded)]);
+  const balancedShareIdx = shareRows.length; // "Gelir Projeksiyonuna Denk Gelen Arsa Payı" bu indekse eklenecek
+  shareRows.push(['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare]);
+  shareRows.push(['Değerlendirme', VERDICT_TEXT[s.verdict]]);
+  row = rows(ws1, row, shareRows, TL);
+  ws1.getCell(`C${shStart}`).numFmt = PCT;     // Arsa Sahibi Payı
+  ws1.getCell(`C${shStart + 1}`).numFmt = PCT; // Müteahhit Payı
+  ws1.getCell(`C${shStart + balancedShareIdx}`).numFmt = PCT; // Gelir Projeksiyonuna Denk Gelen Arsa Payı
+  const boldIndices = showDiscounted ? [2, 3, 4, 5] : [2, 3];
+  boldIndices.forEach((i) => {
+    ws1.getCell(`B${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
+    ws1.getCell(`C${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
   });
+  if (s.gapExplanation) {
+    ws1.getCell(`B${row}`).value = s.gapExplanation;
+    ws1.getCell(`B${row}`).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF8A5A00' } };
+    ws1.mergeCells(`B${row}:F${row}`);
+    row += 1;
+  }
   }
   row += 2;
 

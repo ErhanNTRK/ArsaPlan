@@ -445,16 +445,30 @@ export interface ShareResult {
   shareLandValue: number;
   /** Final rapor değeri — 5.000 ve katlarına yuvarlanmış. */
   shareLandValueRounded: number;
+  /**
+   * Kat Karşılığı payının, proje süresi + yıllık indirgeme oranı ile bugüne
+   * çekilmiş hâli — Gelir Projeksiyonu'nun discountedLandValue'suyla aynı
+   * mantık. projectMonths=0 ya da oran girilmemişse shareLandValue ile
+   * birebir aynıdır (geriye dönük uyumlu).
+   */
+  discountedShareLandValue: number;
+  discountedShareLandValueRounded: number;
   /** Müteahhide kalan hasılat */
   contractorValue: number;
   contractorNet: number;
   /** Gelir projeksiyonuna göre arsa değerine denk gelen pay */
   balancedShare: number;
-  /** İki yöntem arasındaki fark (kat karşılığı − gelir projeksiyonu) */
+  /** İki yöntem arasındaki fark (kat karşılığı − gelir projeksiyonu), İNDİRGENMİŞ değerler üzerinden */
   difference: number;
   /** Farkın gelir projeksiyonuna oranı */
   differenceRate: number;
   verdict: 'kat-karsiligi-yuksek' | 'gelir-yontemi-yuksek' | 'yakin';
+  /**
+   * Fark %5'i aşarsa, olası kaynağını (kat karşılığı oranı ile müteahhit kâr
+   * oranı arasındaki tutarsızlık) nicel olarak açıklayan not. %5'in
+   * altındaysa null.
+   */
+  gapExplanation: string | null;
 }
 
 /** 'uyari-uygulama' → yalnızca uygulama ekranında gösterilir, PDF/Excel'e yazılmaz. */

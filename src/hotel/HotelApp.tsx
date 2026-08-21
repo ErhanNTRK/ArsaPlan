@@ -793,9 +793,27 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
               ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
             }))}>➕ Mevcut Duruma Yapı Ekle</button>
 
-            <Field label="Mevcut Durum için ayrı Şerefiye (opsiyonel)">
-              <Num value={input.mevcutCostGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, mevcutCostGoodwill: n > 0 ? n : null }))} suffix={sym} />
-            </Field>
+            <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi — Mevcut Durum (opsiyonel)</div>
+            <div className="hrow-labeled">
+              <label className="pfield"><span>Tip</span>
+                <select value={input.mevcutCostAdjustmentType ?? 'none'}
+                        onChange={(e) => setInput((p) => ({ ...p, mevcutCostAdjustmentType: e.target.value as HotelIncomeInput['mevcutCostAdjustmentType'] }))}>
+                  <option value="none">Yok</option>
+                  <option value="serefiye">Şerefiye</option>
+                  <option value="duzeltme">Düzeltme</option>
+                  <option value="peyzaj">Çevre Düzenlemesi</option>
+                </select>
+              </label>
+              {(input.mevcutCostAdjustmentType ?? 'none') !== 'none' && (
+                <label className="pfield"><span>Tutar</span>
+                  <Num value={input.mevcutCostGoodwill ?? 0} onChange={(n) => setInput((p) => ({ ...p, mevcutCostGoodwill: n > 0 ? n : null }))} suffix={sym} />
+                </label>
+              )}
+            </div>
+            <div className="hint" style={{ marginTop: 4 }}>
+              Boş bırakılırsa (tür hiç seçilmezse) Yasal Durum'un tür ve tutarına geri döner; kendi tutarınızı
+              girerseniz Yasal Durum'un türünden bağımsız olarak uygulanır.
+            </div>
           </>
         )}
 

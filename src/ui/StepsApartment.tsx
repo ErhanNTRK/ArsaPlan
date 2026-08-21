@@ -75,7 +75,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         </Field>
         {lejantOther && (
           <Field label="Lejant (elle)">
-            <Txt value={z.lejant.trim()} onChange={(val) => upd('zoning', { lejant: val || ' ' })} />
+            <Txt value={z.lejant === ' ' ? '' : z.lejant} onChange={(val) => upd('zoning', { lejant: val === '' ? ' ' : val })} />
           </Field>
         )}
         <Field label="Hesap Yöntemi">

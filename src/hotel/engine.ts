@@ -270,7 +270,17 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
 
   const hasMevcutOverride = !!input.computeMevcutDurum && (input.mevcutCostBuildings?.length ?? 0) > 0;
   const mevcutBuildingsValue = hasMevcutOverride ? computeCostBuildings(input.mevcutCostBuildings) : costBuildingsValue;
-  const mevcutGoodwill = hasMevcutOverride ? Math.max(0, input.mevcutCostGoodwill ?? costGoodwill) : costGoodwill;
+  // Mevcut Durum'un kendi tür seçicisi — Yasal Durum'un türünden bağımsız
+  // (Kalem 2'de bağımsız Maliyet Yaklaşımı modülü için kurduğumuz aynı
+  // mantık). Tür hiç seçilmemişse: kendi tutarı girilmişse yine uygulanır
+  // (geriye dönük uyumluluk), girilmemişse Yasal Durum'un durumuna düşer.
+  const mevcutOwnAmountSet = input.mevcutCostGoodwill != null;
+  const mevcutHasAdjustment = input.mevcutCostAdjustmentType != null
+    ? input.mevcutCostAdjustmentType !== 'none'
+    : (mevcutOwnAmountSet || hasAdjustment);
+  const mevcutGoodwill = hasMevcutOverride
+    ? (mevcutHasAdjustment ? Math.max(0, input.mevcutCostGoodwill ?? costGoodwill) : 0)
+    : costGoodwill;
   const mevcutTotal = R(costLandValue + mevcutBuildingsValue + mevcutGoodwill);
 
   // DÜZELTME: Yasal Durum'da hiç değer girilmemiş olsa bile (yalnız Mevcut

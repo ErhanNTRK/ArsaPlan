@@ -44,7 +44,7 @@ export function analyze(input: ProjectInput): AnalysisResult {
   const zoning = normalizeZoning(input.parcel, input.zoning);
   const capacity = computeCapacity(input.parcel, zoning, input.emsal, input.villa);
   const financial = computeFinancial(input.parcel, capacity, input.cost, input.site, input.sales, input.residual);
-  const share = computeShare(capacity, financial, input.share);
+  const share = computeShare(capacity, financial, input.share, input.residual);
   const advice = buildAdvice(
     input.parcel, input.emsal, input.cost, input.site, input.residual,
     capacity, financial, share, input.share.enabled,
@@ -92,7 +92,7 @@ function analyzeApartment(input: ProjectInput, variant: 'konut' | 'karma'): Anal
   const financial = computeFinancial(
     input.parcel, capacity, input.cost, input.site, input.sales, input.residual, buildingRevenue,
   );
-  const share = computeShare(capacity, financial, input.share);
+  const share = computeShare(capacity, financial, input.share, input.residual);
   const advice = buildApartmentAdvice(
     input.apartment, apartment, input.cost, input.sales, input.residual,
     financial, share, input.share.enabled,
@@ -139,8 +139,9 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
   };
   const share: ShareResult = {
     ownerShare: 0, contractorShare: 0, ownerUnits: 0, contractorUnits: 0,
-    ownerArea: 0, contractorArea: 0, shareLandValue: 0, shareLandValueRounded: 0, contractorValue: 0,
-    contractorNet: 0, balancedShare: 0, difference: 0, differenceRate: 0, verdict: 'yakin',
+    ownerArea: 0, contractorArea: 0, shareLandValue: 0, shareLandValueRounded: 0,
+    discountedShareLandValue: 0, discountedShareLandValueRounded: 0, contractorValue: 0,
+    contractorNet: 0, balancedShare: 0, difference: 0, differenceRate: 0, verdict: 'yakin', gapExplanation: null,
   };
   return { capacity, financial, share, advice: [], isletme };
 }

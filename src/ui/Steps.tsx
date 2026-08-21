@@ -214,7 +214,7 @@ function Step3Villa({ input, upd }: P) {
         </Field>
         {lejantOther && (
           <Field label="Lejant (elle)">
-            <Txt value={z.lejant.trim()} onChange={(val) => upd('zoning', { lejant: val || ' ' })} />
+            <Txt value={z.lejant === ' ' ? '' : z.lejant} onChange={(val) => upd('zoning', { lejant: val === '' ? ' ' : val })} />
           </Field>
         )}
         <Field label="Hesap Yöntemi">
@@ -535,11 +535,11 @@ export function Step5({ input, upd, setTop }: P) {
           indirgenerek arsanın daha dürüst artık değeri bulunur. Süre 0 bırakılırsa (varsayılan)
           sonuç değişmez — bu, mevcut hesabın birebir aynısıdır.
         </div>
-        <Field label="Proje Süresi (ay)" hint="İnşaatın başlangıcından satışların bitimine kadarki süre.">
+        <Field label="Proje Süresi (ay)" hint="İnşaatın başlangıcından satışların bitimine kadarki süre. Küçük/orta ölçekli projelerde ~12-18 ay, çok katlı/büyük ölçekli projelerde ~24-36 ay tipiktir.">
           <input type="number" min={0} className="input" value={r.projectMonths ?? 0}
                  onChange={(e) => upd('residual', { projectMonths: Math.max(0, Number(e.target.value) || 0) })} />
         </Field>
-        <Field label="Yıllık İndirgeme Oranı" hint="Süre > 0 iken kullanılır.">
+        <Field label="Yıllık İndirgeme Oranı" hint="TCMB politika faizine yakın bir risksiz getiri (ör. %35-38) + geliştirme riski için bir risk primi (ör. %5-10) toplamı önerilir. Süre > 0 iken kullanılır.">
           <Pct value={r.timeDiscountRate ?? 0} onChange={(n) => upd('residual', { timeDiscountRate: n })} />
         </Field>
       </div>
