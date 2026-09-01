@@ -71,7 +71,7 @@ export function Result({ input, result, version, setInput }: {
             {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
           </button>
           <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
-            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'Özet JPEG'}
+            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'JPEG (Sayfa Sayfa)'}
           </button>
           {!isletme && (
             <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
@@ -81,7 +81,7 @@ export function Result({ input, result, version, setInput }: {
         </div>
         {!isletme && (
           <div className="hint" style={{ marginTop: 8 }}>
-            Rapor PDF ve Özet JPEG, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
+            Rapor PDF ve JPEG'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
             Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
           </div>
         )}

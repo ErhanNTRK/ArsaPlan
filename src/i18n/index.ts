@@ -66,10 +66,10 @@ const D: Record<string, string> = {
   '🎓 Örnek projeyle doldur': '🎓 Fill with sample project',
   'Sistemi ilk kez kullanıyorsanız dolu bir örnekle gezinin.': 'New to the system? Explore it with a pre-filled example.',
   'Raporu İndir': 'Download Report', 'Rapor PDF': 'Report PDF', 'Excel': 'Excel',
-  'Özet JPEG': 'Summary JPEG', 'Uzman Notu PDF': 'Expert Note PDF',
+  'Özet JPEG': 'Summary JPEG', 'JPEG (Sayfa Sayfa)': 'JPEG (Page by Page)', 'Uzman Notu PDF': 'Expert Note PDF',
   'Hazırlanıyor…': 'Preparing…',
-  'Rapor PDF ve Özet JPEG, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez. Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.':
-    'The Report PDF and Summary JPEG can be shared with the requesting party; they contain no expert assessment. The Expert Note PDF is intended only for the appraiser using the system.',
+  'Rapor PDF ve JPEG\'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez. Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.':
+    'The Report PDF and JPEGs can be shared with the requesting party; they contain no expert assessment. The Expert Note PDF is intended only for the appraiser using the system.',
 
   /* — Adım başlıkları — */
   'Değerleme Konusu': 'Subject of Valuation', 'Ne değerleniyor?': 'What is being valued?',

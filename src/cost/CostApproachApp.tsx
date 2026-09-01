@@ -348,7 +348,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           await downloadCostApproachJpeg(input, result);
                         } finally { setBusy(null); }
                       }}>
-                🖼️ Özet JPEG
+                🖼️ JPEG (Sayfa Sayfa)
               </button>
               <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null}
                       onClick={async () => {

@@ -1,6 +1,7 @@
 /**
- * JPEG ÇIKTISI — Maliyet Yaklaşımı PDF'inin 1. sayfasının birebir görüntüsü.
- * Mekanizma src/export/jpeg.ts ile aynı (pdf.js ile tarayıcıda çizilir).
+ * JPEG ÇIKTISI — Maliyet Yaklaşımı PDF'inin HER SAYFASININ birebir
+ * görüntüsü, ayrı dosyalar olarak. Mekanizma src/export/jpeg.ts ile aynı
+ * (pdf.js ile tarayıcıda çizilir).
  */
 import { buildCostApproachPdf } from './pdf';
 import { triggerDownload } from '../export/excel';
@@ -15,19 +16,24 @@ export async function downloadCostApproachJpeg(input: CostApproachInput, r: Cost
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const pdf = await pdfjs.getDocument({ data }).promise;
-  const page = await pdf.getPage(1);
   const scale = 150 / 72;
-  const viewport = page.getViewport({ scale });
+  const baseName = name.replace(/\.pdf$/, '');
 
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(viewport.width);
-  canvas.height = Math.round(viewport.height);
-  const ctx = canvas.getContext('2d')!;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale });
 
-  const blob: Blob = await new Promise((resolve, reject) =>
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('JPEG üretilemedi'))), 'image/jpeg', 0.92));
-  triggerDownload(blob, name.replace(/\.pdf$/, '.jpg'));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(viewport.width);
+    canvas.height = Math.round(viewport.height);
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+
+    const blob: Blob = await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('JPEG üretilemedi'))), 'image/jpeg', 0.92));
+    triggerDownload(blob, `${baseName}-Sayfa${pageNum}.jpg`);
+    if (pageNum < pdf.numPages) await new Promise((res) => setTimeout(res, 250));
+  }
 }

@@ -99,7 +99,7 @@ describe('sonuç ekranı', () => {
     expect(html).toContain('Bahçe');
     expect(html).toContain('Rapor PDF');
     expect(html).toContain('Uzman Notu PDF');
-    expect(html).toContain('Özet JPEG');
+    expect(html).toContain('JPEG (Sayfa Sayfa)');
     expect(html).toContain('Excel');
     expect(html).toContain('Dora Gayrimenkul Değerleme');
     expect(html).toContain('Erhan Öntürk');   // Geliştirici satırında yer alır

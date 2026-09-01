@@ -1,73 +1,36 @@
-# ArsaPlan v9.9.0 — Acil Düzeltme Turu: İndirgeme, Parsel Alanı, Kroki, Görsel Anahtarları, Banka Notu
+# ArsaPlan v9.10.0 — Arayüz Sıkılaştırma + Çok-Sayfalı JPEG + Formül Düzeltmeleri
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **346/346 test yeşil** ·
-`npm run build` başarılı. Beş kalem, hepsi kodlandı ve test edildi.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **346/346 test yeşil** · `npm run build` başarılı.
 
-## 1. İndirgemeli değer artık yalnız gerçekten indirgenmişse gösteriliyor
+## Bu turun kalemleri (hepsi doğrudan uygulandı, kesin zip'te)
 
-Önceki hata: "İndirgemeli Değer" satırlarının görünüp görünmeyeceği yalnızca
-**Proje Süresi**'ne bakıyordu, **Yıllık İndirgeme Oranı**'na hiç bakmıyordu.
-Yalnız birini doldurup diğerini boş bırakırsanız, gerçek indirgeme
-uygulanmadığı hâlde "İndirgemeli Değer" diye bir satır çıkıyor, ama sayı
-indirgemesiz değerle birebir aynı oluyordu — kafa karıştırıcıydı. Artık
-kontrol her iki alanı da (`ay > 0 VE oran > 0`) gerektiriyor — hem Kat
-Karşılığı hem Gelir Projeksiyonu tarafında, hem PDF hem Excel hem ekranda.
-
-## 2. Parsel Alanı artık tam sayıya yuvarlanmıyor
-
-10.000,33 m² gibi tapu kaydından gelen kesin bir rakam, önceden "10.000 m²"
-diye tam sayıya yuvarlanıyordu. Yeni bir biçimlendirici (`m2p`/`fmtM2Precise`/
-`M2P`) eklendi — yalnız Parsel Alanı (tapu) ve Net Parsel Alanı için 2
-ondalık korunuyor; diğer (hesaplanan/tahmini) alanlar okunabilirlik için
-hâlâ tam sayıya yuvarlanıyor, bu değişmedi.
-
-## 3. Parsel krokisine TAKS/KAKS modunda taban oturumu eklendi
-
-Daha önce TAKS/KAKS modunda kroki hiçbir zaman bina oturumunu göstermiyordu
-— yalnız "Çekme Mesafesi" modunda çiziliyordu. Artık TAKS/KAKS modunda da,
-taban oturumu m²'si (TAKS'tan ya da otomatik türetilmişse ondan) parselin
-genel oranlarına uygun, ortalanmış temsili bir dikdörtgenle gösteriliyor —
-altına "Taban Oturumu (temsili): X m²" notu düşülüyor. Gerçek mimari
-yerleşim değil, yalnız büyüklük göstergesi olduğu açık.
-
-## 4. Parsel Krokisi ve Yapı Kesiti artık ayrı ayrı açılıp kapatılabiliyor
-
-Önceden tek bir "PDF'te parsel krokisi ve yapı kesiti" anahtarı ikisini
-birlikte kontrol ediyordu. Artık iki ayrı anahtar var — yalnız birini
-isteyip diğerini kapatabilirsiniz. Eski taslaklarda (`reportVisuals` hâlâ
-girilmiş, yeni alanlar boşsa) eski davranış korunuyor, geriye dönük uyumlu.
-
-## 5. Tutarsızlık notu artık bankaya giden PDF/Excel'e yazılmıyor
-
-Geçen turda eklediğim "%5 tutarlılık uyarısı" (kat karşılığı oranı ile
-müteahhit kâr oranı arasındaki olası tutarsızlığı açıklayan not), sistemin
-kendi hesaplamasında (ekranda, siz kontrol ederken) kalmaya devam ediyor —
-ama artık PDF ve Excel çıktısına hiç yazılmıyor. Bankaya gönderilecek
-resmi rapor, yalnız sonuç rakamlarını içeriyor.
+1. **Kâr ve Finansman, Günümüze İndirgeme, Kat Karşılığı Analizi, Rapor Görselleri** bölümleri artık ızgara düzeninde (daha az yer kaplıyor).
+2. **Finansman Gideri ipucu düzeltildi** — "Kredi yoksa %0 bırakın" kaldırıldı (yanlıştı — %0, sermayenin bedava olduğunu varsayar, arsa değerini %55'e varan oranda şişirebiliyordu, gerçek hesapla doğruladık). Yeni metin: paranın maliyeti, %10-20 önerilir.
+3. **Yıllık İndirgeme Oranı ipucu düzeltildi** — önceki "TCMB %35-38 nominal" tavsiyesi, satış fiyatını büyütmeden nominal oranla indirgeyince "çifte ceza" hatasına yol açıyordu. Artık **reel (enflasyondan arındırılmış) oran, %8-15** öneriliyor.
+4. **Üst özet şerit artık o an geçerli TÜM yöntemleri canlı gösteriyor** — Gelir Projeksiyonu (ham/indirgemeli) ve Kat Karşılığı (ham/indirgemeli), hangileri aktifse.
+5. **JPEG çıktısı artık PDF'in TÜM sayfalarını, ayrı dosyalar olarak indiriyor** (`Sayfa1.jpg`, `Sayfa2.jpg`, ...) — önceden yalnızca 1. sayfayı veriyordu. Hem ana Arsa Gelir Projeksiyonu hem bağımsız Maliyet Yaklaşımı modülünde düzeltildi. Düğme "Özet JPEG" → "JPEG (Sayfa Sayfa)" oldu.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Hiçbirinde hesap mantığı değişmedi** — yalnızca gösterim/görünürlük
-düzeltmeleri. Tek davranış değişikliği: yalnız Proje Süresi VEYA yalnız
-İskonto Oranı girip diğerini boş bırakmış olduğunuz raporlarda, artık
-"İndirgemeli Değer" satırı hiç görünmeyecek (önceden yanlışlıkla,
-indirgemesiz değerle aynı sayıyla görünüyordu) — bu raporları gözden
-geçirmek isteyebilirsiniz.
+**Hayır** — bu tur yalnızca arayüz düzeni, metin/ipucu doğruluğu ve JPEG kapsamı ile ilgili. Hiçbir hesap formülü değişmedi.
 
 ## Değişen Dosyalar
 
 ```
-src/export/pdf.ts       İndirgeme koşulu, m2p, kroki taban oturumu, ayrı görsel anahtarları, gapExplanation kaldırıldı
-src/export/excel.ts     İndirgeme koşulu, M2P, gapExplanation kaldırıldı
-src/ui/Result.tsx       İndirgeme koşulu, fmtM2Precise
-src/ui/fields.tsx       fmtM2Precise eklendi
-src/ui/Steps.tsx        Parsel Krokisi/Yapı Kesiti ayrı anahtarlar (Konut/Ticari/Karma)
-src/ui/StepsIsletme.tsx showParcelSketch'e geçirildi
-src/engine/types.ts     showParcelSketch, showBuildingSection
-src/engine/acil-5-kalem.test.ts   YENİ — 7 test
+src/ui/Steps.tsx            Kâr ve Finansman / Günümüze İndirgeme / Kat Karşılığı Analizi / Rapor Görselleri ızgara + metin düzeltmeleri
+src/App.tsx                 Üst özet şerit — tüm geçerli yöntemler
+src/export/jpeg.ts          Çok sayfalı JPEG (ana modül)
+src/cost/jpeg.ts            Çok sayfalı JPEG (bağımsız Maliyet Yaklaşımı)
+src/ui/Result.tsx           JPEG düğme etiketi ve ipucu metni
+src/cost/CostApproachApp.tsx JPEG düğme etiketi
+src/i18n/index.ts           Yeni JPEG etiketinin İngilizce çevirisi
+src/ui/ui.test.tsx          Test güncellendi (yeni düğme etiketi)
 ```
 
-## Beklemede — henüz karar verilmedi
+## Beklemede — henüz karar verilmedi/kodlanmadı
 
-- "İndirgenmiş Kat Karşılığı Yöntemi" (bağımsız Maliyet Yaklaşımı'na üçüncü
-  yöntem) — şimdilik eklenmiyor.
+- **"Nihai Değer" seçici** (Arsa Gelir Projeksiyonu) — onaylandı, "başla" bekliyor.
+- **Yapı Sınıfı otomatik önerisi** (179 yapı türü, tebliğ referanslı) — onaylandı, "başla" bekliyor.
+- **İndirgenmiş Kat Karşılığı Yöntemi** (minimum veri girişi — yalnız "Proje Riski" yeni alanı) — onaylandı, "başla" bekliyor.
+- **Ziraat Tablosu bozulması** — sizin bildirdiğiniz sorun, test senaryomda tekrarlanmadı; siz "sonra tekrar deneriz" dediniz, açık.
+- **Uzman Notu PDF** — "gereksiz" izleniminiz netleşmedi (içerik testte dolu çıktı); ister isteğe bağlı ekran içi gösterime çevirebiliriz, karar bekliyor.

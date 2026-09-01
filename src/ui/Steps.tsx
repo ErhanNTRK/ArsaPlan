@@ -530,61 +530,68 @@ export function Step5({ input, upd, setTop }: P) {
     <div className="cols">
       <div className="card card-wide">
         <div className="card-title">Kâr ve Finansman</div>
-        <Field label="Müteahhit Kâr Oranı" hint="Hasılat üzerinden.">
-          <Pct value={r.profitRate} onChange={(n) => upd('residual', { profitRate: n })} />
-        </Field>
-        <Field label="Finansman Gideri" hint="Toplam maliyetin yüzdesi. Kredi yoksa %0 bırakın.">
-          <Pct value={r.financeRateOfCost} onChange={(n) => upd('residual', { financeRateOfCost: n })} />
-        </Field>
+        <div className="grid-2">
+          <Field label="Müteahhit Kâr Oranı" hint="Hasılat üzerinden.">
+            <Pct value={r.profitRate} onChange={(n) => upd('residual', { profitRate: n })} />
+          </Field>
+          <Field label="Finansman Gideri" hint="İnşaat sürecinde kullanılacak paranın maliyeti — kısa vadeli projelerde %10-20 arası önerilir.">
+            <Pct value={r.financeRateOfCost} onChange={(n) => upd('residual', { financeRateOfCost: n })} />
+          </Field>
+        </div>
       </div>
 
       <div className="card card-wide">
         <div className="card-title">Günümüze İndirgeme</div>
         <div className="hint" style={{ marginBottom: 10 }}>
-          İnşaat bir anda değil süre içinde biter; hasılat ve maliyet bugünkü değerlerine
-          indirgenerek arsanın daha dürüst artık değeri bulunur. Süre 0 bırakılırsa (varsayılan)
-          sonuç değişmez — bu, mevcut hesabın birebir aynısıdır.
+          İnşaat süre içinde biter; hasılat ve maliyet bugüne indirgenerek daha dürüst bir arsa
+          değeri bulunur. Süre 0 ise (varsayılan) sonuç değişmez.
         </div>
-        <Field label="Proje Süresi (ay)" hint="İnşaatın başlangıcından satışların bitimine kadarki süre. Küçük/orta ölçekli projelerde ~12-18 ay, çok katlı/büyük ölçekli projelerde ~24-36 ay tipiktir.">
-          <input type="number" min={0} className="input" value={r.projectMonths ?? 0}
-                 onChange={(e) => upd('residual', { projectMonths: Math.max(0, Number(e.target.value) || 0) })} />
-        </Field>
-        <Field label="Yıllık İndirgeme Oranı" hint="TCMB politika faizine yakın bir risksiz getiri (ör. %35-38) + geliştirme riski için bir risk primi (ör. %5-10) toplamı önerilir. Süre > 0 iken kullanılır.">
-          <Pct value={r.timeDiscountRate ?? 0} onChange={(n) => upd('residual', { timeDiscountRate: n })} />
-        </Field>
+        <div className="grid-2">
+          <Field label="Proje Süresi (ay)" hint="İnşaat başlangıcından satış bitimine kadarki süre. Küçük projelerde ~12-18 ay, büyük ölçeklilerde ~24-36 ay tipiktir.">
+            <input type="number" min={0} className="input" value={r.projectMonths ?? 0}
+                   onChange={(e) => upd('residual', { projectMonths: Math.max(0, Number(e.target.value) || 0) })} />
+          </Field>
+          <Field label="Yıllık İndirgeme Oranı" hint="Reel (enflasyondan arındırılmış) bir oran kullanın — TL'nin nominal faizinden çok daha düşük olmalı, ör. %8-15 arası.">
+            <Pct value={r.timeDiscountRate ?? 0} onChange={(n) => upd('residual', { timeDiscountRate: n })} />
+          </Field>
+        </div>
       </div>
 
       <div className="card card-wide">
         <div className="card-title">Kat Karşılığı Analizi</div>
-        <Field label="Rapora eklensin mi?"
-               hint="Kat karşılığı yöntemi artık değer yönteminden farklı sonuç verebilir.">
-          <Seg value={input.share.enabled} onChange={(b) => upd('share', { enabled: b })}
-               options={[{ value: true, label: 'Evet' }, { value: false, label: 'Hayır' }]} />
-        </Field>
-        {input.share.enabled && (
-          <>
+        <div className="grid-2">
+          <Field label="Rapora eklensin mi?"
+                 hint="Kat karşılığı yöntemi artık değer yönteminden farklı sonuç verebilir.">
+            <Seg value={input.share.enabled} onChange={(b) => upd('share', { enabled: b })}
+                 options={[{ value: true, label: 'Evet' }, { value: false, label: 'Hayır' }]} />
+          </Field>
+          {input.share.enabled && (
             <Field label="Arsa Sahibi Payı">
               <Pct value={input.share.ownerShare} onChange={(n) => upd('share', { ownerShare: n })} />
             </Field>
-            <div className="note-box">
-              Müteahhit payı: <b>%{((1 - input.share.ownerShare) * 100).toFixed(1).replace('.', ',')}</b>
-            </div>
-          </>
+          )}
+        </div>
+        {input.share.enabled && (
+          <div className="note-box">
+            Müteahhit payı: <b>%{((1 - input.share.ownerShare) * 100).toFixed(1).replace('.', ',')}</b>
+          </div>
         )}
       </div>
 
       <div className="card">
         <div className="card-title">Rapor Görselleri</div>
-        <Field label="PDF'te Parsel Krokisi" hint="KML gerekir. TAKS/KAKS modunda taban oturumu temsili bir dikdörtgenle gösterilir.">
-          <Seg value={(input.showParcelSketch ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
-               onChange={(v) => setTop('showParcelSketch', v === 'evet')}
-               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
-        </Field>
-        <Field label="PDF'te Yapı Kesiti" hint="Kat kurgusunun temsili çizimidir (mimari proje değildir).">
-          <Seg value={(input.showBuildingSection ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
-               onChange={(v) => setTop('showBuildingSection', v === 'evet')}
-               options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
-        </Field>
+        <div className="grid-2">
+          <Field label="PDF'te Parsel Krokisi" hint="KML gerekir. TAKS/KAKS modunda taban oturumu temsili bir dikdörtgenle gösterilir.">
+            <Seg value={(input.showParcelSketch ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
+                 onChange={(v) => setTop('showParcelSketch', v === 'evet')}
+                 options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+          </Field>
+          <Field label="PDF'te Yapı Kesiti" hint="Kat kurgusunun temsili çizimidir (mimari proje değildir).">
+            <Seg value={(input.showBuildingSection ?? input.reportVisuals ?? true) === false ? 'hayir' : 'evet'}
+                 onChange={(v) => setTop('showBuildingSection', v === 'evet')}
+                 options={[{ value: 'evet', label: 'Evet' }, { value: 'hayir', label: 'Hayır' }]} />
+          </Field>
+        </div>
       </div>
 
       <div className="card">

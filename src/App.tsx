@@ -375,7 +375,16 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
           <div className="hotel-summary-inner">
             <div><span>Hasılat</span><b>{Math.round(result.financial.revenue).toLocaleString('tr-TR')} ₺</b></div>
             <div><span>Toplam Maliyet</span><b>{Math.round(result.financial.totalCost).toLocaleString('tr-TR')} ₺</b></div>
-            <div><span>Arsa Değeri (Artık Değer)</span><b>{Math.round(result.financial.residualLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            <div><span>Gelir Projeksiyonu</span><b>{Math.round(result.financial.residualLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
+              <div><span>Gelir Proj. (İndirgemeli)</span><b>{Math.round(result.financial.discountedLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            )}
+            {input.share.enabled && (
+              <div><span>Kat Karşılığı</span><b>{Math.round(result.share.shareLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            )}
+            {input.share.enabled && (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
+              <div><span>Kat Karş. (İndirgemeli)</span><b>{Math.round(result.share.discountedShareLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            )}
           </div>
         </div>
       )}
