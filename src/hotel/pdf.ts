@@ -94,6 +94,13 @@ export async function buildHotelPdf(
   } else if (method === 'maliyet' && r.cost) {
     stat('ARSA DEĞERİ', cur(r.cost.landValue), y + 10.5);
     stat('YAPI DEĞERLERİ', cur(r.cost.buildingsValue), y + 21.5);
+  } else if (method === 'manuel') {
+    // Elle girilen bir değerin NOI/Kapitalizasyon Oranı ile doğrudan bir
+    // ilişkisi yok — o istatistikleri burada göstermek yanıltıcı olur.
+    // Direkt Kap sonucu ve oranı, aşağıdaki "ikincil yöntemler" listesinde
+    // zaten ayrıca gösteriliyor.
+    stat('TOPLAM GELİR', cur(r.totalGrossRevenue), y + 10.5);
+    stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 21.5);
   } else {
     stat('NET İŞLETME GELİRİ (NOI)', cur(r.noi), y + 10.5);
     stat('KAPİTALİZASYON ORANI', pct(input.projection.capRate), y + 21.5);
@@ -102,7 +109,9 @@ export async function buildHotelPdf(
 
   /* İkincil yöntemler — işaretli ama seçilen nihai yöntem OLMAYAN diğerleri */
   const secondary: { label: string; value: number }[] = [];
-  if (method !== 'direkt' && (input.showIncomeInPdf ?? true)) secondary.push({ label: 'Gelir Yaklaşımı (Direkt Kapitalizasyon)', value: r.capitalizedValue });
+  if (method !== 'direkt' && (input.showIncomeInPdf ?? true)) {
+    secondary.push({ label: `Gelir Yaklaşımı (Direkt Kapitalizasyon, %${(input.projection.capRate * 100).toFixed(1).replace('.', ',')})`, value: r.capitalizedValue });
+  }
   if (method !== 'ina' && (input.showInaInPdf ?? true) && r.ina) secondary.push({ label: 'İNA (NBD)', value: r.ina.npv });
   if (method !== 'maliyet' && (input.showCostInPdf ?? true) && r.cost) secondary.push({ label: 'Maliyet Yaklaşımı', value: r.cost.totalValueRounded });
 
@@ -186,6 +195,14 @@ export async function buildHotelPdf(
 
   if ((input.showInaInPdf ?? true) && r.ina) {
     sectionTitle('Yıllık Projeksiyon Tablosu');
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+    doc.text(
+      `Varsayımlar — Gelir Artış Oranı: %${(input.projection.incomeGrowthRate * 100).toFixed(1).replace('.', ',')} · ` +
+      `Gider Artış Oranı: %${(input.projection.expenseGrowthRate * 100).toFixed(1).replace('.', ',')} · ` +
+      `Yenileme Fonu Oranı: %${((input.projection.renewalFundRate ?? 0) * 100).toFixed(1).replace('.', ',')}`,
+      M, y,
+    );
+    y += 6;
     table(
       ['Yıl', 'Toplam Gelir', 'İşletme Gideri', 'NOI', 'Kapitalizasyon Değeri'],
       r.projectionTable.map((row) => [

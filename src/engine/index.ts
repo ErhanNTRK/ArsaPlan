@@ -92,7 +92,14 @@ function analyzeApartment(input: ProjectInput, variant: 'konut' | 'karma'): Anal
     apartment.saleableByKind.piyes * p.piyes;
 
   const financial = computeFinancial(
-    input.parcel, capacity, input.cost, input.site, input.sales, input.residual, buildingRevenue,
+    /* Çok katlı bina/karma kullanımda "Peyzaj ve Bahçe" kartı gösterilmiyor —
+       depolanmış landscapeUnitCost/gardenPricePerM2 değerleri (kullanıcı
+       daha önce Villa modundayken girmiş olabilir) burada sessizce hesaba
+       karışmasın diye, yalnız BU hesap için sıfırlanmış bir site nesnesi
+       kullanılır. Kullanıcının gerçek input.site değeri DEĞİŞTİRİLMEZ —
+       Villa'ya geri dönerse kendi girdiği değerler aynen durur. */
+    input.parcel, capacity, input.cost, { ...input.site, landscapeUnitCost: 0, gardenPricePerM2: 0 },
+    input.sales, input.residual, buildingRevenue,
   );
   const share = computeShare(capacity, financial, input.share, input.residual);
   const advice = buildApartmentAdvice(

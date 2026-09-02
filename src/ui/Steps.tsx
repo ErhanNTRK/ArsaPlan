@@ -455,14 +455,19 @@ export function Step4(props: P) {
     <div className="cols">
       <div className="card card-wide">
         <div className="card-title">Yapım Maliyeti</div>
-        <Field label="Yapı Sınıfı (2026 Bakanlık Tebliği)">
-          <Sel value={c.buildingClass}
-               onChange={(code) => {
-                 const x = YAPI_SINIFLARI.find((y) => y.code === code);
-                 upd('cost', { buildingClass: code, unitCost: x ? x.unitCost : c.unitCost });
-               }}
-               options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: `${x.label} — ${fmtTLm2(x.unitCost)}` }))} />
-        </Field>
+        <div className="grid-2">
+          <Field label="Yapı Sınıfı (2026 Bakanlık Tebliği)">
+            <Sel value={c.buildingClass}
+                 onChange={(code) => {
+                   const x = YAPI_SINIFLARI.find((y) => y.code === code);
+                   upd('cost', { buildingClass: code, unitCost: x ? x.unitCost : c.unitCost });
+                 }}
+                 options={YAPI_SINIFLARI.map((x) => ({ value: x.code, label: `${x.label} — ${fmtTLm2(x.unitCost)}` }))} />
+          </Field>
+          <Field label="Proje, Ruhsat, Harç ve Müşavirlik" hint="İnşaat maliyeti üzerinden oran">
+            <Pct value={c.extrasRate} onChange={(n) => upd('cost', { extrasRate: n })} />
+          </Field>
+        </div>
         {sinif && <div className="hint" style={{ marginTop: -6, marginBottom: 10 }}>{sinif.examples}</div>}
         <div className="grid-2">
           <Field label="Birim Maliyet" hint="Elle değiştirebilirsiniz" error={!c.unitCost ? 'Zorunlu: birim maliyet giriniz veya yapı sınıfı seçiniz.' : null}>
@@ -472,9 +477,6 @@ export function Step4(props: P) {
             <Pct value={c.inflationRate} onChange={(n) => upd('cost', { inflationRate: n })} />
           </Field>
         </div>
-        <Field label="Proje, Ruhsat, Harç ve Müşavirlik" hint="İnşaat maliyeti üzerinden oran">
-          <Pct value={c.extrasRate} onChange={(n) => upd('cost', { extrasRate: n })} />
-        </Field>
         <div className="note-box">
           Güncel birim maliyet <b>{fmtTLm2(c.unitCost * (1 + c.inflationRate))}</b> ·
           Toplam inşaat <b>{fmtM2(cap.totalArea)}</b><br />
@@ -482,26 +484,28 @@ export function Step4(props: P) {
         </div>
       </div>
 
-      <div className="card card-wide">
-        <div className="card-title">Peyzaj ve Bahçe</div>
-        <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − taban oturumu">
-          <Num value={s.landscapeArea > 0 ? s.landscapeArea : Math.round(cap.gardenArea)}
-               onChange={(n) => upd('site', { landscapeArea: n })} suffix="m²" />
-        </Field>
-        {s.landscapeArea > 0 && (
-          <button type="button" className="link-btn" onClick={() => upd('site', { landscapeArea: 0 })}>
-            Otomatik hesaba dön ({fmtM2(cap.gardenArea)})
-          </button>
-        )}
-        <div className="grid-2" style={{ marginTop: 10 }}>
-          <Field label="Peyzaj Birim Maliyeti">
-            <Num value={s.landscapeUnitCost} onChange={(n) => upd('site', { landscapeUnitCost: n })} suffix="₺/m²" />
+      {!apartman && (
+        <div className="card card-wide">
+          <div className="card-title">Peyzaj ve Bahçe</div>
+          <Field label="Peyzaj / Bahçe Alanı" hint="Otomatik: net parsel − taban oturumu">
+            <Num value={s.landscapeArea > 0 ? s.landscapeArea : Math.round(cap.gardenArea)}
+                 onChange={(n) => upd('site', { landscapeArea: n })} suffix="m²" />
           </Field>
-          <Field label="Bahçe Satış Değeri" hint="0 → fiyata dahil">
-            <Num value={s.gardenPricePerM2} onChange={(n) => upd('site', { gardenPricePerM2: n })} suffix="₺/m²" />
-          </Field>
+          {s.landscapeArea > 0 && (
+            <button type="button" className="link-btn" onClick={() => upd('site', { landscapeArea: 0 })}>
+              Otomatik hesaba dön ({fmtM2(cap.gardenArea)})
+            </button>
+          )}
+          <div className="grid-2" style={{ marginTop: 10 }}>
+            <Field label="Peyzaj Birim Maliyeti">
+              <Num value={s.landscapeUnitCost} onChange={(n) => upd('site', { landscapeUnitCost: n })} suffix="₺/m²" />
+            </Field>
+            <Field label="Bahçe Satış Değeri" hint="0 → fiyata dahil">
+              <Num value={s.gardenPricePerM2} onChange={(n) => upd('site', { gardenPricePerM2: n })} suffix="₺/m²" />
+            </Field>
+          </div>
         </div>
-      </div>
+      )}
 
       {apartman ? (
         <ApartmentSalesCard {...props} karma={karma} />

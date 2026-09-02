@@ -172,7 +172,10 @@ describe('İNA — banka Excel goldeni (birebir, tek tekrarlı senaryo)', () => 
     // DÜZELTME DOĞRULAMASI: terminal değer artık son (9.) yılın değil, bir sonraki
     // (10.) yılın NOI'sinden hesaplanıyor. Bu, gerçek banka Excel'inin referans NBD'sine
     // (4.229.084,21) eski koddan (4.189.552 — %0,9 sapma) çok daha yakın (%0,4 sapma).
-    expect(ina.npv).toBeCloseTo(4246781.57, -1);
+    // NOT: npv artık diğer iki yöntemle (Direkt Kap, Maliyet Yaklaşımı) tutarlı olsun
+    // diye 5.000'e yuvarlanıyor — bu yüzden ±2.500 (yarım yuvarlama adımı) tolerans
+    // tanınıyor, ham hassasiyet (toBeCloseTo -1) yerine.
+    expect(Math.abs(ina.npv - 4246781.57)).toBeLessThanOrEqual(2500);
     expect(Math.abs(ina.npv - 4229084.21)).toBeLessThan(Math.abs(4189552.37 - 4229084.21)); // eski koddan daha yakın
   });
 

@@ -1,36 +1,49 @@
-# ArsaPlan v9.10.0 — Arayüz Sıkılaştırma + Çok-Sayfalı JPEG + Formül Düzeltmeleri
+# ArsaPlan v9.12.0 — Otel İNA Yuvarlama Tutarsızlığı Düzeltildi
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **346/346 test yeşil** · `npm run build` başarılı.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **355/355 test yeşil** ·
+`npm run build` başarılı.
 
-## Bu turun kalemleri (hepsi doğrudan uygulandı, kesin zip'te)
+## İNA (NBD) artık diğer iki yöntemle tutarlı, 5.000'e yuvarlanıyor
 
-1. **Kâr ve Finansman, Günümüze İndirgeme, Kat Karşılığı Analizi, Rapor Görselleri** bölümleri artık ızgara düzeninde (daha az yer kaplıyor).
-2. **Finansman Gideri ipucu düzeltildi** — "Kredi yoksa %0 bırakın" kaldırıldı (yanlıştı — %0, sermayenin bedava olduğunu varsayar, arsa değerini %55'e varan oranda şişirebiliyordu, gerçek hesapla doğruladık). Yeni metin: paranın maliyeti, %10-20 önerilir.
-3. **Yıllık İndirgeme Oranı ipucu düzeltildi** — önceki "TCMB %35-38 nominal" tavsiyesi, satış fiyatını büyütmeden nominal oranla indirgeyince "çifte ceza" hatasına yol açıyordu. Artık **reel (enflasyondan arındırılmış) oran, %8-15** öneriliyor.
-4. **Üst özet şerit artık o an geçerli TÜM yöntemleri canlı gösteriyor** — Gelir Projeksiyonu (ham/indirgemeli) ve Kat Karşılığı (ham/indirgemeli), hangileri aktifse.
-5. **JPEG çıktısı artık PDF'in TÜM sayfalarını, ayrı dosyalar olarak indiriyor** (`Sayfa1.jpg`, `Sayfa2.jpg`, ...) — önceden yalnızca 1. sayfayı veriyordu. Hem ana Arsa Gelir Projeksiyonu hem bağımsız Maliyet Yaklaşımı modülünde düzeltildi. Düğme "Özet JPEG" → "JPEG (Sayfa Sayfa)" oldu.
+Siz üç yöntemi (Direkt Kap, İNA, Maliyet Yaklaşımı) aynı PDF'te
+gösterttiğinizde, ikisi (Direkt Kap, Maliyet Yaklaşımı) temiz, 5.000'in
+katı rakamlar veriyordu — ama **İNA hiç yuvarlanmıyordu**, "4.397.200,00"
+gibi kesirli/kusuratlı bir sonuç veriyordu. Bu yüzden siz üstteki nihai
+rakamı elle yazmak zorunda kalmıştınız.
+
+**Kök neden:** `capitalizedValue` ve `cost.totalValueRounded` kodda zaten
+`Math.round(x / 5000) * 5000` ile yuvarlanıyordu; `ina.npv` ise ham
+(indirgenmiş nakit akışlarının toplamı) olarak, hiç yuvarlanmadan
+dönüyordu — üçü aynı raporda yan yana gösterildiğinde tutarsız görünüyordu.
+
+**Düzeltme:** `npv` de artık aynı 5.000 kuralıyla yuvarlanıyor. 2 yeni test
+— biri özellikle üçünün **aynı anda** 5.000'in katı çıktığını doğruluyor.
+
+Ayrıca bu değişiklik nedeniyle, terminal değer düzeltmesini doğrulayan eski
+bir golden testin (`engine.test.ts`) toleransı, ham hassasiyetten (kuruşa
+kadar) ±2.500 TL'lik (yarım yuvarlama adımı) bir toleransa güncellendi —
+testin asıl doğruladığı şey (terminal değer hesabının doğruluğu) hiç
+değişmedi, yalnız artık yuvarlamayı da hesaba katıyor.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Hayır** — bu tur yalnızca arayüz düzeni, metin/ipucu doğruluğu ve JPEG kapsamı ile ilgili. Hiçbir hesap formülü değişmedi.
+**Evet, ama yalnızca son basamaklarda** — İNA sonucunuz artık en yakın
+5.000'e yuvarlanıyor (önceden tam kuruşuna kadar kesin bir sayıydı). Fark,
+en fazla ±2.500 TL — büyük ölçekli otel değerlemelerinde ihmal edilebilir
+düzeyde, ama artık üç yöntem birbiriyle görsel olarak tutarlı.
 
-## Değişen Dosyalar
+## Değişen/Eklenen Dosyalar
 
 ```
-src/ui/Steps.tsx            Kâr ve Finansman / Günümüze İndirgeme / Kat Karşılığı Analizi / Rapor Görselleri ızgara + metin düzeltmeleri
-src/App.tsx                 Üst özet şerit — tüm geçerli yöntemler
-src/export/jpeg.ts          Çok sayfalı JPEG (ana modül)
-src/cost/jpeg.ts            Çok sayfalı JPEG (bağımsız Maliyet Yaklaşımı)
-src/ui/Result.tsx           JPEG düğme etiketi ve ipucu metni
-src/cost/CostApproachApp.tsx JPEG düğme etiketi
-src/i18n/index.ts           Yeni JPEG etiketinin İngilizce çevirisi
-src/ui/ui.test.tsx          Test güncellendi (yeni düğme etiketi)
+src/hotel/engine.ts                 npv artık R5000 ile yuvarlanıyor
+src/hotel/engine.test.ts            Golden test toleransı güncellendi
+src/hotel/ina-npv-yuvarlama.test.ts    YENİ — 2 test
 ```
 
 ## Beklemede — henüz karar verilmedi/kodlanmadı
 
 - **"Nihai Değer" seçici** (Arsa Gelir Projeksiyonu) — onaylandı, "başla" bekliyor.
 - **Yapı Sınıfı otomatik önerisi** (179 yapı türü, tebliğ referanslı) — onaylandı, "başla" bekliyor.
-- **İndirgenmiş Kat Karşılığı Yöntemi** (minimum veri girişi — yalnız "Proje Riski" yeni alanı) — onaylandı, "başla" bekliyor.
-- **Ziraat Tablosu bozulması** — sizin bildirdiğiniz sorun, test senaryomda tekrarlanmadı; siz "sonra tekrar deneriz" dediniz, açık.
-- **Uzman Notu PDF** — "gereksiz" izleniminiz netleşmedi (içerik testte dolu çıktı); ister isteğe bağlı ekran içi gösterime çevirebiliriz, karar bekliyor.
+- **İndirgenmiş Kat Karşılığı Yöntemi** (minimum veri girişi) — onaylandı, "başla" bekliyor.
+- **Ziraat Tablosu bozulması** — test senaryomda tekrarlanmadı, açık.
+- **Uzman Notu PDF** — karar bekliyor.

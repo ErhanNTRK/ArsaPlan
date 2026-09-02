@@ -64,7 +64,7 @@ const DEFAULT_INPUT: ProjectInput = {
   cost: {
     buildingClass: VILLA_DEFAULT_CLASS,
     unitCost: YAPI_SINIFLARI.find((s) => s.code === VILLA_DEFAULT_CLASS)!.unitCost,
-    inflationRate: 0, extrasRate: 0.12,
+    inflationRate: 0, extrasRate: 0.08,
   },
   site: { landscapeArea: 0, landscapeUnitCost: 1200, gardenPricePerM2: 0 },
   sales: { unitPrice: 0, apt: { bodrum: 0, bodrumTicari: 0, zemin: 0, asma: 0, normal: 0, piyes: 0 } },

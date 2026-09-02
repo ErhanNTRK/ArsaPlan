@@ -17,6 +17,8 @@ import type {
 } from './types';
 
 const R = Math.round;
+/** Diğer iki yöntemle (Direkt Kap, Maliyet Yaklaşımı) tutarlı olsun diye 5.000'e yuvarlar. */
+const R5000 = (v: number) => Math.round(v / 5000) * 5000;
 const safeDiv = (a: number, b: number) => (b === 0 ? 0 : a / b);
 
 /* ─────────────────── 1) Oda Gelirleri ─────────────────── */
@@ -414,7 +416,7 @@ export function computeIna(
     if (idx === table.length - 1) cf += terminalValue;
     return cf;
   });
-  const npv = cashFlows.reduce((sum, cf, idx) => sum + cf / Math.pow(1 + i, idx + 1), 0);
+  const npv = R5000(cashFlows.reduce((sum, cf, idx) => sum + cf / Math.pow(1 + i, idx + 1), 0));
   const gapExplanation = directCapValue != null
     ? explainInaVsDirectGap(directCapValue, npv, p.capRate, p.incomeGrowthRate ?? 0, i)
     : null;
