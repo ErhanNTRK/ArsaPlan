@@ -13,7 +13,7 @@
  */
 
 export type AssetType = 'konut' | 'ticari' | 'karma';
-export type HousingType = 'villa' | 'apartman-3-8' | 'site';
+export type HousingType = 'villa' | 'apartman-3-8';
 
 /** KML'den okunan parsel geometrisi — yalnız kroki ve çapraz kontrol içindir. */
 export interface ParcelKml {

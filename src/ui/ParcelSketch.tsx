@@ -31,7 +31,14 @@ export function ParcelSketch({ kml, width = 420, zoning, onSelectFront, taksArea
   const spanX = maxX - minX, spanY = maxY - minY;
 
   const PAD = 34;
-  const height = Math.max(220, Math.round((width - 2 * PAD) * (spanY / spanX)) + 2 * PAD);
+  // Yükseklik parselin en/boy oranına göre hesaplanır, ama çok uzun/dar
+  // parsellerde (Türkiye'de yaygın bir şekil) bu oran aşırı büyüyüp krokiyi
+  // sayfada devasa yer kaplayan bir kutuya dönüştürebiliyordu — bu yüzden bir
+  // üst sınır (genişliğin ~1,4 katı) konuyor. Şekil bozulmuyor: mevcut
+  // ölçekleme/ortalama mantığı (scale = Math.min(...)) zaten daha kısıtlayıcı
+  // boyutu (burada yükseklik) baz alıp diğer eksende otomatik boşluk bırakıyor.
+  const rawHeight = Math.round((width - 2 * PAD) * (spanY / spanX)) + 2 * PAD;
+  const height = Math.min(Math.round(width * 1.4), Math.max(220, rawHeight));
   const scale = Math.min((width - 2 * PAD) / spanX, (height - 2 * PAD) / spanY);
   const X = (x: number) => PAD + (x - minX) * scale + (width - 2 * PAD - spanX * scale) / 2;
   const Y = (y: number) => height - PAD - (y - minY) * scale - (height - 2 * PAD - spanY * scale) / 2;

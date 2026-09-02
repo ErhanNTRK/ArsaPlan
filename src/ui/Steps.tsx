@@ -60,7 +60,6 @@ export function Step1({ input, setTop, onSample }: P & { onSample?: () => void }
 const HOUSING: Array<{ v: HousingType; label: string; desc: string; ready: boolean }> = [
   { v: 'villa', label: 'Villa', desc: 'Müstakil / ikiz / sıralı', ready: true },
   { v: 'apartman-3-8', label: 'Çok Katlı Bina', desc: 'Kat tablosu ile hesap', ready: true },
-  { v: 'site', label: 'Site', desc: 'Parsel içinde çok bloklu', ready: false },
 ];
 
 export function Step2({ input, upd, setTop }: P) {
