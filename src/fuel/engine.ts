@@ -65,6 +65,9 @@ export interface FuelInput {
   capRate: number;              // 0.10 = %10
   rounding: number;             // sonuç yuvarlama adımı (ör. 50000); 0 = yok
   cost: FuelCostInput;
+  /** Nihai Değer — hangi yöntem PDF'te "asıl" sonuç olarak öne çıkacak. Boşsa (varsayılan) Gelir Yöntemi. */
+  finalMethod?: 'gelir' | 'maliyet' | 'manuel';
+  finalManualValue?: number | null;
 }
 
 export interface FuelProductResult extends FuelProductInput {

@@ -34,6 +34,47 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
   doc.text(`Parsel Alanı: ${m2(input.parcelArea)}  ·  Ekilebilir Alan: ${m2(r.arableArea)} (%${input.arablePct.toLocaleString('tr-TR')})`, M, y);
   y += 9;
 
+  /* PARSEL KROKİSİ — diğer modüllerle (Arsa Gelir Projeksiyonu, Otel, Akaryakıt,
+     Maliyet Yaklaşımı) aynı görsel dil: lacivert sınır + açık dolgu, kuzey oku.
+     Burada TAKS/çekme kavramı yok, yalnız parselin kendisi çizilir. */
+  if (input.kml && input.kml.points.length >= 3) {
+    const k = input.kml;
+    const xs = k.points.map((q) => q.x), ys = k.points.map((q) => q.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const spanX = maxX - minX || 1, spanY = maxY - minY || 1;
+    const BW = W - 8;
+    const BH = Math.min(78, Math.max(45, BW * (spanY / spanX)));
+    if (y + BH + 22 > 275) { doc.addPage(); y = 18; }
+    doc.setFillColor(...NAVY);
+    doc.rect(M, y - 4.5, W, 6.5, 'F');
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(9); doc.setTextColor(255, 255, 255);
+    doc.text('PARSEL KROKİSİ', M + 3, y);
+    y += 8;
+    const bx = M + 4, by = y + 2;
+    const sc = Math.min((BW - 12) / spanX, (BH - 12) / spanY);
+    const SX = (x: number) => bx + 6 + (x - minX) * sc + (BW - 12 - spanX * sc) / 2;
+    const SY = (yy: number) => by + BH - 6 - (yy - minY) * sc - (BH - 12 - spanY * sc) / 2;
+    doc.setDrawColor(210, 214, 219); doc.setFillColor(253, 252, 250);
+    doc.roundedRect(M, by - 2, W, BH + 4, 1.5, 1.5, 'FD');
+    doc.setFillColor(237, 240, 245); doc.setDrawColor(...NAVY); doc.setLineWidth(0.5);
+    const segs = k.points.map((q, i) => {
+      const nxt = k.points[(i + 1) % k.points.length];
+      return [SX(nxt.x) - SX(q.x), SY(nxt.y) - SY(q.y)] as [number, number];
+    });
+    doc.lines(segs, SX(k.points[0].x), SY(k.points[0].y), [1, 1], 'FD', true);
+    doc.setLineWidth(0.2);
+    const nx0 = M + W - 7, ny0 = by + 6;
+    doc.setFillColor(...NAVY);
+    doc.triangle(nx0, ny0 - 3.2, nx0 + 1.9, ny0 + 2.6, nx0 - 1.9, ny0 + 2.6, 'F');
+    doc.setFont('NTRK', 'bold'); doc.setFontSize(6.5); doc.setTextColor(...NAVY);
+    doc.text('K', nx0, ny0 + 6.4, { align: 'center' });
+    y = by + BH + 6;
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+    doc.text(`Parsel Alanı: ${m2(input.parcelArea)}`, M + 3, y);
+    y += 9;
+  }
+
   function sectionTitle(title: string) {
     doc.setFillColor(...NAVY);
     doc.rect(M, y - 4.5, W, 6.5, 'F');

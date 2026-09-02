@@ -63,6 +63,31 @@ export function Result({ input, result, version, setInput }: {
                    onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
           </label>
         )}
+        {input.share.enabled && (
+          <div className="hint" style={{ marginBottom: 4 }}>Raporda gösterilecek arsa değeri yöntemleri:</div>
+        )}
+        <div className="grid-2" style={{ marginBottom: 10 }}>
+          {input.share.enabled && (
+            <>
+              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={input.showKatKarsiligiIndirgemeli ?? true}
+                       onChange={(e) => setInput?.((s) => ({ ...s, showKatKarsiligiIndirgemeli: e.target.checked }))} />
+                <span>İndirgemeli Kat Karşılığı Değeri</span>
+              </label>
+              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={input.showGelirIndirgemeli ?? true}
+                       onChange={(e) => setInput?.((s) => ({ ...s, showGelirIndirgemeli: e.target.checked }))} />
+                <span>İndirgemeli Gelir Projeksiyonu Değeri</span>
+              </label>
+            </>
+          )}
+          <label className="pfield">
+            <span>Nihai Arsa Değeri — elle giriş (opsiyonel)</span>
+            <input type="number" min={0} placeholder="Boş bırakılırsa Gelir Projeksiyonu sonucu kullanılır"
+                   value={input.finalManualValue ?? ''}
+                   onChange={(e) => setInput?.((s) => ({ ...s, finalManualValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0) }))} />
+          </label>
+        </div>
         <div className="dl-grid">
           <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
             {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}

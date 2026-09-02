@@ -33,7 +33,7 @@ function defaultRow(kind: CropRow['kind']): CropRow {
 type Mode = 'ekili' | 'dikili' | 'karma';
 type St = AgriInput & { mode: Mode | null };
 
-const DEFAULT: St = { mode: null, parcelArea: 10000, arablePct: 100, amortYears: 25, rows: [], mahalle: '', ada: '', parsel: '', fromKml: false };
+const DEFAULT: St = { mode: null, parcelArea: 10000, arablePct: 100, amortYears: 25, rows: [], mahalle: '', ada: '', parsel: '', fromKml: false, kml: null };
 
 export function AgriApp({ onBack }: { onBack: () => void }) {
   const [state, setState] = useState<St>(() => {
@@ -74,6 +74,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
         ada: parsed.ada || state.ada,
         parsel: parsed.parsel || state.parsel,
         fromKml: true,
+        kml: { points: parsed.points },
       });
     } catch { alert('KML okunamadı.'); }
   }

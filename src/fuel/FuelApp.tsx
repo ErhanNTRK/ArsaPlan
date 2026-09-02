@@ -14,6 +14,7 @@ import { downloadFuelExcel } from './excel';
 import { Num, Sel, Txt } from '../ui/fields';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
 import { BUILDING_TYPES } from '../usthakki/detailedEngine';
+import { suggestBuildingClass } from '../data/yapiTuruEslesme';
 
 const DRAFT = 'arsaplan-fuel-draft-v1';
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -50,6 +51,8 @@ const DEFAULT = {
     buildings: [] as { id: string; type: string; buildingClassCode: string | null; area: number; unitCostOverride: number | null; depreciationPct: number }[],
     computeMevcutDurum: false,
     mevcutBuildings: [] as { id: string; type: string; buildingClassCode: string | null; area: number; unitCostOverride: number | null; depreciationPct: number }[] },
+  finalMethod: 'gelir' as 'gelir' | 'maliyet' | 'manuel',
+  finalManualValue: null as number | null,
 };
 type S = typeof DEFAULT;
 
@@ -283,7 +286,13 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
               <div className="prop-card" key={b.id}><div className="prop-card__top">
                 <label className="pfield"><span>Yapı Türü</span>
                   <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                       onChange={(v) => patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id ? { ...x, type: v === 'Diğer' ? '' : v } : x) } })}
+                       onChange={(v) => {
+                         const newType = v === 'Diğer' ? '' : v;
+                         const suggested = suggestBuildingClass(newType);
+                         patch({ cost: { ...state.cost, buildings: state.cost.buildings.map((x) => x.id === b.id
+                           ? (suggested ? { ...x, type: newType, buildingClassCode: suggested, unitCostOverride: null } : { ...x, type: newType })
+                           : x) } });
+                       }}
                        options={[...BUILDING_TYPES.map((t) => ({ value: t, label: t })), { value: 'Diğer', label: 'Diğer (elle yaz)' }]} />
                   {!BUILDING_TYPES.includes(b.type) && (
                     <Txt value={b.type} placeholder="Yapı adını yazın"
@@ -345,7 +354,13 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                   <div className="prop-card" key={b.id}><div className="prop-card__top">
                     <label className="pfield"><span>Yapı Türü</span>
                       <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                           onChange={(v) => patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id ? { ...x, type: v === 'Diğer' ? '' : v } : x) } })}
+                           onChange={(v) => {
+                             const newType = v === 'Diğer' ? '' : v;
+                             const suggested = suggestBuildingClass(newType);
+                             patch({ cost: { ...state.cost, mevcutBuildings: (state.cost.mevcutBuildings ?? []).map((x) => x.id === b.id
+                               ? (suggested ? { ...x, type: newType, buildingClassCode: suggested, unitCostOverride: null } : { ...x, type: newType })
+                               : x) } });
+                           }}
                            options={[...BUILDING_TYPES.map((t) => ({ value: t, label: t })), { value: 'Diğer', label: 'Diğer (elle yaz)' }]} />
                       {!BUILDING_TYPES.includes(b.type) && (
                         <Txt value={b.type} placeholder="Yapı adını yazın"
@@ -405,14 +420,29 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             <label className="pfield pfield--s"><span>Yuvarlama ₺</span>
               <input type="number" value={state.rounding || ''} onChange={(e) => patch({ rounding: Number(e.target.value) || 0 })} /></label>
           </div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap', marginTop: 8 }}>
+            <label className="pfield pfield--s"><span>Nihai Değer</span>
+              <select value={state.finalMethod ?? 'gelir'}
+                      onChange={(e) => patch({ finalMethod: e.target.value as typeof state.finalMethod })}>
+                <option value="gelir">Gelir Yaklaşımı</option>
+                {r.costValue != null && <option value="maliyet">Maliyet Yaklaşımı</option>}
+                <option value="manuel">Manuel</option>
+              </select>
+            </label>
+            {(state.finalMethod ?? 'gelir') === 'manuel' && (
+              <label className="pfield pfield--s"><span>Manuel Değer ₺</span>
+                <input type="number" value={state.finalManualValue ?? ''}
+                       onChange={(e) => patch({ finalManualValue: Number(e.target.value) || 0 })} /></label>
+            )}
+          </div>
           <div className="dual-values">
-            <div className="dual-box">
+            <div className={`dual-box${(state.finalMethod ?? 'gelir') === 'gelir' ? ' dual-box--chosen' : ''}`}>
               <span>GELİR YAKLAŞIMI</span>
               <b>{TL(r.incomeValueRounded)}</b>
               <em>Net kâr ÷ %{state.capRate}</em>
             </div>
             {r.costValue != null && (
-              <div className="dual-box">
+              <div className={`dual-box${state.finalMethod === 'maliyet' ? ' dual-box--chosen' : ''}`}>
                 <span>MALİYET YAKLAŞIMI</span>
                 <b>{TL(r.costValue)}</b>
                 <em>Arsa {TL(r.costLand)} + Yapılar {TL(r.costBuildings)}</em>
@@ -420,7 +450,6 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
             )}
           </div>
           {r.warnings.map((w, i) => <div className="warn-line" key={i}>{w}</div>)}
-          <div className="hint">İki yöntem yan yana sunulur; nihai değer takdiri uzmana aittir.</div>
           <div className="export-row no-print">
             <button type="button" className="btn-ghost" onClick={() => downloadFuelPdf(engineInput, r)}>📄 PDF İndir</button>
             <button type="button" className="btn-ghost" onClick={() => downloadFuelExcel(engineInput, r)}>📊 Excel İndir</button>

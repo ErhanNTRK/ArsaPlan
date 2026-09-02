@@ -45,6 +45,10 @@ export interface AgriInput {
   ada?: string;
   parsel?: string;
   fromKml?: boolean;
+  /** KML yüklendiğinde parselin şekli — diğer modüllerdeki (Arsa Gelir
+   * Projeksiyonu, Otel, Akaryakıt, Maliyet Yaklaşımı) aynı kroki stiliyle
+   * gösterilir. Yalnızca alan (parcelArea) değil, gerçek geometri de saklanır. */
+  kml?: { points: { x: number; y: number }[] } | null;
 }
 
 export interface ByproductResult extends Byproduct {

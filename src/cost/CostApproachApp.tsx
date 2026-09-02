@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { analyzeCostApproach, createDefaultCostInput, type CostApproachInput, type AdjustmentType } from './engine';
 import { PROPERTY_CATEGORIES, DIGER_KATEGORI } from './categories';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
+import { suggestBuildingClass } from '../data/yapiTuruEslesme';
 import { BUILDING_TYPES as OTEL_BUILDING_TYPES } from '../usthakki/detailedEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
@@ -164,7 +165,13 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                   <RRow key={b.id}>
                     <RCell label="Yapı Türü">
                       <select value={buildingSuggestions.includes(b.type) ? b.type : DIGER_KATEGORI}
-                              onChange={(e) => patchBuilding(b.id, { type: e.target.value === DIGER_KATEGORI ? '' : e.target.value })}>
+                              onChange={(e) => {
+                                const newType = e.target.value === DIGER_KATEGORI ? '' : e.target.value;
+                                const suggested = suggestBuildingClass(newType);
+                                patchBuilding(b.id, suggested
+                                  ? { type: newType, buildingClassCode: suggested, unitCostOverride: null }
+                                  : { type: newType });
+                              }}>
                         {buildingSuggestions.map((t) => <option key={t} value={t}>{t}</option>)}
                         <option value={DIGER_KATEGORI}>Diğer (elle yaz)</option>
                       </select>
@@ -246,7 +253,13 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                       <RRow key={b.id}>
                         <RCell label="Yapı Türü">
                           <select value={buildingSuggestions.includes(b.type) ? b.type : DIGER_KATEGORI}
-                                  onChange={(e) => patchMevcutBuilding(b.id, { type: e.target.value === DIGER_KATEGORI ? '' : e.target.value })}>
+                                  onChange={(e) => {
+                                    const newType = e.target.value === DIGER_KATEGORI ? '' : e.target.value;
+                                    const suggested = suggestBuildingClass(newType);
+                                    patchMevcutBuilding(b.id, suggested
+                                      ? { type: newType, buildingClassCode: suggested, unitCostOverride: null }
+                                      : { type: newType });
+                                  }}>
                             {buildingSuggestions.map((t) => <option key={t} value={t}>{t}</option>)}
                             <option value={DIGER_KATEGORI}>Diğer (elle yaz)</option>
                           </select>

@@ -377,6 +377,20 @@ export interface ProjectInput {
   showParcelSketch?: boolean;
   /** Yalnız Yapı Kesiti — girilmezse reportVisuals'a düşer (geriye dönük uyumlu). */
   showBuildingSection?: boolean;
+  /**
+   * Raporda hangi arsa değeri yöntemlerinin gösterileceği — üçü de
+   * varsayılan açık. Kapatılan bir yöntem, "Yöntem Karşılaştırması"
+   * bölümünde ve raporun sonundaki "Hesap Detayları"nda görünmez.
+   */
+  showKatKarsiligiIndirgemeli?: boolean;
+  showGelirIndirgemeli?: boolean;
+  /**
+   * Elle girilen nihai arsa değeri — doluysa, raporun başındaki büyük
+   * "ARSA DEĞERİ" kutusunda Gelir Projeksiyonu sonucu yerine bu değer
+   * gösterilir. Diğer tüm hesaplar (Yöntem Karşılaştırması dahil)
+   * etkilenmez, yalnızca "hangi rakam öne çıkıyor" değişir.
+   */
+  finalManualValue?: number | null;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
   reportDate?: string | null;

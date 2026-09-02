@@ -87,26 +87,35 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
   y += 4;
 
   doc.setFillColor(...NAVY);
-  const boxH = r.costValue != null ? 30 : 26;
+  const method = input.finalMethod ?? 'gelir';
+  const useManual = method === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0;
+  const heroValue = useManual ? input.finalManualValue!
+    : method === 'maliyet' && r.costValue != null ? r.costValue
+    : r.incomeValueRounded;
+  const heroLabel = useManual ? 'NİHAİ DEĞER (KULLANICI BELİRLEDİ)'
+    : method === 'maliyet' && r.costValue != null ? 'MALİYET YAKLAŞIMI'
+    : 'GELİR YAKLAŞIMI';
+  const boxH = 26;
   doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
   doc.setFillColor(...GOLD);
   doc.rect(M, y + boxH - 1.5, W, 1.5, 'F');
-  const halfW = r.costValue != null ? W / 2 - 4 : W;
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
-  doc.text('GELİR YAKLAŞIMI', M + 5, y + 8);
+  doc.text(heroLabel, M + 5, y + 8);
   doc.setFont('NTRK', 'bold'); doc.setFontSize(18); doc.setTextColor(255, 255, 255);
-  doc.text(tl(r.incomeValueRounded), M + 5, y + 19);
-  doc.setFont('NTRK', 'normal'); doc.setFontSize(7.5); doc.setTextColor(196, 212, 229);
-  doc.text(`Net kazanç ÷ %${input.capRate}`, M + 5, y + 25);
-  if (r.costValue != null) {
-    doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
-    doc.text('MALİYET YAKLAŞIMI', M + halfW + 13, y + 8);
-    doc.setFont('NTRK', 'bold'); doc.setFontSize(18); doc.setTextColor(255, 255, 255);
-    doc.text(tl(r.costValue), M + halfW + 13, y + 19);
+  doc.text(tl(heroValue), M + 5, y + 19);
+  if (!useManual) {
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.5); doc.setTextColor(196, 212, 229);
-    doc.text(`Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costBuildings)}`, M + halfW + 13, y + 25);
+    doc.text(method === 'maliyet' && r.costValue != null
+      ? `Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costBuildings)}`
+      : `Net kazanç ÷ %${input.capRate}`, M + 5, y + 25);
   }
   y += boxH + 6;
+
+  /* İkincil yöntemler — seçilen nihai yöntem OLMAYAN diğerleri, küçük satırlar hâlinde */
+  let hasSecondary = false;
+  if (method !== 'gelir') { row('Gelir Yaklaşımı', tl(r.incomeValueRounded)); hasSecondary = true; }
+  if (method !== 'maliyet' && r.costValue != null) { row('Maliyet Yaklaşımı', tl(r.costValue)); hasSecondary = true; }
+  if (hasSecondary) y += 3;
 
   const showMevcutFuelCost = !!input.cost.computeMevcutDurum && (input.cost.mevcutBuildings?.length ?? 0) > 0
     && r.costCurrent.value != null;

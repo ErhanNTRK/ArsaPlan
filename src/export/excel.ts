@@ -22,12 +22,6 @@ const BOX = { top: THIN, left: THIN, bottom: THIN, right: THIN };
 /** Banner satır 1-4'ü kaplar; içerik 6'dan başlar. */
 const START = 6;
 
-const VERDICT_TEXT: Record<string, string> = {
-  'yakin': 'İki yöntem birbirine yakın',
-  'kat-karsiligi-yuksek': 'Kat karşılığı değeri daha yüksek',
-  'gelir-yontemi-yuksek': 'Gelir projeksiyonu değeri daha yüksek',
-};
-
 const TL = '#,##0 "₺";[Red]-#,##0 "₺";"–"';
 const TLM2 = '#,##0 "₺/m²";[Red]-#,##0 "₺/m²";"–"';
 const M2 = '#,##0 "m²";[Red]-#,##0 "m²";"–"';
@@ -528,29 +522,21 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row++;
 
   if (input.share.enabled) {
-  row = section(ws1, row, 'ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
-  const shStart = row;
-  const showDiscounted = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-  const shareRows: Row[] = [
-    ['Arsa Sahibi Payı', s.ownerShare],
-    ['Müteahhit Payı', s.contractorShare],
-    ['Kat Karşılığı Yöntemine Göre Arsa Değeri', Math.round(s.shareLandValueRounded)],
-  ];
-  if (showDiscounted) shareRows.push(['İndirgemeli Kat Karşılığı Değeri', Math.round(s.discountedShareLandValueRounded)]);
-  shareRows.push(['Gelir Projeksiyonuna Göre Arsa Değeri', Math.round(f.residualLandValueRounded)]);
-  if (showDiscounted) shareRows.push(['İndirgemeli Gelir Projeksiyonu Değeri', Math.round(f.discountedLandValueRounded)]);
-  const balancedShareIdx = shareRows.length; // "Gelir Projeksiyonuna Denk Gelen Arsa Payı" bu indekse eklenecek
-  shareRows.push(['Gelir Projeksiyonuna Denk Gelen Arsa Payı', s.balancedShare]);
-  shareRows.push(['Değerlendirme', VERDICT_TEXT[s.verdict]]);
-  row = rows(ws1, row, shareRows, TL);
-  ws1.getCell(`C${shStart}`).numFmt = PCT;     // Arsa Sahibi Payı
-  ws1.getCell(`C${shStart + 1}`).numFmt = PCT; // Müteahhit Payı
-  ws1.getCell(`C${shStart + balancedShareIdx}`).numFmt = PCT; // Gelir Projeksiyonuna Denk Gelen Arsa Payı
-  const boldIndices = showDiscounted ? [2, 3, 4, 5] : [2, 3];
-  boldIndices.forEach((i) => {
-    ws1.getCell(`B${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
-    ws1.getCell(`C${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
-  });
+  const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+  const showKKIndirgemeli = (input.showKatKarsiligiIndirgemeli ?? true) && discountActive;
+  const showGelirIndirgemeli = (input.showGelirIndirgemeli ?? true) && discountActive;
+  if (showKKIndirgemeli || showGelirIndirgemeli) {
+    row = section(ws1, row, 'ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
+    const shStart = row;
+    const shareRows: Row[] = [];
+    if (showKKIndirgemeli) shareRows.push(['İndirgemeli Kat Karşılığı Değeri', Math.round(s.discountedShareLandValueRounded)]);
+    if (showGelirIndirgemeli) shareRows.push(['İndirgemeli Gelir Projeksiyonu Değeri', Math.round(f.discountedLandValueRounded)]);
+    row = rows(ws1, row, shareRows, TL);
+    for (let i = 0; i < shareRows.length; i++) {
+      ws1.getCell(`B${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
+      ws1.getCell(`C${shStart + i}`).font = { name: 'Arial', size: 10, bold: true };
+    }
+  }
   }
   row += 2;
 
