@@ -323,7 +323,10 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
               );
             })}
             <button type="button" className="btn-ghost"
-                    onClick={() => patch({ cost: { ...state.cost, buildings: [...state.cost.buildings, { id: uid(), type: BUILDING_TYPES[0], buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] } })}>
+                    onClick={() => patch({ cost: { ...state.cost, buildings: [...state.cost.buildings, (() => {
+                      const t0 = BUILDING_TYPES[0]; const suggested = suggestBuildingClass(t0);
+                      return { id: uid(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 };
+                    })()] } })}>
               ➕ Yapı Ekle
             </button>
 
@@ -391,7 +394,10 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                   );
                 })}
                 <button type="button" className="btn-ghost"
-                        onClick={() => patch({ cost: { ...state.cost, mevcutBuildings: [...(state.cost.mevcutBuildings ?? []), { id: uid(), type: BUILDING_TYPES[0], buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] } })}>
+                        onClick={() => patch({ cost: { ...state.cost, mevcutBuildings: [...(state.cost.mevcutBuildings ?? []), (() => {
+                          const t0 = BUILDING_TYPES[0]; const suggested = suggestBuildingClass(t0);
+                          return { id: uid(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 };
+                        })()] } })}>
                   ➕ Mevcut Duruma Yapı Ekle
                 </button>
               </>

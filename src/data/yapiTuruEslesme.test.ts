@@ -1,18 +1,19 @@
 /**
- * Yapı Sınıfı otomatik önerisi — tebliğ referanslı, ~60 yapı türü için
- * sessizce (açıklama olmadan) doldurulan eşleşme tablosu.
+ * Yapı Sınıfı otomatik önerisi — tebliğ referanslı, PROPERTY_CATEGORIES'in
+ * tamamı (%100) için sessizce (açıklama olmadan) doldurulan eşleşme tablosu.
  */
 import { describe, it, expect } from 'vitest';
 import { suggestBuildingClass, YAPI_TURU_SINIF_ESLESME } from './yapiTuruEslesme';
 import { YAPI_SINIFLARI } from './yapiSiniflari';
+import { PROPERTY_CATEGORIES } from '../cost/categories';
 
 describe('Yapı Sınıfı otomatik önerisi', () => {
   it('Bilinen bir yapı türü (Yurt) doğru sınıfı döndürüyor', () => {
     expect(suggestBuildingClass('Yurt')).toBe('III-C');
   });
 
-  it('Bilinmeyen bir yapı türü (örn. Kantin) null döndürüyor — zorlama eşleşme yok', () => {
-    expect(suggestBuildingClass('Kantin')).toBeNull();
+  it('Bilinmeyen bir yapı türü null döndürüyor — kataloğun kendisinde olmayan uydurma bir tür', () => {
+    expect(suggestBuildingClass('Böyle Bir Yapı Türü Yok')).toBeNull();
   });
 
   it('Boş metin null döndürüyor', () => {
@@ -26,7 +27,17 @@ describe('Yapı Sınıfı otomatik önerisi', () => {
     }
   });
 
-  it('Tablo en az 40 yapı türü içeriyor (kapsam kontrolü — bazı isimler kategoriler arası tekrar ettiği için tekilleşiyor)', () => {
-    expect(Object.keys(YAPI_TURU_SINIF_ESLESME).length).toBeGreaterThanOrEqual(40);
+  it('Tablo en az 100 yapı türü içeriyor (kapsam kontrolü — bazı isimler kategoriler arası tekrar ettiği için tekilleşiyor)', () => {
+    expect(Object.keys(YAPI_TURU_SINIF_ESLESME).length).toBeGreaterThanOrEqual(100);
+  });
+
+  it('PROPERTY_CATEGORIES\'teki 139 yapı türünün TAMAMI eşleşiyor — %100 kapsam', () => {
+    const eslesmeyenler: string[] = [];
+    for (const cat of PROPERTY_CATEGORIES) {
+      for (const tur of (cat.buildingSuggestions ?? [])) {
+        if (!suggestBuildingClass(tur)) eslesmeyenler.push(`[${cat.name}] ${tur}`);
+      }
+    }
+    expect(eslesmeyenler, `Eşleşmeyenler: ${eslesmeyenler.join(', ')}`).toEqual([]);
   });
 });

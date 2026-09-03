@@ -12,6 +12,34 @@ import { Field, Txt, Num, Pct, Sel, Seg } from '../ui/fields';
 const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
 const CurrencyCtx = createContext<string>('TRY');
 /** currency + fxRate birlikte — TL karşılığı gösterimi için. */
+/**
+ * Kur değişince Gelir/Gider Artış Oranı'nın yeni para biriminin makul
+ * aralığının ortasına otomatik ayarlanması gerekip gerekmediğini belirler.
+ * TL <-> Döviz geçişinde (aynı "TL-liği" içinde kalan değişimlerde değil,
+ * örn. USD'den EUR'a geçişte) yeni bir orta değer döner; aksi hâlde null
+ * (mevcut değer korunur).
+ */
+export function currencySwitchGrowthDefault(
+  oldCurrency: 'TRY' | 'USD' | 'EUR', newCurrency: 'TRY' | 'USD' | 'EUR',
+): number | null {
+  const wasTl = oldCurrency === 'TRY';
+  const willBeTl = newCurrency === 'TRY';
+  if (wasTl === willBeTl) return null;
+  return willBeTl ? 0.30 : 0.035; // TL: %28-33 ortası · Döviz: %2-5 ortası
+}
+
+/**
+ * Yapı Türü seçildiğinde (eşleşme varsa), Otel'in kendi Maliyet Yaklaşımı'nda
+ * da tebliğ birim maliyetini sessizce önerir — bağımsız Maliyet Yaklaşımı ve
+ * Akaryakıt modüllerindeki AYNI mekanizma, burada `buildingClassCode` alanı
+ * olmadığı için (Otel'in daha basit veri modeli) doğrudan `unitCost`'a yazılır.
+ */
+export function suggestedHotelUnitCost(type: string): number | null {
+  const code = suggestBuildingClass(type);
+  if (!code) return null;
+  return YAPI_SINIFLARI.find((c) => c.code === code)?.unitCost ?? null;
+}
+
 const FxCtx = createContext<{ currency: 'TRY' | 'USD' | 'EUR'; fxRate: number | null | undefined }>({ currency: 'TRY', fxRate: null });
 function useFmt() {
   const cur = useContext(CurrencyCtx);
@@ -43,6 +71,8 @@ import { RTable, RRow, RCell } from '../ui/RTable';
 import { readDataSheet } from '../export/excelImport';
 import { parseKml } from '../geo/kml';
 import { BUILDING_TYPES } from '../usthakki/detailedEngine';
+import { suggestBuildingClass } from '../data/yapiTuruEslesme';
+import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
 
 const DRAFT_KEY = 'arsaplan-otel-taslak-v1';
 
@@ -244,7 +274,15 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
           </label>
           <label className="pfield pfield--s">
             <span>Para Birimi</span>
-            <select value={cur} onChange={(e) => setInput((p) => ({ ...p, currency: e.target.value as HotelIncomeInput['currency'], fxRate: e.target.value === 'TRY' ? null : (p.fxRate ?? 1) }))}>
+            <select value={cur} onChange={(e) => {
+                       const newCur = (e.target.value as HotelIncomeInput['currency']) ?? 'TRY';
+                       setInput((p) => {
+                         const next = { ...p, currency: newCur, fxRate: newCur === 'TRY' ? null : (p.fxRate ?? 1) };
+                         const mid = currencySwitchGrowthDefault(cur, newCur);
+                         if (mid != null) next.projection = { ...p.projection, incomeGrowthRate: mid, expenseGrowthRate: mid };
+                         return next;
+                       });
+                     }}>
               <option value="TRY">TL (₺)</option>
               <option value="USD">USD ($)</option>
               <option value="EUR">EUR (€)</option>
@@ -648,6 +686,12 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         {result.ina?.gapExplanation && (
           <div className="hint hint--warn" style={{ marginTop: 8 }}>{result.ina.gapExplanation}</div>
         )}
+        {result.ina && (projection.longTermGrowthRate == null) && (
+          <div className="hint" style={{ marginTop: 8 }}>
+            Terminal büyüme oranı son iki yıl projeksiyonundan alınmıştır. Yüksek enflasyon veya
+            geçici büyüme dönemlerinde uzun dönem büyüme oranını ayrıca kontrol ediniz.
+          </div>
+        )}
         <div className="grid-2">
           <Field label="Yenileme Fonu Oranı" hint="Her yıl için hesaplanır — %3-5 oranında önerilir">
             <Pct value={projection.renewalFundRate ?? 0} onChange={(n) => setProjection({ renewalFundRate: n > 0 ? n : null })} />
@@ -698,7 +742,11 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
               <RRow key={b.id}>
                 <RCell label="Yapı Türü">
                   <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                       onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                       onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => {
+                         if (j !== i) return x;
+                         const suggested = suggestedHotelUnitCost(v);
+                         return suggested != null ? { ...x, type: v, unitCost: suggested } : { ...x, type: v };
+                       }) }))}
                        options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
                   {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
                     <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
@@ -721,9 +769,11 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             ))}
           </RTable>
         )}
-        <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => ({
-          ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
-        }))}>➕ Yapı Ekle</button>
+        <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => {
+          const t0 = BUILDING_TYPES[0];
+          const suggested = suggestedHotelUnitCost(t0);
+          return { ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
+        })}>➕ Yapı Ekle</button>
 
         <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi (opsiyonel)</div>
         <div className="hrow-labeled">
@@ -766,7 +816,11 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                   <RRow key={b.id}>
                     <RCell label="Yapı Türü">
                       <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
-                           onChange={(v) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, type: v } : x) }))}
+                           onChange={(v) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => {
+                             if (j !== i) return x;
+                             const suggested = suggestedHotelUnitCost(v);
+                             return suggested != null ? { ...x, type: v, unitCost: suggested } : { ...x, type: v };
+                           }) }))}
                            options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
                       {(!BUILDING_TYPES.includes(b.type) || b.type === 'Diğer') && (
                         <Txt value={BUILDING_TYPES.includes(b.type) ? '' : b.type} placeholder="Yapı adını yazın"
@@ -789,9 +843,11 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                 ))}
               </RTable>
             )}
-            <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => ({
-              ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: BUILDING_TYPES[0], area: 0, unitCost: 0, depreciationPct: 0 }],
-            }))}>➕ Mevcut Duruma Yapı Ekle</button>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => {
+              const t0 = BUILDING_TYPES[0];
+              const suggested = suggestedHotelUnitCost(t0);
+              return { ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
+            })}>➕ Mevcut Duruma Yapı Ekle</button>
 
             <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi — Mevcut Durum (opsiyonel)</div>
             <div className="hrow-labeled">
@@ -920,6 +976,11 @@ function HotelResult({ input, result, setFinal }: {
                      onChange={(e) => setFinal({ finalManualValue: Number(e.target.value) || 0 })} /></label>
           )}
           <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmtTl(finalValue)}</b></div>
+        </div>
+        <div className="hint" style={{ marginTop: 6 }}>
+          Bu sonuç, otelin sürdürülebilir işletme potansiyeli üzerinden hesaplanmıştır. Gayrimenkul,
+          FF&amp;E ve işletme/maddi olmayan varlık ayrıştırması değerleme amacına göre uzman
+          değerlendirmesi gerektirebilir.
         </div>
         <div className="kpi-grid" style={{ marginTop: 12 }}>
           <div className="kpi"><div className="kpi-label">Toplam Brüt Gelir (yıllık)</div><div className="kpi-value">{fmt(result.totalGrossRevenue)}</div></div>

@@ -5,11 +5,11 @@
  * (ve dolayısıyla Birim Maliyet) sessizce, hiçbir açıklama/uyarı metni
  * olmadan otomatik doluyor — kullanıcı isterse elle değiştirir.
  *
- * Kapsam notu: BUILDING_TYPES (Otel/Akaryakıt) ve PROPERTY_CATEGORIES'in
- * (bağımsız Maliyet Yaklaşımı) toplam ~179 yapı türünün yalnızca bir kısmı
- * (~60'ı) tebliğde net ya da makul bir analoji karşılığı buluyor — geri
- * kalanı için kullanıcı hâlâ elle seçim yapmalı, bu bilinçli bir tercih
- * (yanlış/zorlama bir eşleşme sunmaktansa hiç önermemek daha güvenilir).
+ * Kapsam notu: PROPERTY_CATEGORIES'in (bağımsız Maliyet Yaklaşımı) 139
+ * yapı türünün TAMAMI (%100) burada eşleşiyor — Salih'in kendi mesleki
+ * değerlendirmesiyle, birkaç turda tek tek gözden geçirilip tamamlandı
+ * (2026.09). BUILDING_TYPES (Otel/Akaryakıt'ın kendi listesi) ayrıca,
+ * kısmi kapsamla, en üstte listeleniyor.
  */
 export const YAPI_TURU_SINIF_ESLESME: Record<string, string> = {
   // ── Otel/Akaryakıt (BUILDING_TYPES) ──
@@ -61,7 +61,7 @@ export const YAPI_TURU_SINIF_ESLESME: Record<string, string> = {
   // ── İmalathane/Atölye ──
   'Üretim Alanı': 'II-C',
   'Atölye': 'II-A',
-  'Kalite Kontrol Lab': 'IV-A',
+
   'Hammadde Deposu': 'II-A',
   'Mamul Deposu': 'II-A',
 
@@ -81,6 +81,76 @@ export const YAPI_TURU_SINIF_ESLESME: Record<string, string> = {
 
   // ── Düğün Salonu ──
   'Düğün Salonu': 'IV-B',
+
+  // ── Salih'in kendi mesleki değerlendirmesiyle eklenen eşleşmeler ──
+  // (Sağlık Tesisi / Okul / Hayvancılık Tesisi — tebliğde birebir madde
+  // olmayan, analoji ile Salih'in kendisinin belirlediği yardımcı yapılar.)
+  'Poliklinik': 'IV-A',
+  'İdari Bina': 'III-B',
+  'Yemekhane': 'III-B',
+  'Çamaşırhane': 'III-B',
+  'Teknik Merkez': 'III-B',
+  'Oksijen Merkezi': 'III-B',
+  'Jeneratör Binası': 'III-A',
+  'Güvenlik Binası': 'II-B',
+  'Derslik Binası': 'III-B',
+  'Konferans Salonu': 'III-C',
+  'Çok Amaçlı Salon': 'III-C',
+  'Kantin': 'III-A',
+  'Kazan Dairesi': 'II-B',
+  'Güvenlik Kulübesi': 'II-B',
+  'Sağmalhane': 'II-A',
+  'Doğumhane': 'II-A',
+  'Buzağı Barınağı': 'II-A',
+  'Karantina Ahırı': 'II-A',
+
+  // ── İkinci tur — Salih'in kendi mesleki değerlendirmesi ──
+  'Silaj Çukuru': 'I-A',
+  'Süt Soğutma Merkezi': 'III-A',
+  'Sağım Ünitesi': 'III-A',
+  'Personel Lojmanı': 'II-B',
+  'Atık Deposu': 'II-A',
+  'Gübre Çukuru': 'I-A',
+  'Gübre Separatörü': 'I-B',
+  'Ana Bina': 'III-B',
+  'Ek Bina': 'III-A',
+  'Teknik Hacim': 'III-A',
+  'Misafir Evi': 'III-A',
+  'Açık Garaj': 'I-B',
+  'Havuz Makine Dairesi': 'II-A',
+  'Kömürlük': 'I-B',
+  'Eklenti': 'II-A',
+  'Market': 'III-A',
+  'Satış Binası': 'III-A',
+  'Kanopi': 'II-A',
+  'Oto Yıkama': 'II-A',
+  'Yağlama Servisi': 'II-C',
+  'Lastik Servisi': 'II-C',
+  'Kafe': 'III-A',
+  'Restoran': 'III-C',
+  'WC Binası': 'II-A',
+  'Trafo': 'II-C',
+  'Tank Sahası': 'I-B',
+  'Kalite Kontrol Laboratuvarı': 'III-B',
+  'Sevkiyat Alanı': 'II-C',
+  'Soyunma Odası': 'III-A',
+
+  // ── Üçüncü tur — Salih'in kendi mesleki değerlendirmesi ──
+  'Yükleme Rampası': 'II-A',
+  'Fide Ünitesi': 'I-B',
+  'Paketleme Alanı': 'II-C',
+  'Gübre Deposu': 'I-B',
+  'İlaç Deposu': 'III-A',
+  'Yumurta Toplama Ünitesi': 'III-A',
+  'Paketleme Ünitesi': 'III-A',
+  'Kuluçkahane': 'III-A',
+  'Konaklama Binası': 'III-B',
+  'Resepsiyon': 'III-A',
+  'Mutfak': 'III-A',
+  'Gelin Odası': 'II-C',
+  'Servis Alanı': 'II-C',
+  'İdari Ofis': 'III-A',
+  'Açık Organizasyon Alanı': 'II-A',
 };
 
 /** Yapı türü metninden (tam eşleşme) önerilen tebliğ sınıf kodunu döner, yoksa null. */

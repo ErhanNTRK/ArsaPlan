@@ -1,82 +1,66 @@
-# ArsaPlan v9.14.0 — Kat Karşılığı Sadeleştirme, Akaryakıt Nihai Değer, Yapı Sınıfı Önerisi, Tarımsal Kroki
+# ArsaPlan v9.15.0 — Otel Modülü Büyük Tur: Yenileme Fonu, Denetim Tablosu, Yeniden İnşa Kontrolü, Yapı Sınıfı Önerisi
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **371/371 test yeşil** ·
-`npm run build` başarılı. Altı kalem, hepsi kodlandı ve test edildi.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **394/394 test yeşil** ·
+`npm run build` başarılı.
 
-## 1. "Raporu İndir" ekranı ızgaraya taşındı
+## 1. Direkt Kapitalizasyon NOI'sine Yenileme Fonu düşümü eklendi
 
-Üç tik + elle giriş alanı artık daha kompakt bir ızgara düzeninde.
+Önceden Direkt Kap ve İNA farklı NOI tanımı kullanıyordu (İNA yenileme
+fonunu düşüyor, Direkt Kap düşmüyordu) — artık ikisi **tutarlı**. Hero
+NOI, Yıllık Projeksiyon Tablosu'nun 1. yıl NOI'siyle birebir aynı.
 
-## 2. PDF'te "HESAP VARSAYIMLARI", "Yöntem Karşılaştırması"nın hemen altında
+## 2. İkincil İNA satırına iskonto oranı eklendi
 
-Önceden raporun en altındaydı, şimdi bulgu ile gerekçesi yan yana — "Arsa
-Değeri — Yöntem Karşılaştırması" bölümünü okuyan kişi, hemen altında hangi
-oranlarla hesaplandığını görüyor.
+Direkt Kap nihai değerken, ikincil satırdaki "İNA (NBD)" artık kullanılan
+iskonto oranını da gösteriyor — Direkt Kap'ın kendi cap rate'ini
+göstermesiyle tutarlı.
 
-## 3. Kat Karşılığı ham değeri tamamen kaldırıldı
+## 3. "Yeniden inşa maliyeti" kontrolü eklendi
 
-"Kat Karşılığı Yöntemine Göre Arsa Değeri" (indirgemesiz) PDF, Excel ve
-"Raporu İndir" ekranından kaldırıldı — artık yalnızca **İndirgemeli Kat
-Karşılığı Değeri** ve **İndirgemeli Gelir Projeksiyonu Değeri** gösteriliyor,
-ikisi de aynı zaman temelinde (bugünkü değer), adil bir karşılaştırma.
+Anemon Otel incelemesinde bulunan kontrol: Direkt Kap ya da İNA sonucu,
+Maliyet Yaklaşımı'nın Yapı Değerleri'nin altına düşerse artık otomatik bir
+uyarı çıkıyor — çalışan bir varlığın, yeniden yapma maliyetinden ucuza
+değerlenmesi ekonomik olarak anlamsızdır.
 
-## 4. Akaryakıt'a Nihai Değer seçici eklendi
+## 4. PDF'e İNA'nın tam indirgeme detay tablosu eklendi
 
-Otel modülüyle aynı desen: Gelir Yaklaşımı / Maliyet Yaklaşımı / Manuel.
-Seçilen yöntem büyük, öne çıkan kutuda gösteriliyor; diğerleri küçük,
-ikincil satırlar hâlinde kalıyor. Manuel seçilirse elle bir TL rakamı
-girilebiliyor.
+"İNA — İndirgeme Detayı" başlığı altında: yıl, nakit akışı, iskonto
+katsayısı, bugünkü değer — ve terminal değerin formülü/kapitalizasyon
+oranı/bugünkü değeri açıkça yazıyor. Artık kod erişimi olmayan biri
+(banka uzmanı) sonucu PDF'ten birebir denetleyebilir.
 
-## 5. Yapı Sınıfı otomatik önerisi eklendi
+## 5-6. Sonuç ekranına iki bilgi notu eklendi (PDF'te DEĞİL)
 
-Bağımsız Maliyet Yaklaşımı ve Akaryakıt modüllerinde, Yapı Türü seçildiğinde
-—eşleşme varsa— Yapı Sınıfı ve Birim Maliyet artık **sessizce, hiçbir
-açıklama/uyarı olmadan** otomatik doluyor. Siz isterseniz elle değiştirirsiniz.
+- Terminal büyüme oranı otomatik (son iki yıldan) alındığında bir uyarı.
+- Otel değerinin işletme/demirbaş unsurları içerebileceğine dair bir
+  kapsam notu.
 
-**Kapsam, dürüstçe:** 179 yapı türünün yalnızca 44'ü (bazı isimler kategoriler
-arası tekrar ettiği için tekilleşiyor) tebliğ referanslı bir eşleşme buldu —
-geri kalanı için hâlâ elle seçim yapmanız gerekiyor, bu bilinçli bir tercih
-(yanlış/zorlama bir eşleşme sunmaktansa hiç önermemek daha güvenilir).
-**Otel modülüne uygulanmadı** — o modülün Maliyet Yaklaşımı farklı bir veri
-yapısı kullanıyor (Yapı Sınıfı kodu hiç yok, düz bir birim maliyet sayısı
-var), bu özelliği oraya taşımak ayrı, daha büyük bir iş.
+İkisi de yalnızca ekranda — hesaba hiçbir etkisi yok, PDF'e hiç girmiyor.
 
-## 6. Tarımsal Ürün Gelir Hesabı'na gerçek parsel krokisi eklendi
+## 7. Otel Maliyet Yaklaşımı'na Yapı Sınıfı otomatik önerisi eklendi
 
-KML yüklendiğinde artık diğer modüllerle (Arsa Gelir Projeksiyonu, Otel,
-Akaryakıt, Maliyet Yaklaşımı) aynı görsel dilde bir "Parsel Krokisi"
-gösteriliyor — önceden yalnızca "(KML)" diye bir metin etiketi vardı, hiçbir
-görsel yoktu. KML'in gerçek geometrisi artık saklanıyor (önceden yalnızca
-alan sayısı tutuluyordu, şekil bilgisi atılıyordu).
+Bağımsız Maliyet Yaklaşımı/Akaryakıt'takiyle aynı mekanizma (139/139
+eşleşme oranını kullanan aynı tablo) — Otel'in Maliyet Yaklaşımı'nda Yapı
+Türü seçilince (Yasal ve Mevcut Durum'da, hem dropdown'dan seçimde hem
+"Yapı Ekle" düğmesinde), eşleşme varsa Birim Maliyet sessizce doluyor.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Hayır** — altı kalemin hepsi gösterim/arayüz/veri girişi değişikliği,
-hiçbir hesap formülüne dokunulmadı.
+**Yalnızca Kalem 1** hesabı etkiliyor — Direkt Kapitalizasyon sonucunuz,
+Yenileme Fonu Oranı girilmişse artık biraz düşer (o oranın büyüklüğüne
+göre, tipik %1 ile ~%1-3 arası bir azalma). Yenileme Fonu Oranı hiç
+girilmemişse (varsayılan) hiçbir değişiklik yok. Diğer altı kalem yalnız
+gösterim/arayüz/veri girişi.
 
 ## Değişen/Eklenen Dosyalar
 
 ```
-src/ui/Result.tsx                    Kalem 1, 3
-src/export/pdf.ts                    Kalem 2, 3
-src/export/excel.ts                  Kalem 3
-src/engine/types.ts                  Kalem 3 (showKatKarsiligiHam kaldırıldı)
-src/fuel/engine.ts                   Kalem 4 (finalMethod/finalManualValue)
-src/fuel/pdf.ts                      Kalem 4 (hero yeniden tasarımı)
-src/fuel/FuelApp.tsx                 Kalem 4, 5
-src/fuel/kalem4-nihai-deger.test.ts  YENİ — 3 test
-src/data/yapiTuruEslesme.ts          YENİ — Kalem 5 (44 yapı türü eşleşmesi)
-src/data/yapiTuruEslesme.test.ts     YENİ — 5 test
-src/cost/CostApproachApp.tsx         Kalem 5
-src/agri/engine.ts                   Kalem 6 (AgriInput.kml)
-src/agri/pdf.ts                      Kalem 6 (Parsel Krokisi)
-src/agri/AgriApp.tsx                 Kalem 6
-src/agri/kalem6-kroki.test.ts        YENİ — 2 test
+src/hotel/engine.ts                    Kalem 1 (NOI), Kalem 3 (uyarı)
+src/hotel/pdf.ts                       Kalem 2 (iskonto etiketi), Kalem 4 (detay tablosu)
+src/hotel/HotelApp.tsx                 Kalem 5, 6 (bilgi notları), Kalem 7 (öneri wiring)
+src/hotel/bu-oturum-yedi-kalem.test.ts YENİ — 10 test, yedi kalemin hepsini kapsıyor
 ```
 
 ## Beklemede — henüz karar verilmedi/kodlanmadı
 
-- **İndirgenmiş Kat Karşılığı Yöntemi** (üç bağımsız banka raporuyla
-  doğruladığımız formül) — hâlâ "beklesin" kararınız geçerli.
-- **Otel Maliyet Yaklaşımı'na Yapı Sınıfı otomatik önerisi** — veri modeli
-  farklı olduğu için ayrı bir iş, henüz onaylanmadı.
+- **İndirgenmiş Kat Karşılığı Yöntemi** — hâlâ "beklesin" kararınız geçerli.

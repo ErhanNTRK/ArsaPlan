@@ -231,7 +231,13 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const leaseCalc = computeLeaseRevenue(input.leases);
 
   const totalGrossRevenue = roomCalc.total + totalAncillaryRevenue + leaseCalc.total;
-  const { totalExpense, noi } = computeNoi(totalGrossRevenue, input.opex.expenseRate);
+  const { totalExpense: opexOnly, noi: noiBeforeRenewal } = computeNoi(totalGrossRevenue, input.opex.expenseRate);
+  // DÜZELTME: Direkt Kapitalizasyon'un NOI'si de artık Yıllık Projeksiyon
+  // Tablosu'yla (İNA) TUTARLI şekilde Yenileme Fonu'nu düşüyor — önceden
+  // yalnızca İNA düşüyordu, iki yöntemin başlangıç NOI'si farklıydı.
+  const renewalFundHero = R(totalGrossRevenue * Math.max(0, input.projection.renewalFundRate ?? 0));
+  const totalExpense = opexOnly + renewalFundHero;
+  const noi = noiBeforeRenewal - renewalFundHero;
   const capitalizedValue = computeCapitalizedValue(noi, input.projection.capRate);
 
   const performance = computePerformanceIndicators(roomCalc.rows);
@@ -294,6 +300,19 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
         current: { buildingsValue: mevcutBuildingsValue, goodwill: mevcutGoodwill, totalValue: mevcutTotal, totalValueRounded: Math.round(mevcutTotal / 5000) * 5000 },
       }
     : null;
+
+  // KONTROL: Bir gelir yönteminin sonucu, yapının yeniden inşa (Maliyet
+  // Yaklaşımı'nın Yapı Değerleri) maliyetinin altına düşerse, bu her zaman
+  // bir alarm işaretidir — çalışan bir varlığı kimse yeniden yapmanın
+  // maliyetinden ucuza terk etmez (Anemon Otel örneğinde bulunan kontrol).
+  if (cost && cost.buildingsValue > 0) {
+    if (capitalizedValue > 0 && capitalizedValue < cost.buildingsValue) {
+      warnings.push({ level: 'dikkat', message: `Direkt Kapitalizasyon sonucu (${Math.round(capitalizedValue).toLocaleString('tr-TR')} ₺), yalnızca yapının yeniden inşa maliyetinin (${Math.round(cost.buildingsValue).toLocaleString('tr-TR')} ₺) altında kalıyor — varsayımları gözden geçirin.` });
+    }
+    if (ina && ina.npv > 0 && ina.npv < cost.buildingsValue) {
+      warnings.push({ level: 'dikkat', message: `İNA (NBD) sonucu (${Math.round(ina.npv).toLocaleString('tr-TR')} ₺), yalnızca yapının yeniden inşa maliyetinin (${Math.round(cost.buildingsValue).toLocaleString('tr-TR')} ₺) altında kalıyor — varsayımları gözden geçirin.` });
+    }
+  }
 
   return {
     roomRows: roomCalc.rows,

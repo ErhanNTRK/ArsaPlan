@@ -63,8 +63,33 @@ export function Result({ input, result, version, setInput }: {
                    onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
           </label>
         )}
+        {(() => {
+          const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+          const method = input.finalMethod ?? 'gelir';
+          return (
+            <div className="grid-2" style={{ marginBottom: 10 }}>
+              <label className="pfield">
+                <span>Nihai Değer — PDF'te ana kutuda hangisi görünsün?</span>
+                <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as typeof method }))}>
+                  <option value="gelir">Gelir Projeksiyonu (varsayılan)</option>
+                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri</option>}
+                  {input.share.enabled && discountActive && <option value="kat-karsiligi-indirgemeli">İndirgemeli Kat Karşılığı Değeri</option>}
+                  <option value="manuel">Manuel — elle giriş</option>
+                </select>
+              </label>
+              {method === 'manuel' && (
+                <label className="pfield">
+                  <span>Manuel Değer (₺)</span>
+                  <input type="number" min={0} placeholder="Örn. 210000000"
+                         value={input.finalManualValue ?? ''}
+                         onChange={(e) => setInput?.((s) => ({ ...s, finalManualValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0) }))} />
+                </label>
+              )}
+            </div>
+          );
+        })()}
         {input.share.enabled && (
-          <div className="hint" style={{ marginBottom: 4 }}>Raporda gösterilecek arsa değeri yöntemleri:</div>
+          <div className="hint" style={{ marginBottom: 4 }}>Raporda "Yöntem Karşılaştırması" bölümünde gösterilecek değerler:</div>
         )}
         <div className="grid-2" style={{ marginBottom: 10 }}>
           {input.share.enabled && (
@@ -81,12 +106,6 @@ export function Result({ input, result, version, setInput }: {
               </label>
             </>
           )}
-          <label className="pfield">
-            <span>Nihai Arsa Değeri — elle giriş (opsiyonel)</span>
-            <input type="number" min={0} placeholder="Boş bırakılırsa Gelir Projeksiyonu sonucu kullanılır"
-                   value={input.finalManualValue ?? ''}
-                   onChange={(e) => setInput?.((s) => ({ ...s, finalManualValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0) }))} />
-          </label>
         </div>
         <div className="dl-grid">
           <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>

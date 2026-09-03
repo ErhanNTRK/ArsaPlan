@@ -112,7 +112,9 @@ export async function buildHotelPdf(
   if (method !== 'direkt' && (input.showIncomeInPdf ?? true)) {
     secondary.push({ label: `Gelir Yaklaşımı (Direkt Kapitalizasyon, %${(input.projection.capRate * 100).toFixed(1).replace('.', ',')})`, value: r.capitalizedValue });
   }
-  if (method !== 'ina' && (input.showInaInPdf ?? true) && r.ina) secondary.push({ label: 'İNA (NBD)', value: r.ina.npv });
+  if (method !== 'ina' && (input.showInaInPdf ?? true) && r.ina) {
+    secondary.push({ label: `İNA (NBD), %${((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} iskonto`, value: r.ina.npv });
+  }
   if (method !== 'maliyet' && (input.showCostInPdf ?? true) && r.cost) secondary.push({ label: 'Maliyet Yaklaşımı', value: r.cost.totalValueRounded });
 
   if (secondary.length > 0) {
@@ -210,6 +212,43 @@ export async function buildHotelPdf(
       ]),
       [20, 45, 40, 40, 45],
     );
+
+    // KALEM 4: İNA'nın tam indirgeme detayı — banka/uzman, koda erişmeden
+    // sonucu birebir denetleyebilsin diye (Anemon Otel incelemesinde ortaya
+    // çıkan ihtiyaç). r.ina.cashFlows zaten terminal değeri son yıla dahil
+    // ediyor; burada yalnız iskonto katsayısı/bugünkü değer sütunlarını
+    // ekleyip, terminal değerin kendi formülünü ayrıca açıklıyoruz.
+    const discRate = input.projection.discountRate ?? 0;
+    if (discRate > 0 && r.ina.cashFlows.length > 0) {
+      sectionTitle('İNA — İndirgeme Detayı');
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
+      doc.text(`İskonto Oranı: %${(discRate * 100).toFixed(2).replace('.', ',')}`, M, y);
+      y += 6;
+      table(
+        ['Yıl', 'Nakit Akışı', 'İskonto Katsayısı', 'Bugünkü Değer'],
+        r.ina.cashFlows.map((cf, idx) => {
+          const yearNum = idx + 1;
+          const factor = 1 / Math.pow(1 + discRate, yearNum);
+          return [String(r.projectionTable[idx].year), cur(cf), factor.toFixed(4), cur(cf * factor)];
+        }),
+        [20, 55, 45, 55],
+      );
+      y += 3;
+      const lastNoiForDetail = r.projectionTable[r.projectionTable.length - 1].noi;
+      const secondLastForDetail = r.projectionTable.length >= 2 ? r.projectionTable[r.projectionTable.length - 2].noi : null;
+      const impliedGrowthForDetail = secondLastForDetail != null && secondLastForDetail > 0
+        ? (lastNoiForDetail / secondLastForDetail - 1) : (input.projection.incomeGrowthRate ?? 0);
+      const termCapForDetail = (input.projection.terminalCapRate ?? input.projection.capRate) || 0;
+      const nextYearNoiForDetail = lastNoiForDetail * (1 + impliedGrowthForDetail);
+      const terminalPvForDetail = r.ina.terminalValue / Math.pow(1 + discRate, r.ina.cashFlows.length);
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+      const detailLines = doc.splitTextToSize(
+        `Terminal Değer Formülü: (Projeksiyon ötesi 1. yıl NOI'si) ÷ (Terminal Kapitalizasyon Oranı, %${(termCapForDetail * 100).toFixed(1).replace('.', ',')}) = ${cur(nextYearNoiForDetail)} ÷ %${(termCapForDetail * 100).toFixed(1).replace('.', ',')} = ${cur(r.ina.terminalValue)}  ·  Terminal Değerin Bugünkü Değeri: ${cur(terminalPvForDetail)}`,
+        W,
+      );
+      for (const line of detailLines) { doc.text(line, M, y); y += 4.2; }
+      y += 3;
+    }
   }
 
   if ((input.showCostInPdf ?? true) && r.cost) {

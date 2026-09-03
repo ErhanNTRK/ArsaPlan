@@ -211,7 +211,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
               </RTable>
             )}
             <button type="button" className="btn-ghost btn-sm" style={{ marginTop: 10 }}
-                    onClick={() => setInput((s) => ({ ...s, buildings: [...s.buildings, { id: newId(), type: buildingSuggestions[0] ?? '', buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] }))}>
+                    onClick={() => setInput((s) => {
+                      const t0 = buildingSuggestions[0] ?? '';
+                      const suggested = suggestBuildingClass(t0);
+                      return { ...s, buildings: [...s.buildings, { id: newId(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 }] };
+                    })}>
               ➕ Yapı Ekle
             </button>
           </div>
@@ -299,7 +303,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                   </RTable>
                 )}
                 <button type="button" className="btn-ghost btn-sm" style={{ marginTop: 10 }}
-                        onClick={() => setInput((s) => ({ ...s, mevcutBuildings: [...s.mevcutBuildings, { id: newId(), type: buildingSuggestions[0] ?? '', buildingClassCode: null, area: 0, unitCostOverride: 0, depreciationPct: 100 }] }))}>
+                        onClick={() => setInput((s) => {
+                          const t0 = buildingSuggestions[0] ?? '';
+                          const suggested = suggestBuildingClass(t0);
+                          return { ...s, mevcutBuildings: [...s.mevcutBuildings, { id: newId(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 }] };
+                        })}>
                   ➕ Mevcut Duruma Yapı Ekle
                 </button>
                 <div className="hrow-labeled" style={{ marginTop: 10 }}>

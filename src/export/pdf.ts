@@ -124,9 +124,20 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   /* ── Sonuç şeridi ── */
   function hero() {
-    const useManual = input.finalManualValue != null && input.finalManualValue > 0;
-    const heroValue = useManual ? input.finalManualValue! : f.residualLandValueRounded;
-    const heroLabel = useManual ? 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)' : 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
+    const method = input.finalMethod ?? 'gelir';
+    const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+    let heroValue = f.residualLandValueRounded;
+    let heroLabel = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
+    if (method === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
+      heroValue = input.finalManualValue;
+      heroLabel = 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)';
+    } else if (method === 'gelir-indirgemeli' && discountActive) {
+      heroValue = f.discountedLandValueRounded;
+      heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)';
+    } else if (method === 'kat-karsiligi-indirgemeli' && input.share.enabled && discountActive) {
+      heroValue = s.discountedShareLandValueRounded;
+      heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ KAT KARŞILIĞI)';
+    }
     const H = 27;
     doc.setFillColor(...NAVY);
     doc.roundedRect(M, y, W, H, 2.2, 2.2, 'F');

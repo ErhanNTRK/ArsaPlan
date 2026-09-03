@@ -142,15 +142,29 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row += 2;
 
   /* Sonuç bloğu — lacivert hero */
+  const heroMethod = input.finalMethod ?? 'gelir';
+  const heroDiscountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+  let heroLabelXl = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
+  let heroValueXl = f.residualLandValueRounded;
+  if (heroMethod === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
+    heroLabelXl = 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)';
+    heroValueXl = input.finalManualValue;
+  } else if (heroMethod === 'gelir-indirgemeli' && heroDiscountActive) {
+    heroLabelXl = 'ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)';
+    heroValueXl = f.discountedLandValueRounded;
+  } else if (heroMethod === 'kat-karsiligi-indirgemeli' && input.share.enabled && heroDiscountActive) {
+    heroLabelXl = 'ARSA DEĞERİ (İNDİRGEMELİ KAT KARŞILIĞI)';
+    heroValueXl = s.discountedShareLandValueRounded;
+  }
   ws1.mergeCells(`B${row}:B${row + 1}`);
   const hero = ws1.getCell(`B${row}`);
-  hero.value = tt('ARSA DEĞERİ (GELİR PROJEKSİYONU)').replace(' (', '\n(');
+  hero.value = tt(heroLabelXl).replace(' (', '\n(');
   hero.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFC4D4E5' } };
   hero.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
   hero.alignment = { vertical: 'middle', indent: 1, wrapText: true };
   ws1.mergeCells(`C${row}:D${row + 1}`);
   const hv = ws1.getCell(`C${row}`);
-  hv.value = Math.round(f.residualLandValueRounded);
+  hv.value = Math.round(heroValueXl);
   hv.numFmt = TL;
   hv.font = { name: 'Arial', size: 19, bold: true, color: { argb: 'FFFFFFFF' } };
   hv.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };

@@ -385,11 +385,13 @@ export interface ProjectInput {
   showKatKarsiligiIndirgemeli?: boolean;
   showGelirIndirgemeli?: boolean;
   /**
-   * Elle girilen nihai arsa değeri — doluysa, raporun başındaki büyük
-   * "ARSA DEĞERİ" kutusunda Gelir Projeksiyonu sonucu yerine bu değer
-   * gösterilir. Diğer tüm hesaplar (Yöntem Karşılaştırması dahil)
-   * etkilenmez, yalnızca "hangi rakam öne çıkıyor" değişir.
+   * Nihai Arsa Değeri — raporun başındaki büyük "ARSA DEĞERİ" kutusunda
+   * HANGİ hesaplanan değerin öne çıkacağını seçer. Boşsa (varsayılan)
+   * ham Gelir Projeksiyonu sonucu gösterilir (eski davranış, değişmez).
+   * "manuel" seçilirse finalManualValue kullanılır.
    */
+  finalMethod?: 'gelir' | 'gelir-indirgemeli' | 'kat-karsiligi-indirgemeli' | 'manuel';
+  /** finalMethod="manuel" iken kullanılan elle girilmiş nihai arsa değeri. */
   finalManualValue?: number | null;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
