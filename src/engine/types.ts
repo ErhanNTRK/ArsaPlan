@@ -396,6 +396,9 @@ export interface ProjectInput {
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
   reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
 }
 
 export interface CapacityResult {

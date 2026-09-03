@@ -8,13 +8,15 @@
 import { jsPDF } from 'jspdf';
 import { BRAND } from '../brand/brand';
 import { NAVY, INK, GRAY, GOLD, M, PW, W } from '../export/pdf';
-import { drawHeader, drawFooter, loadFonts } from '../export/pdf';
+import { drawHeader, drawFooter, drawBankInfoStrip, loadFonts } from '../export/pdf';
 import type { WholeValueResult, LandOnlyResult } from './simpleCostEngine';
 
 interface SimpleInput {
   hotelName: string; mahalle: string; ada: string; parsel: string; parcelArea: number; fromKml: boolean;
   currency: 'TL' | 'USD' | 'EUR'; fxRate?: number;
   sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
+  showReportDate?: boolean; reportDate?: string | null;
+  bankName?: string | null; branchName?: string | null;
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const cur = (v: number, input: SimpleInput) => Math.round(v).toLocaleString('tr-TR') + ' ' + SYM[input.currency];
@@ -27,6 +29,7 @@ export async function buildSimpleUstHakkiPdf(
   const title = method === 'toplam' ? 'Toplam Değer Esaslı Üst Hakkı Tespiti' : 'Arsa Değeri Esaslı Üst Hakkı Tespiti';
   drawHeader(doc, title, 'Üst Hakkı Değerleme Raporu');
   let y = 44;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
 
   function sectionTitle(t: string) {
     doc.setFillColor(...NAVY);

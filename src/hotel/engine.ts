@@ -223,6 +223,21 @@ export function fmtWithTlEquivalent(
   return `${main} (≈ ${tl})`;
 }
 
+/**
+ * Aynı hesap, ama ana tutar ve TL karşılığını AYRI dizeler olarak döner —
+ * UI'da TL karşılığını (döviz bazlı hesaplarda) belirgin, kendi satırında
+ * göstermek için. tlEquivalent, TL ise ya da kur girilmemişse null.
+ */
+export function fmtWithTlEquivalentParts(
+  value: number, currency: 'TRY' | 'USD' | 'EUR' | undefined, fxRate: number | null | undefined,
+): { main: string; tlEquivalent: string | null } {
+  const CUR_SYM: Record<string, string> = { TRY: '₺', USD: '$', EUR: '€' };
+  const sym = CUR_SYM[currency ?? 'TRY'] ?? '₺';
+  const main = fmtTLShort(value, sym);
+  if ((currency ?? 'TRY') === 'TRY' || !fxRate || fxRate <= 0) return { main, tlEquivalent: null };
+  return { main, tlEquivalent: fmtTLShort(value * fxRate, '₺') };
+}
+
 /* ─────────────────── Orkestratör — tek çağrıda tüm analizi üretir ─────────────────── */
 export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
   const roomCalc = computeRoomRevenue(input.rooms);

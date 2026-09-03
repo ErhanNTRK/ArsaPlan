@@ -5,7 +5,7 @@
  */
 import { jsPDF } from 'jspdf';
 import {
-  loadFonts, drawHeader, drawFooter,
+  loadFonts, drawHeader, drawFooter, drawBankInfoStrip,
   NAVY, GOLD, INK, GRAY, FAINT, LINE, M, PW, W, pct,
 } from '../export/pdf';
 import { triggerDownload } from '../export/excel';
@@ -30,6 +30,7 @@ export async function buildHotelPdf(
 
   drawHeader(doc, input.general.facilityName || 'Otel Gelir Analizi', 'Gelir İndirgeme Yaklaşımı · Konaklama Tesisleri');
   y = 41;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
 
   /* Künye */
   doc.setFillColor(...FAINT);

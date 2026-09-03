@@ -161,6 +161,9 @@ export interface HotelIncomeInput {
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
   reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
   /**
    * Mevcut Durum Değeri Hesapla — opsiyonel. Açılırsa Yasal Durum'daki yapı
    * satırları kopyalanıp bağımsız, düzenlenebilir ikinci bir listeye

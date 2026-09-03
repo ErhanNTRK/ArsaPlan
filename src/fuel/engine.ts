@@ -68,6 +68,12 @@ export interface FuelInput {
   /** Nihai Değer — hangi yöntem PDF'te "asıl" sonuç olarak öne çıkacak. Boşsa (varsayılan) Gelir Yöntemi. */
   finalMethod?: 'gelir' | 'maliyet' | 'manuel';
   finalManualValue?: number | null;
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
 }
 
 export interface FuelProductResult extends FuelProductInput {

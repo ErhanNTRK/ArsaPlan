@@ -46,9 +46,27 @@ function useFmt() {
   return (v: number) => (isFinite(v) ? Math.round(v).toLocaleString('tr-TR') + ' ' + (CUR_SYM[cur] ?? '₺') : '–');
 }
 /** Ana sonuç kartlarında kullanılır: döviz + TL karşılığını birlikte gösterir. */
-function useFmtTl() {
+/** NİHAİ DEĞER gibi büyük/vurgulu kutularda kullanılır: ana tutar ve TL
+ * karşılığını AYRI döner, TL karşılığı kendi (belirgin) satırında gösterilebilsin. */
+function useFmtTlParts() {
   const fx = useContext(FxCtx);
-  return (v: number) => (isFinite(v) ? fmtWithTlEquivalent(v, fx.currency, fx.fxRate) : '–');
+  return (v: number) => (isFinite(v) ? fmtWithTlEquivalentParts(v, fx.currency, fx.fxRate) : { main: '–', tlEquivalent: null });
+}
+/** Ana tutar + (varsa) TL karşılığını, karşılığı KENDİ belirgin satırında
+ * olacak şekilde render eder — NİHAİ DEĞER, Direkt Kap, İNA, Maliyet
+ * Yaklaşımı kutularının hepsinde aynı, tutarlı görsel dil için. */
+function TlValueDisplay({ value, big, parts }: { value: number; big?: boolean; parts: (v: number) => { main: string; tlEquivalent: string | null } }) {
+  const { main, tlEquivalent } = parts(value);
+  return (
+    <>
+      <b>{main}</b>
+      {tlEquivalent && (
+        <div style={{ fontSize: big ? '0.62em' : '0.78em', fontWeight: 700, color: 'var(--navy, #12365e)', marginTop: 4 }}>
+          ≈ {tlEquivalent} TL Karşılığı
+        </div>
+      )}
+    </>
+  );
 }
 /** Yalnız seçili para biriminin simgesini döner — Num alanlarının suffix'inde kullanılır. */
 function useCurSym() {
@@ -56,7 +74,7 @@ function useCurSym() {
   return CUR_SYM[cur] ?? '₺';
 }
 import {
-  analyzeHotel, createDefaultHotelInput, newId, fmtWithTlEquivalent, gordonConsistentDiscountRate,
+  analyzeHotel, createDefaultHotelInput, newId, fmtWithTlEquivalentParts, gordonConsistentDiscountRate,
 } from './engine';
 import {
   ODA_TIPLERI, YARDIMCI_GELIR_KATALOGU, TICARI_KIRA_KATALOGU,
@@ -280,6 +298,13 @@ function StepGeneral({ general, setGeneral, input, setInput }: {
                          const next = { ...p, currency: newCur, fxRate: newCur === 'TRY' ? null : (p.fxRate ?? 1) };
                          const mid = currencySwitchGrowthDefault(cur, newCur);
                          if (mid != null) next.projection = { ...p.projection, incomeGrowthRate: mid, expenseGrowthRate: mid };
+                         // Periyodik Bakım Tutarı gibi MUTLAK bir para tutarı, oranların
+                         // aksine "piyasa tipik aralığı"na göre otomatik ayarlanamaz —
+                         // eski para biriminin rakamı yeni birimde anlamsız kalır (ör.
+                         // 500.000 TL, kur değişince yanlışlıkla "$500.000" görünebilir).
+                         // En güvenlisi: kur gerçekten değiştiyse sıfırlayıp yeniden
+                         // girmeye yönlendirmek, yanlış bir sayıyla sessizce kalmamak.
+                         if (mid != null) next.projection = { ...next.projection, maintenanceAmount: null };
                          return next;
                        });
                      }}>
@@ -919,7 +944,7 @@ function HotelResult({ input, result, setFinal }: {
   setFinal: (p: Partial<HotelIncomeInput>) => void;
 }) {
   const fmt = useFmt();
-  const fmtTl = useFmtTl();
+  const fmtTlParts = useFmtTlParts();
   const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
     : input.finalMethod === 'maliyet' && result.cost ? result.cost.totalValueRounded
     : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
@@ -931,19 +956,19 @@ function HotelResult({ input, result, setFinal }: {
         <div className="dual-values">
           <div className={`dual-box${(input.finalMethod ?? 'direkt') === 'direkt' ? ' dual-box--chosen' : ''}`}>
             <span>DİREKT KAPİTALİZASYON</span>
-            <b>{fmtTl(result.capitalizedValue)}</b>
+            <TlValueDisplay value={result.capitalizedValue} parts={fmtTlParts} />
             <em>NOI ÷ %{(input.projection.capRate * 100).toFixed(1).replace('.', ',')}{input.isNewHotel ? ' (istikrar kazandığında)' : ''}</em>
             {result.prospectiveValue != null && (
               <div style={{ marginTop: 6, fontSize: 12 }}>
                 <span style={{ color: 'var(--text-3)' }}>Bugünkü karşılığı ({input.stabilizationYears ?? 3} yıl oturma indirgemesiyle): </span>
-                <b>{fmtTl(result.prospectiveValue)}</b>
+                <TlValueDisplay value={result.prospectiveValue} parts={fmtTlParts} />
               </div>
             )}
           </div>
           {result.ina && (
             <div className={`dual-box${input.finalMethod === 'ina' ? ' dual-box--chosen' : ''}`}>
               <span>İNA (NBD)</span>
-              <b>{fmtTl(result.ina.npv)}</b>
+              <TlValueDisplay value={result.ina.npv} parts={fmtTlParts} />
               <em>{input.projection.years} yıl · iskonto %{((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} · terminal dahil</em>
               {result.ina.plausibilityWarning && (
                 <div className="hint hint--warn" style={{ marginTop: 6, fontSize: 11.5 }}>{result.ina.plausibilityWarning}</div>
@@ -956,7 +981,7 @@ function HotelResult({ input, result, setFinal }: {
           {result.cost && (
             <div className={`dual-box${input.finalMethod === 'maliyet' ? ' dual-box--chosen' : ''}`}>
               <span>MALİYET YAKLAŞIMI</span>
-              <b>{fmtTl(result.cost.totalValueRounded)}</b>
+              <TlValueDisplay value={result.cost.totalValueRounded} parts={fmtTlParts} />
               <em>Arsa + Yapı Değerleri</em>
             </div>
           )}
@@ -975,7 +1000,10 @@ function HotelResult({ input, result, setFinal }: {
               <input type="number" value={input.finalManualValue ?? ''}
                      onChange={(e) => setFinal({ finalManualValue: Number(e.target.value) || 0 })} /></label>
           )}
-          <div className="pfield pfield--ro pfield--big"><span>NİHAİ DEĞER</span><b>{fmtTl(finalValue)}</b></div>
+          <div className="pfield pfield--ro pfield--big">
+            <span>NİHAİ DEĞER</span>
+            <TlValueDisplay value={finalValue} big parts={fmtTlParts} />
+          </div>
         </div>
         <div className="hint" style={{ marginTop: 6 }}>
           Bu sonuç, otelin sürdürülebilir işletme potansiyeli üzerinden hesaplanmıştır. Gayrimenkul,
@@ -1036,6 +1064,12 @@ function HotelResult({ input, result, setFinal }: {
                    onChange={(e) => setFinal({ reportDate: e.target.value || null })} />
           </label>
         )}
+        <div className="grid-2" style={{ marginBottom: 10 }}>
+          <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+            <input value={input.bankName ?? ''} onChange={(e) => setFinal({ bankName: e.target.value || null })} /></label>
+          <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+            <input value={input.branchName ?? ''} onChange={(e) => setFinal({ branchName: e.target.value || null })} /></label>
+        </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-primary btn-sm" disabled={busy}
                 onClick={async () => {

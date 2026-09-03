@@ -1,66 +1,75 @@
-# ArsaPlan v9.15.0 — Otel Modülü Büyük Tur: Yenileme Fonu, Denetim Tablosu, Yeniden İnşa Kontrolü, Yapı Sınıfı Önerisi
+# ArsaPlan v9.16.0 — Ayrıntılı Üst Hakkı PDF Yeniden Tasarımı, Banka/Şube/Tarih Şeridi (7 Modül)
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **394/394 test yeşil** ·
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **412/412 test yeşil** ·
 `npm run build` başarılı.
 
-## 1. Direkt Kapitalizasyon NOI'sine Yenileme Fonu düşümü eklendi
+## 1-2. Ayrıntılı Üst Hakkı PDF'i yeniden tasarlandı
 
-Önceden Direkt Kap ve İNA farklı NOI tanımı kullanıyordu (İNA yenileme
-fonunu düşüyor, Direkt Kap düşmüyordu) — artık ikisi **tutarlı**. Hero
-NOI, Yıllık Projeksiyon Tablosu'nun 1. yıl NOI'siyle birebir aynı.
+- **"TAŞINMAZ DEĞERİ" artık raporun en başında** — diğer tüm modüllerle
+  (Arsa Gelir Projeksiyonu, Otel, Akaryakıt) tutarlı. Önceden Kimlik →
+  Süre/Para Birimi → Maliyet Yaklaşımı → Dönemsel Tablo'dan (birkaç sayfa
+  sürebilen) sonra, en altta görünüyordu.
+- **Motorun hesapladığı 5 gelir + 13 gider kalemi artık PDF'te görünüyor.**
+  Önceden yalnızca "Toplam Gelir/Toplam Gider" gösteriliyordu — banka
+  Excel'ine birebir doğrulanmış olan bu ayrıntı motorun içinde duruyordu
+  ama rapora hiç yansımıyordu. Artık dört ayrı detay tablosu var: Gelir
+  Kalemleri Detayı, İşletme Giderleri Detayı, Sabit Giderler Detayı,
+  Üst Hakkı Sahibine Özgü Ödemeler.
+- Bu süreçte gerçek bir hata da bulundu ve düzeltildi: `.toUpperCase()`
+  Türkçe karakterleri (İ/I, Ş, Ğ) yanlış büyütüyordu (`"yiyecek"` →
+  `"YIYECEK"`, doğrusu `"YİYECEK"`); artık elle doğru yazılmış Türkçe
+  büyük harfli etiketler kullanılıyor.
 
-## 2. İkincil İNA satırına iskonto oranı eklendi
+## 3. Banka İsmi / Şube İsmi / Tarih şeridi — yedi modülün hepsine
 
-Direkt Kap nihai değerken, ikincil satırdaki "İNA (NBD)" artık kullanılan
-iskonto oranını da gösteriyor — Direkt Kap'ın kendi cap rate'ini
-göstermesiyle tutarlı.
+Ortak, tek bir `drawBankInfoStrip()` fonksiyonu (export/pdf.ts) — hepsi
+aynı görsel dili paylaşıyor. Üç alan da opsiyonel; en az biri doluysa,
+raporun **en başında** (başlığın hemen altında) açık gri bir şerit olarak
+gösterilir. Hiçbiri doldurulmazsa, hiçbir modülde hiçbir şey değişmez.
 
-## 3. "Yeniden inşa maliyeti" kontrolü eklendi
+**Kapsanan yedi modül:** Arsa Gelir Projeksiyonu, Otel Gelir Analizi,
+Akaryakıt Gelir Hesabı, Bağımsız Maliyet Yaklaşımı, Tarımsal Ürün Gelir
+Hesabı, Üst Hakkı (Basit Mod — Toplam/Arsa Değeri Esaslı), Üst Hakkı
+(Ayrıntılı/Detaylı Mod).
 
-Anemon Otel incelemesinde bulunan kontrol: Direkt Kap ya da İNA sonucu,
-Maliyet Yaklaşımı'nın Yapı Değerleri'nin altına düşerse artık otomatik bir
-uyarı çıkıyor — çalışan bir varlığın, yeniden yapma maliyetinden ucuza
-değerlenmesi ekonomik olarak anlamsızdır.
+**Not:** Akaryakıt, Tarımsal, Üst Hakkı (Basit ve Ayrıntılı) modüllerinde
+"Rapor Tarihi" özelliği de bu turda ilk kez eklendi — önceden bu dört
+modülde hiç yoktu.
 
-## 4. PDF'e İNA'nın tam indirgeme detay tablosu eklendi
-
-"İNA — İndirgeme Detayı" başlığı altında: yıl, nakit akışı, iskonto
-katsayısı, bugünkü değer — ve terminal değerin formülü/kapitalizasyon
-oranı/bugünkü değeri açıkça yazıyor. Artık kod erişimi olmayan biri
-(banka uzmanı) sonucu PDF'ten birebir denetleyebilir.
-
-## 5-6. Sonuç ekranına iki bilgi notu eklendi (PDF'te DEĞİL)
-
-- Terminal büyüme oranı otomatik (son iki yıldan) alındığında bir uyarı.
-- Otel değerinin işletme/demirbaş unsurları içerebileceğine dair bir
-  kapsam notu.
-
-İkisi de yalnızca ekranda — hesaba hiçbir etkisi yok, PDF'e hiç girmiyor.
-
-## 7. Otel Maliyet Yaklaşımı'na Yapı Sınıfı otomatik önerisi eklendi
-
-Bağımsız Maliyet Yaklaşımı/Akaryakıt'takiyle aynı mekanizma (139/139
-eşleşme oranını kullanan aynı tablo) — Otel'in Maliyet Yaklaşımı'nda Yapı
-Türü seçilince (Yasal ve Mevcut Durum'da, hem dropdown'dan seçimde hem
-"Yapı Ekle" düğmesinde), eşleşme varsa Birim Maliyet sessizce doluyor.
+**Kullanılmayan bir dosya bulundu:** `usthakki/pdf.ts` (`UstHakkiApp.tsx`
+ile birlikte) App.tsx'te hiçbir yere yönlendirilmemiş, ölü kod — bu tura
+dahil edilmedi.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Yalnızca Kalem 1** hesabı etkiliyor — Direkt Kapitalizasyon sonucunuz,
-Yenileme Fonu Oranı girilmişse artık biraz düşer (o oranın büyüklüğüne
-göre, tipik %1 ile ~%1-3 arası bir azalma). Yenileme Fonu Oranı hiç
-girilmemişse (varsayılan) hiçbir değişiklik yok. Diğer altı kalem yalnız
-gösterim/arayüz/veri girişi.
+**Hayır** — üç kalemin hepsi gösterim/arayüz/veri girişi değişikliği,
+hiçbir hesap formülüne dokunulmadı.
 
 ## Değişen/Eklenen Dosyalar
 
 ```
-src/hotel/engine.ts                    Kalem 1 (NOI), Kalem 3 (uyarı)
-src/hotel/pdf.ts                       Kalem 2 (iskonto etiketi), Kalem 4 (detay tablosu)
-src/hotel/HotelApp.tsx                 Kalem 5, 6 (bilgi notları), Kalem 7 (öneri wiring)
-src/hotel/bu-oturum-yedi-kalem.test.ts YENİ — 10 test, yedi kalemin hepsini kapsıyor
+src/usthakki/detailedPdf.ts                 Kalem 1, 2 — yeniden tasarım
+src/usthakki/kalem1-2-pdf-yeniden-tasarim.test.ts  YENİ — 3 test
+
+src/export/pdf.ts                           drawBankInfoStrip() eklendi + Arsa Gelir Projeksiyonu entegrasyonu
+src/ui/Result.tsx                            Banka/Şube UI
+src/engine/types.ts                          bankName/branchName alanları
+
+src/hotel/types.ts, HotelApp.tsx, pdf.ts     Otel entegrasyonu
+src/fuel/engine.ts, FuelApp.tsx, pdf.ts      Akaryakıt entegrasyonu (+ Rapor Tarihi ilk kez)
+src/cost/engine.ts, CostApproachApp.tsx, pdf.ts   Maliyet Yaklaşımı entegrasyonu
+src/agri/engine.ts, AgriApp.tsx, pdf.ts      Tarımsal entegrasyonu (+ Rapor Tarihi ilk kez)
+src/usthakki/SimpleUstHakkiApp.tsx, simplePdf.ts   Üst Hakkı Basit (+ Rapor Tarihi ilk kez)
+src/usthakki/detailedEngine.ts, DetailedUstHakkiApp.tsx, detailedPdf.ts   Üst Hakkı Ayrıntılı (+ Rapor Tarihi ilk kez)
+
+src/export/kalem3-banka-serit.test.ts        YENİ — 8 test (ortak fonksiyon + 3 modülde gerçek PDF doğrulaması)
 ```
 
-## Beklemede — henüz karar verilmedi/kodlanmadı
+## Beklemede — henüz kesin karar verilmedi
 
-- **İndirgenmiş Kat Karşılığı Yöntemi** — hâlâ "beklesin" kararınız geçerli.
+- **Üst Hakkı "Basit Mod"** (Otel modülünden veri aktaran, sadeleştirilmiş
+  hesap) — tartışma aşamasında, kesin onay bekliyor.
+
+## Kapanan konular
+
+- ~~İndirgenmiş Kat Karşılığı Yöntemi~~ — vazgeçildi, bir daha gündeme gelmeyecek.

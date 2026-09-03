@@ -1,5 +1,5 @@
 import { jsPDF } from 'jspdf';
-import { loadFonts, drawHeader, drawFooter, NAVY, GOLD, INK, GRAY, FAINT, M, PW, W } from '../export/pdf';
+import { loadFonts, drawHeader, drawFooter, drawBankInfoStrip, NAVY, GOLD, INK, GRAY, FAINT, M, PW, W } from '../export/pdf';
 import { triggerDownload } from '../export/excel';
 import { BRAND } from '../brand/brand';
 import type { CostApproachInput, CostApproachResult } from './engine';
@@ -16,6 +16,7 @@ export async function buildCostApproachPdf(
   drawHeader(doc, `Maliyet Yaklaşımı — ${input.category || 'Taşınmaz'}`,
     'Arsa + Yapılar + Şerefiye/Düzeltme/Çevre Düzenlemesi');
   y = 42;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
   const kimlik = [input.general.il, input.general.ilce, input.general.mahalle,
     input.general.ada ? `Ada ${input.general.ada}` : '', input.general.parsel ? `Parsel ${input.general.parsel}` : '']
     .filter(Boolean).join(' · ');

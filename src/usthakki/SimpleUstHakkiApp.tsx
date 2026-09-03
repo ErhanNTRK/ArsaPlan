@@ -29,12 +29,15 @@ interface S {
   currency: Currency; fxRate: number;
   landUnitValue: number; buildings: BuildingValueRow[];
   sureUnit: 'yil' | 'ay'; kalanSure: number; toplamSure: number;
+  showReportDate?: boolean; reportDate?: string | null;
+  bankName?: string | null; branchName?: string | null;
 }
 const DEFAULT: S = {
   hotelName: '', mahalle: '', ada: '', parsel: '', parcelArea: 0, fromKml: false,
   currency: 'TL', fxRate: 1,
   landUnitValue: 0, buildings: [DEFAULT_BUILDING],
   sureUnit: 'yil', kalanSure: 0, toplamSure: 0,
+  showReportDate: false, reportDate: null, bankName: null, branchName: null,
 };
 
 export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: () => void }) {
@@ -228,6 +231,24 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
               )}
             </div>
           )}
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+            <input type="checkbox" checked={!!state.showReportDate}
+                   onChange={(e) => setState((s) => ({ ...s, showReportDate: e.target.checked }))} />
+            <span>Rapor Tarihini Göster (opsiyonel)</span>
+          </label>
+          {state.showReportDate && (
+            <label className="pfield" style={{ marginTop: 6, maxWidth: 220 }}>
+              <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+              <input type="date" value={state.reportDate ?? ''}
+                     onChange={(e) => setState((s) => ({ ...s, reportDate: e.target.value || null }))} />
+            </label>
+          )}
+          <div className="grid-2" style={{ marginTop: 10 }}>
+            <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+              <input value={state.bankName ?? ''} onChange={(e) => setState((s) => ({ ...s, bankName: e.target.value || null }))} /></label>
+            <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+              <input value={state.branchName ?? ''} onChange={(e) => setState((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
+          </div>
           <div className="export-row no-print">
             <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
             <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>

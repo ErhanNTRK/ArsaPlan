@@ -2,11 +2,19 @@
  * AYRINTILI ÜST HAKKI DEĞER ANALİZİ — PDF çıktısı.
  * Dönem sayısı kalan süreye göre değişir; otomatik sayfalanır. "â" harfi
  * kullanılmaz (font sınırı, bkz. Fuel modülü düzeltmesi 2026-07-30).
+ *
+ * DÜZELTME (2026-09-03, Salih onayı): Sonuç kutusu artık raporun EN
+ * BAŞINDA — diğer tüm modüllerle (Arsa Gelir Projeksiyonu, Otel, Akaryakıt)
+ * tutarlı. Ayrıca dönemsel tablo önceden yalnızca "Toplam Gelir/Gider"
+ * gösteriyordu — motorun hesapladığı 5 gelir kalemi ve 13 gider kalemi
+ * hiç görünmüyordu. Artık dört ayrı detay tablosuyla (Gelir Kalemleri,
+ * İşletme Giderleri, Sabit Giderler, Üst Hakkı Sahibine Özgü Ödemeler)
+ * tüm veriler PDF'te görünür.
  */
 import { jsPDF } from 'jspdf';
 import { BRAND } from '../brand/brand';
 import { NAVY, INK, GRAY, FAINT, GOLD, M, PW, W, tl } from '../export/pdf';
-import { drawHeader, drawFooter, loadFonts } from '../export/pdf';
+import { drawHeader, drawFooter, drawBankInfoStrip, loadFonts } from '../export/pdf';
 import type { DetailedUstHakkiInput, DetailedUstHakkiResult } from './detailedEngine';
 
 const SYM: Record<DetailedUstHakkiInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
@@ -20,6 +28,7 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   await loadFonts(doc);
   drawHeader(doc, 'Ayrıntılı Üst Hakkı Değer Analizi', 'Gelir İndirgeme (DCF) — Dönemsel Tablo');
   let y = 44;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
 
   function pageBreak(need: number): boolean { if (y + need > 280) { doc.addPage(); y = 20; return true; } return false; }
   function sectionTitle(title: string) {
@@ -38,6 +47,34 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
     doc.text(value, PW - M - 3, y, { align: 'right' });
     y += 6.2;
   }
+  /** Çok sütunlu bir dönemsel detay tablosu çizer — başlıklar + zebra + otomatik sayfalanma. */
+  function periodTable(title: string, cols: { label: string; get: (yr: typeof r.years[number]) => number }[]) {
+    sectionTitle(title);
+    const h = 5.4;
+    const n = cols.length;
+    const C = [M + 2, ...cols.map((_, idx) => M + 20 + ((W - 20) / n) * (idx + 1) - 2)];
+    function tableHead() {
+      doc.setFillColor(...FAINT);
+      doc.rect(M, y - 3.8, W, h, 'F');
+      doc.setFont('NTRK', 'bold'); doc.setFontSize(6.2); doc.setTextColor(...GRAY);
+      doc.text('YIL', C[0], y);
+      cols.forEach((c, idx) => doc.text(c.label, C[idx + 1], y, { align: 'right' }));
+      y += h + 0.5;
+    }
+    tableHead();
+    let zebra = false;
+    for (const yr of r.years) {
+      const newPage = pageBreak(h + 2);
+      if (newPage) tableHead();
+      if (zebra) { doc.setFillColor(...FAINT); doc.rect(M, y - 3.8, W, h, 'F'); }
+      zebra = !zebra;
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(7); doc.setTextColor(...INK);
+      doc.text(String(yr.year), C[0], y);
+      cols.forEach((c, idx) => doc.text(cur(c.get(yr), input), C[idx + 1], y, { align: 'right' }));
+      y += h;
+    }
+    y += 4;
+  }
 
   const hasIdentity = !!(input.hotelName || input.ada || input.parsel);
   if (hasIdentity) {
@@ -47,9 +84,25 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
     doc.text(parts, M, y); y += 7;
   }
 
+  /* ── SONUÇ — artık en başta, diğer modüllerle tutarlı ── */
+  const boxH = input.currency !== 'TL' ? 32 : 24;
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
+  doc.setFillColor(...GOLD);
+  doc.rect(M, y + boxH - 1.5, W, 1.5, 'F');
+  doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
+  doc.text('TAŞINMAZ DEĞERİ', M + 5, y + 8);
+  doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
+  doc.text(`${Math.round(r.propertyValueRounded).toLocaleString('tr-TR')} ${CUR(input)}`, M + 5, y + 19);
+  if (input.currency !== 'TL') {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(196, 212, 229);
+    doc.text(`TL Karşılığı: ${tl(r.propertyValueTl)}`, M + 5, y + 27);
+  }
+  y += boxH + 6;
+
   sectionTitle('SÜRE VE PARA BİRİMİ');
   row('Toplam Süre', `${input.toplamSureYil} yıl`);
-  row('Kalan Süre', `${input.kalanSureYil} yıl`);
+  row('Kalan Süre (= Projeksiyon Süresi)', `${input.kalanSureYil} yıl`);
   row('İskonto Oranı', `%${(r.discountRate * 100).toFixed(1)}`);
   row('Para Birimi', input.currency + (input.currency !== 'TL' ? ` (kur: ${input.fxRate} ₺)` : ''));
   row('1. Yıl Oda Geliri', cur(r.baseRoomIncome, input) + ' (taban)');
@@ -71,7 +124,7 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
     y += 2;
   }
 
-  sectionTitle(`DÖNEMSEL GELİR-GİDER TABLOSU (${r.years.length} DÖNEM)`);
+  sectionTitle(`DÖNEMSEL ÖZET TABLOSU (${r.years.length} DÖNEM)`);
   const h = 5.4;
   const C = [M + 2, M + W * 0.24, M + W * 0.40, M + W * 0.56, M + W * 0.72, M + W * 0.86, PW - M - 2];
   function tableHead() {
@@ -107,28 +160,45 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   }
   y += 4;
 
-  pageBreak(40);
-  sectionTitle('SONUÇ');
+  /* ── KALEM 2: Tam veri detayı — motorun hesapladığı, önceden PDF'e hiç
+     yansımayan 5 gelir + 13 gider kalemi, dört ayrı tabloda ── */
+  periodTable('GELİR KALEMLERİ DETAYI', [
+    { label: 'ODA', get: (yr) => yr.roomIncome },
+    { label: 'YİYECEK', get: (yr) => yr.foodIncome },
+    { label: 'DİĞER', get: (yr) => yr.otherIncome },
+    { label: 'TOPLANTI', get: (yr) => yr.meetingIncome },
+    { label: 'DÜKKAN', get: (yr) => yr.shopIncome },
+  ]);
+
+  periodTable('İŞLETME GİDERLERİ DETAYI', [
+    { label: 'ODA GİD.', get: (yr) => yr.roomExpense },
+    { label: 'YİYECEK GİD.', get: (yr) => yr.foodExpense },
+    { label: 'DİĞER GİD.', get: (yr) => yr.otherExpense },
+    { label: 'GENEL YÖN.', get: (yr) => yr.generalMgmtExpense },
+    { label: 'ENERJİ', get: (yr) => yr.energyExpense },
+    { label: 'TAMİRAT', get: (yr) => yr.repairExpense },
+  ]);
+
+  periodTable('SABİT GİDERLER DETAYI', [
+    { label: 'İŞLETMECİ PRİMİ', get: (yr) => yr.operatorPremium },
+    { label: 'EMLAK VERGİSİ', get: (yr) => yr.propertyTax },
+    { label: 'SİGORTA', get: (yr) => yr.insurance },
+    { label: 'YENİLEME FONU', get: (yr) => yr.renewalFund },
+  ]);
+
+  periodTable('ÜST HAKKI SAHİBİNE ÖZGÜ ÖDEMELER', [
+    { label: 'ECRİMİSİL', get: (yr) => yr.ecrimisil },
+    { label: 'ÜST HAKKI ÖDEMESİ', get: (yr) => yr.ustHakkiOdeme },
+    { label: 'BAYİLİK', get: (yr) => yr.bayilik },
+  ]);
+
+  pageBreak(30);
+  sectionTitle('SONUÇ — HESAP DETAYI');
   row('Nakit Akış Bugünkü Değerleri Toplamı', cur(r.sumPresentValue, input));
   if (input.donemSonuIndirgemePct > 0) {
     row(`Dönem Sonu Değer İndirgeme (%${input.donemSonuIndirgemePct})`, '−' + cur(r.sumPresentValue - r.propertyValueLocal, input));
   }
-  y += 2;
-  const boxH = input.currency !== 'TL' ? 32 : 24;
-  pageBreak(boxH + 6);
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
-  doc.setFillColor(...GOLD);
-  doc.rect(M, y + boxH - 1.5, W, 1.5, 'F');
-  doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
-  doc.text('TAŞINMAZ DEĞERİ', M + 5, y + 8);
-  doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
-  doc.text(`${Math.round(r.propertyValueRounded).toLocaleString('tr-TR')} ${CUR(input)}`, M + 5, y + 19);
-  if (input.currency !== 'TL') {
-    doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(196, 212, 229);
-    doc.text(`TL Karşılığı: ${tl(r.propertyValueTl)}`, M + 5, y + 27);
-  }
-  y += boxH + 6;
+  row('TAŞINMAZ DEĞERİ (yukarıdaki kutuyla aynı)', cur(r.propertyValueRounded, input), true);
 
   drawFooter(doc, BRAND.version, 'Yöntem: Ayrıntılı Üst Hakkı Değer Analizi (DCF) · Tutarlar KDV hariçtir');
   return doc;

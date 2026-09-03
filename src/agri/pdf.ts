@@ -8,7 +8,7 @@
 import { jsPDF } from 'jspdf';
 import { BRAND } from '../brand/brand';
 import { NAVY, INK, GRAY, FAINT, GOLD, GREEN, M, PW, W, tl, m2 } from '../export/pdf';
-import { drawHeader, drawFooter, loadFonts } from '../export/pdf';
+import { drawHeader, drawFooter, drawBankInfoStrip, loadFonts } from '../export/pdf';
 import type { AgriInput, AgriResult, CropRowResult } from './engine';
 
 export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsPDF> {
@@ -16,6 +16,7 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
   await loadFonts(doc);
   drawHeader(doc, 'Tarımsal Ürün Gelir Hesabı', 'Ürün deseni ve gelir yaklaşımı analizi');
   let y = 44;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
 
   const hasIdentity = !!(input.mahalle || input.ada || input.parsel);
   if (hasIdentity) {

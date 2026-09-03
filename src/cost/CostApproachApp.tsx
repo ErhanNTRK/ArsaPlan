@@ -352,6 +352,12 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                        onChange={(e) => setInput((s) => ({ ...s, reportDate: e.target.value || null }))} />
               </label>
             )}
+            <div className="grid-2" style={{ marginTop: 10 }}>
+              <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+                <input value={input.bankName ?? ''} onChange={(e) => setInput((s) => ({ ...s, bankName: e.target.value || null }))} /></label>
+              <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+                <input value={input.branchName ?? ''} onChange={(e) => setInput((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
+            </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy !== null}
                       onClick={async () => { setBusy('pdf'); try { await downloadCostApproachPdf(input, result); } finally { setBusy(null); } }}>

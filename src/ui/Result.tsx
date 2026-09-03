@@ -63,6 +63,12 @@ export function Result({ input, result, version, setInput }: {
                    onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
           </label>
         )}
+        <div className="grid-2" style={{ marginBottom: 10 }}>
+          <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+            <input value={input.bankName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, bankName: e.target.value || null }))} /></label>
+          <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+            <input value={input.branchName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
+        </div>
         {(() => {
           const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
           const method = input.finalMethod ?? 'gelir';

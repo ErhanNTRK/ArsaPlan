@@ -26,4 +26,13 @@ describe('currencySwitchGrowthDefault', () => {
   it('Aynı para biriminde kalınırsa (TRY -> TRY), null döner', () => {
     expect(currencySwitchGrowthDefault('TRY', 'TRY')).toBeNull();
   });
+
+  it('Periyodik Bakım Tutarı da AYNI koşulda (TL<->Döviz geçişinde) sıfırlanmalı — mutlak bir tutar olduğu için oran gibi otomatik dönüştürülemez, eski para biriminin rakamı yeni birimde anlamsız kalır', () => {
+    // HotelApp.tsx'teki para birimi onChange handler'ı, maintenanceAmount'ı
+    // TAM OLARAK currencySwitchGrowthDefault != null koşuluyla sıfırlıyor —
+    // bu test o koşulun (TL<->Döviz ailesi değişimi) doğru davrandığını
+    // doğruluyor, ki maintenanceAmount sıfırlaması da güvenle bu koşula bağlı.
+    expect(currencySwitchGrowthDefault('TRY', 'USD')).not.toBeNull(); // sıfırlanmalı
+    expect(currencySwitchGrowthDefault('USD', 'EUR')).toBeNull();     // sıfırlanmamalı (ikisi de döviz)
+  });
 });

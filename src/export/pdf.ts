@@ -64,6 +64,30 @@ export function drawHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.roundedRect(lx - 3.4, ly - 2.6, lw + 6.8, lh + 5.2, 2, 2, 'F');
   doc.addImage(DORA_LOGO_PNG, 'PNG', lx, ly, lw, lh);
 }
+/**
+ * BANKA BİLGİLERİ ŞERİDİ — tüm modüllerde tutarlı, opsiyonel. Banka İsmi,
+ * Şube İsmi, Tarih'ten en az biri doluysa, raporun EN BAŞINDA (başlığın
+ * hemen altında) küçük, açık gri bir şerit olarak gösterilir. Hiçbiri
+ * doluysa hiç çizilmez (return edilen y değişmez).
+ */
+export function drawBankInfoStrip(
+  doc: jsPDF, y: number,
+  info: { bankName?: string | null; branchName?: string | null; reportDate?: string | null },
+): number {
+  const parts: string[] = [];
+  if (info.bankName?.trim()) parts.push(`Banka: ${info.bankName.trim()}`);
+  if (info.branchName?.trim()) parts.push(`Şube: ${info.branchName.trim()}`);
+  if (info.reportDate?.trim()) {
+    const d = new Date(info.reportDate + 'T00:00:00').toLocaleDateString('tr-TR');
+    parts.push(`Tarih: ${d}`);
+  }
+  if (parts.length === 0) return y;
+  doc.setFillColor(...FAINT);
+  doc.roundedRect(M, y, W, 7.5, 1.2, 1.2, 'F');
+  doc.setFont('NTRK', 'bold'); doc.setFontSize(8.4); doc.setTextColor(...NAVY);
+  doc.text(parts.join('   ·   '), M + 4, y + 5);
+  return y + 10.5;
+}
 
 /** Sayfa altbilgisi — tüm sayfalara */
 export function drawFooter(doc: jsPDF, version: string, extra = 'Yöntem: Gelir Projeksiyonu · Tutarlar KDV hariçtir') {
@@ -518,6 +542,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   /* ═══════════ SAYFA AKIŞI ═══════════ */
   drawHeader(doc, 'ARSA DEĞER ANALİZİ', 'Gelir Projeksiyonu Yöntemi · Proje Geliştirme Raporu');
   y = 41;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
   kunye();
 
   if (isletme) {

@@ -49,6 +49,12 @@ export interface AgriInput {
    * Projeksiyonu, Otel, Akaryakıt, Maliyet Yaklaşımı) aynı kroki stiliyle
    * gösterilir. Yalnızca alan (parcelArea) değil, gerçek geometri de saklanır. */
   kml?: { points: { x: number; y: number }[] } | null;
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
 }
 
 export interface ByproductResult extends Byproduct {

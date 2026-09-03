@@ -6,7 +6,7 @@
 import { jsPDF } from 'jspdf';
 import { BRAND } from '../brand/brand';
 import { NAVY, INK, GRAY, FAINT, GOLD, GREEN, M, PW, W, tl } from '../export/pdf';
-import { drawHeader, drawFooter, loadFonts } from '../export/pdf';
+import { drawHeader, drawFooter, drawBankInfoStrip, loadFonts } from '../export/pdf';
 import type { FuelInput, FuelResult } from './engine';
 
 export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsPDF> {
@@ -14,6 +14,7 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
   await loadFonts(doc);
   drawHeader(doc, 'Akaryakıt Gelir Hesabı', 'İstasyon satışları ve değerleme analizi (KDV hariç)');
   let y = 44;
+  y = drawBankInfoStrip(doc, y, { bankName: input.bankName, branchName: input.branchName, reportDate: input.showReportDate ? (input.reportDate ?? new Date().toISOString().slice(0, 10)) : null });
 
   function sectionTitle(title: string) {
     doc.setFillColor(...NAVY);

@@ -113,6 +113,13 @@ export interface DetailedUstHakkiInput {
 
   discountRatePct: number;         // tek iskonto oranı (2026-07-31: risksiz+prim ayrımı kaldırıldı)
   donemSonuIndirgemePct: number;   // "Dönem Sonu Değer İndirgeme (%)" — nihai sonuca bir kez uygulanan haircut
+
+  /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
+  showReportDate?: boolean;
+  reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
 }
 
 export interface DetailedPeriodRow {

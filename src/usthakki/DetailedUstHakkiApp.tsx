@@ -345,6 +345,24 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
             )}
           </div>
           {r.warnings.map((w, i) => <div className="warn-line" key={i}>{w}</div>)}
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+            <input type="checkbox" checked={!!state.showReportDate}
+                   onChange={(e) => patch({ showReportDate: e.target.checked })} />
+            <span>Rapor Tarihini Göster (opsiyonel)</span>
+          </label>
+          {state.showReportDate && (
+            <label className="pfield" style={{ marginTop: 6, maxWidth: 220 }}>
+              <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+              <input type="date" value={state.reportDate ?? ''}
+                     onChange={(e) => patch({ reportDate: e.target.value || null })} />
+            </label>
+          )}
+          <div className="grid-2" style={{ marginTop: 10 }}>
+            <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+              <input value={state.bankName ?? ''} onChange={(e) => patch({ bankName: e.target.value || null })} /></label>
+            <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+              <input value={state.branchName ?? ''} onChange={(e) => patch({ branchName: e.target.value || null })} /></label>
+          </div>
           <div className="export-row no-print">
             <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
             <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>

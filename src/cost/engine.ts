@@ -20,6 +20,9 @@ export interface CostApproachInput {
   /** Rapor Tarihi — varsayılan gizli. Açılırsa (showReportDate=true) PDF/Excel'de gösterilir; reportDate boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
   reportDate?: string | null;
+  /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
+  bankName?: string | null;
+  branchName?: string | null;
   fromKml: boolean;
   buildings: CostBuildingRow[];
   adjustmentType: AdjustmentType;
@@ -73,6 +76,8 @@ export function createDefaultCostInput(): CostApproachInput {
     mevcutAdjustmentAmount: null,
     showReportDate: false,
     reportDate: null,
+    bankName: null,
+    branchName: null,
   };
 }
 
