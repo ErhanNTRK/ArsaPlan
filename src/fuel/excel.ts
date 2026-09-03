@@ -135,11 +135,20 @@ export async function buildFuelExcelWorkbook(input: FuelInput, r: FuelResult): P
   }
   row++;
 
-  section('DİĞER GELİRLER VE KESİNTİLER');
+  section('DİĞER GELİR KALEMLERİ');
   kv('Yakıt Net Kazancı/yıl', r.fuelNet, TL);
-  if (r.extrasNet > 0) kv('İlave Gelir Kalemleri/yıl', r.extrasNet, TL);
+  for (const e of input.extras) {
+    const net = e.mode === 'net' ? Math.max(0, e.netAmount) : Math.max(0, e.turnover) * Math.max(0, e.profitPct) / 100;
+    if (net <= 0) continue;
+    kv(`  ${e.name || 'İlave Gelir Kalemi'}/yıl`, net, TL);
+    if (e.mode === 'ciro') kv(`    (Ciro x %${e.profitPct} kar oranı)`, e.turnover, TL);
+  }
   if (r.otherIncomeFromPct > 0) kv(`Diğer Gelirler (yakıt cirosunun %${input.otherIncomePctOfFuel})`, r.otherIncomeFromPct, TL);
-  if (r.dealerRentApplied > 0) kv('Dağıtıcı Kirası', -r.dealerRentApplied, TL);
+  if (r.dealerRentApplied > 0) {
+    section('KESİNTİLER');
+    kv('Dağıtıcı Kirası', -r.dealerRentApplied, TL);
+  }
+  section('SONUÇ');
   kv('TOPLAM NET KAZANÇ/yıl', r.totalNet, TL, { bold: true });
   row++;
 

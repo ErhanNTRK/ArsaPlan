@@ -1,75 +1,78 @@
-# ArsaPlan v9.16.0 — Ayrıntılı Üst Hakkı PDF Yeniden Tasarımı, Banka/Şube/Tarih Şeridi (7 Modül)
+# ArsaPlan v9.17.0 — Üst Hakkı 4. Yöntem, Akaryakıt Gelir Kalemleri Düzeltmesi, Font Hatası Zinciri
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **412/412 test yeşil** ·
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **441/441 test yeşil** ·
 `npm run build` başarılı.
 
-## 1-2. Ayrıntılı Üst Hakkı PDF'i yeniden tasarlandı
+## 1. Üst Hakkı — YENİ dördüncü yöntem: "Basit Gelir Bazlı Üst Hakkı Hesabı"
 
-- **"TAŞINMAZ DEĞERİ" artık raporun en başında** — diğer tüm modüllerle
-  (Arsa Gelir Projeksiyonu, Otel, Akaryakıt) tutarlı. Önceden Kimlik →
-  Süre/Para Birimi → Maliyet Yaklaşımı → Dönemsel Tablo'dan (birkaç sayfa
-  sürebilen) sonra, en altta görünüyordu.
-- **Motorun hesapladığı 5 gelir + 13 gider kalemi artık PDF'te görünüyor.**
-  Önceden yalnızca "Toplam Gelir/Toplam Gider" gösteriliyordu — banka
-  Excel'ine birebir doğrulanmış olan bu ayrıntı motorun içinde duruyordu
-  ama rapora hiç yansımıyordu. Artık dört ayrı detay tablosu var: Gelir
-  Kalemleri Detayı, İşletme Giderleri Detayı, Sabit Giderler Detayı,
-  Üst Hakkı Sahibine Özgü Ödemeler.
-- Bu süreçte gerçek bir hata da bulundu ve düzeltildi: `.toUpperCase()`
-  Türkçe karakterleri (İ/I, Ş, Ğ) yanlış büyütüyordu (`"yiyecek"` →
-  `"YIYECEK"`, doğrusu `"YİYECEK"`); artık elle doğru yazılmış Türkçe
-  büyük harfli etiketler kullanılıyor.
+"Toplam Gelir Üzerinden Üst Hakkı Hesabı" (Ayrıntılı) modelinin
+sadeleştirilmiş kardeşi — Salih'in testinde (%3,7 fark) doğrulanan
+mimari artık gerçek bir özellik. Seçim ekranına dördüncü kart olarak
+eklendi.
 
-## 3. Banka İsmi / Şube İsmi / Tarih şeridi — yedi modülün hepsine
+**39 alan yerine ~13 alan:**
+- 5 gelir kalemi yerine TEK "Toplam Gelir" tabanı
+- 6 işletme gideri oranı yerine TEK oran
+- 4 sabit gider oranı yerine TEK oran
+- Ecrimisil/Üst Hakkı Ödemesi/Bayilik AYNEN korunuyor
+- Kalan Süre = Projeksiyon Süresi, terminal değer yok (Ayrıntılı ile aynı doğru ilke)
+- Maliyet Yaklaşımı yok (yalnızca gelir akışı üzerinden)
 
-Ortak, tek bir `drawBankInfoStrip()` fonksiyonu (export/pdf.ts) — hepsi
-aynı görsel dili paylaşıyor. Üç alan da opsiyonel; en az biri doluysa,
-raporun **en başında** (başlığın hemen altında) açık gri bir şerit olarak
-gösterilir. Hiçbiri doldurulmazsa, hiçbir modülde hiçbir şey değişmez.
+PDF/Excel: sonuç en başta, "Girdi Varsayımları" bölümü, dönemsel özet
+tablosu — diğer üç Üst Hakkı modeliyle aynı tasarım dili. Banka
+İsmi/Şube İsmi/Tarih şeridi de dahil.
 
-**Kapsanan yedi modül:** Arsa Gelir Projeksiyonu, Otel Gelir Analizi,
-Akaryakıt Gelir Hesabı, Bağımsız Maliyet Yaklaşımı, Tarımsal Ürün Gelir
-Hesabı, Üst Hakkı (Basit Mod — Toplam/Arsa Değeri Esaslı), Üst Hakkı
-(Ayrıntılı/Detaylı Mod).
+Yeni dosyalar: `gelirBazliEngine.ts`, `gelirBazliPdf.ts`,
+`gelirBazliExcel.ts`, `GelirBazliUstHakkiApp.tsx` — 11 yeni test.
 
-**Not:** Akaryakıt, Tarımsal, Üst Hakkı (Basit ve Ayrıntılı) modüllerinde
-"Rapor Tarihi" özelliği de bu turda ilk kez eklendi — önceden bu dört
-modülde hiç yoktu.
+## 2. Akaryakıt — "Market Geliri gider gibi görünüyor" hatası düzeltildi
 
-**Kullanılmayan bir dosya bulundu:** `usthakki/pdf.ts` (`UstHakkiApp.tsx`
-ile birlikte) App.tsx'te hiçbir yere yönlendirilmemiş, ölü kod — bu tura
-dahil edilmedi.
+"DİĞER GELİRLER VE KESİNTİLER" tek başlığı, gelir kalemlerini (Market,
+Oto Yıkama vb.) bir kesintiyle (Dağıtıcı Kirası) karıştırıyordu. Artık
+**"DİĞER GELİR KALEMLERİ"**, **"KESİNTİLER"**, **"SONUÇ"** olarak üç
+ayrı, net başlık — hem PDF'te hem Excel'de. "Ciro × kâr%" modundaki
+kalemlerin hesap detayı da artık gösteriliyor.
+
+Ayrıca önceki turda düzeltilmiş olan "her kalem kendi ismiyle" davranışı
+(Market Geliri, Oto Yıkama, Restoran Geliri gibi — yalnız Market değil,
+TÜMÜ) bu zip ile ilk kez teslim ediliyor.
+
+## 3. Font karakteri hatası zinciri — altı dosyada düzeltildi
+
+Özel fontumuzda (NTRK) "×", "÷", "â" karakterlerinin bazı bağlamlarda
+metni **sessizce kestiği** keşfedildi — bu, önceki turda (v9.16.0)
+eklenen Otel İNA detay tablosunun "Terminal Değer Formülü" satırını da
+etkiliyordu (yalnız başlık görünüyordu, gerçek formül/rakamlar
+görünmüyordu). Düzeltilen dosyalar: `usthakki/simplePdf.ts`,
+`fuel/pdf.ts`, `fuel/excel.ts`, `hotel/pdf.ts`, `export/pdf.ts` (üç eski
+kullanım).
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Hayır** — üç kalemin hepsi gösterim/arayüz/veri girişi değişikliği,
-hiçbir hesap formülüne dokunulmadı.
+**Hayır**, iki kalem de (2, 3) yalnızca gösterim düzeltmesi. Kalem 1 ise
+tamamen yeni bir hesaplama seçeneği — mevcut hiçbir hesaba dokunmuyor.
 
 ## Değişen/Eklenen Dosyalar
 
 ```
-src/usthakki/detailedPdf.ts                 Kalem 1, 2 — yeniden tasarım
-src/usthakki/kalem1-2-pdf-yeniden-tasarim.test.ts  YENİ — 3 test
+src/usthakki/gelirBazliEngine.ts       YENİ — Yöntem 4 motoru
+src/usthakki/gelirBazliPdf.ts          YENİ — Yöntem 4 PDF
+src/usthakki/gelirBazliExcel.ts        YENİ — Yöntem 4 Excel
+src/usthakki/GelirBazliUstHakkiApp.tsx YENİ — Yöntem 4 UI
+src/usthakki/gelirBazliYontem4.test.ts YENİ — 11 test
+src/App.tsx                            Yöntem 4 yönlendirmesi + seçim ekranı kartı
 
-src/export/pdf.ts                           drawBankInfoStrip() eklendi + Arsa Gelir Projeksiyonu entegrasyonu
-src/ui/Result.tsx                            Banka/Şube UI
-src/engine/types.ts                          bankName/branchName alanları
+src/fuel/pdf.ts, excel.ts              Gelir/Kesinti bölüm ayrımı + font düzeltmesi
+src/fuel/kalem-market-geliri-ismi.test.ts   7 test (genişletildi)
 
-src/hotel/types.ts, HotelApp.tsx, pdf.ts     Otel entegrasyonu
-src/fuel/engine.ts, FuelApp.tsx, pdf.ts      Akaryakıt entegrasyonu (+ Rapor Tarihi ilk kez)
-src/cost/engine.ts, CostApproachApp.tsx, pdf.ts   Maliyet Yaklaşımı entegrasyonu
-src/agri/engine.ts, AgriApp.tsx, pdf.ts      Tarımsal entegrasyonu (+ Rapor Tarihi ilk kez)
-src/usthakki/SimpleUstHakkiApp.tsx, simplePdf.ts   Üst Hakkı Basit (+ Rapor Tarihi ilk kez)
-src/usthakki/detailedEngine.ts, DetailedUstHakkiApp.tsx, detailedPdf.ts   Üst Hakkı Ayrıntılı (+ Rapor Tarihi ilk kez)
+src/hotel/pdf.ts                       Terminal Değer Formülü font düzeltmesi
+src/hotel/bu-oturum-yedi-kalem.test.ts Güçlendirilmiş test (formülün TAMAMI kontrol ediliyor)
 
-src/export/kalem3-banka-serit.test.ts        YENİ — 8 test (ortak fonksiyon + 3 modülde gerçek PDF doğrulaması)
+src/export/pdf.ts                      Üç eski × kullanımı düzeltildi
+src/usthakki/simplePdf.ts              × / ÷ font düzeltmesi
 ```
-
-## Beklemede — henüz kesin karar verilmedi
-
-- **Üst Hakkı "Basit Mod"** (Otel modülünden veri aktaran, sadeleştirilmiş
-  hesap) — tartışma aşamasında, kesin onay bekliyor.
 
 ## Kapanan konular
 
-- ~~İndirgenmiş Kat Karşılığı Yöntemi~~ — vazgeçildi, bir daha gündeme gelmeyecek.
+- ~~KML uydu görüntüsü~~ — kullanıcı istemedi, kapatıldı.
+- ~~İndirgenmiş Kat Karşılığı Yöntemi~~ — vazgeçildi.

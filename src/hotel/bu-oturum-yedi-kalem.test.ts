@@ -86,6 +86,12 @@ describe('Kalem 4 — PDF\'te İNA\'nın tam indirgeme detay tablosu', () => {
     expect(text).toContain('İNA — İndirgeme Detayı');
     expect(text).toContain('İskonto Katsayısı');
     expect(text).toContain('Terminal Değer Formülü');
+    // DÜZELTME (× / ÷ font hatası): önceden bu satırdaki "÷" karakteri
+    // formülün geri kalanını (Terminal Kapitalizasyon Oranı %'si, sonuç
+    // rakamları) sessizce görünmez yapıyordu — yalnızca başlık kısmı
+    // görünüyordu. Artık formülün TAMAMI (cap rate yüzdesi dahil) görünüyor.
+    expect(text).toMatch(/Terminal Kapitalizasyon Oranı, %\d/);
+    expect(text).toContain('Terminal Değerin Bugünkü Değeri');
   });
 
   it('İskonto oranı girilmemişse (İNA hesaplanamıyorsa) detay tablosu hiç görünmüyor, hata da vermiyor', async () => {

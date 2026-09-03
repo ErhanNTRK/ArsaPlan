@@ -49,8 +49,8 @@ describe('Kalem 1 — TAŞINMAZ DEĞERİ artık raporun başında', () => {
   });
 });
 
-describe('Kalem 2 — motorun hesapladığı tüm gelir/gider kalemleri artık PDF\'te görünüyor', () => {
-  it('Dört yeni detay tablosunun başlıkları gerçekten geçiyor', async () => {
+describe('Kalem 1 (düzeltme) — dört per-yıl detay tablosu kaldırıldı, kompakt "Girdi Varsayımları" ile değiştirildi', () => {
+  it('"GELİR KALEMLERİ DETAYI" gibi eski per-yıl tablolar artık YOK', async () => {
     const input = baseInput();
     const r = computeDetailedUstHakki(input);
     const doc = await buildDetailedUstHakkiPdf(input, r);
@@ -61,17 +61,13 @@ describe('Kalem 2 — motorun hesapladığı tüm gelir/gider kalemleri artık P
       const content = await (await pdfDoc.getPage(i)).getTextContent();
       full += content.items.map((it: any) => it.str).join(' ') + '\n';
     }
-    expect(full).toContain('GELİR KALEMLERİ DETAYI');
-    expect(full).toContain('İŞLETME GİDERLERİ DETAYI');
-    expect(full).toContain('SABİT GİDERLER DETAYI');
-    expect(full).toContain('ÜST HAKKI SAHİBİNE ÖZGÜ ÖDEMELER');
-    // Önceden PDF'te hiç görünmeyen sütun başlıklarından birkaçı:
-    expect(full).toMatch(/YİYECEK/);
-    expect(full).toMatch(/İŞLETMECİ PRİMİ/);
-    expect(full).toMatch(/ECRİMİSİL/);
+    expect(full).not.toContain('GELİR KALEMLERİ DETAYI');
+    expect(full).not.toContain('İŞLETME GİDERLERİ DETAYI');
+    expect(full).not.toContain('SABİT GİDERLER DETAYI');
+    expect(full).not.toContain('ÜST HAKKI SAHİBİNE ÖZGÜ ÖDEMELER');
   });
 
-  it('Gerçek bir yılın Oda gelir rakamı, motorun hesapladığı değerle birebir eşleşiyor', async () => {
+  it('"GİRDİ VARSAYIMLARI" bölümü var, 1. yıl taban değerleri ve oranlar gerçekten görünüyor', async () => {
     const input = baseInput();
     const r = computeDetailedUstHakki(input);
     const doc = await buildDetailedUstHakkiPdf(input, r);
@@ -82,7 +78,9 @@ describe('Kalem 2 — motorun hesapladığı tüm gelir/gider kalemleri artık P
       const content = await (await pdfDoc.getPage(i)).getTextContent();
       full += content.items.map((it: any) => it.str).join(' ') + '\n';
     }
-    const beklenenOdaGeliri = Math.round(r.years[0].roomIncome).toLocaleString('tr-TR');
-    expect(full).toContain(beklenenOdaGeliri);
+    expect(full).toContain('GİRDİ VARSAYIMLARI');
+    expect(full).toMatch(/Ecrimisil.*1\.000\.000/);
+    expect(full).toMatch(/Üst Hakkı Ödemesi.*3\.000\.000/);
+    expect(full).toMatch(/İşletmeci Prim Oranı.*%10/);
   });
 });

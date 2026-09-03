@@ -79,11 +79,35 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
   }
   y += 4;
 
-  sectionTitle('DİĞER GELİRLER VE KESİNTİLER');
+  /* DÜZELTME: "DİĞER GELİRLER VE KESİNTİLER" tek başlığı, gelir kalemlerini
+     (Market, Oto Yıkama) bir kesinti kalemiyle (Dağıtıcı Kirası) karıştırıp
+     gösteriyordu — Salih'in bildirdiği "gider gibi görünüyor" izlenimi tam
+     buradan geliyordu. Artık iki AYRI, net başlıklı bölüm var. Ayrıca "ciro
+     × kâr%" modunda girilen kalemlerin hesap detayı da (önceden hiç
+     görünmeyen) küçük bir alt satırla gösteriliyor.
+  */
+  sectionTitle('DİĞER GELİR KALEMLERİ');
   row('Yakıt Net Kazancı/yıl', tl(r.fuelNet));
-  if (r.extrasNet > 0) row('İlave Gelir Kalemleri/yıl', tl(r.extrasNet));
+  for (const e of input.extras) {
+    const net = e.mode === 'net' ? Math.max(0, e.netAmount) : Math.max(0, e.turnover) * Math.max(0, e.profitPct) / 100;
+    if (net <= 0) continue;
+    row(`  ${e.name || 'İlave Gelir Kalemi'}/yıl`, tl(net));
+    if (e.mode === 'ciro') {
+      doc.setFont('NTRK', 'normal'); doc.setFontSize(7); doc.setTextColor(...GRAY);
+      doc.text(`    (Ciro ${tl(e.turnover)} x %${e.profitPct} kar oranı)`, M + 5, y - 1.2);
+      y += 3.6;
+    }
+  }
   if (r.otherIncomeFromPct > 0) row(`Diğer Gelirler (yakıt cirosunun %${input.otherIncomePctOfFuel})`, tl(r.otherIncomeFromPct));
-  if (r.dealerRentApplied > 0) row('Dağıtıcı Kirası', '−' + tl(r.dealerRentApplied));
+  y += 2;
+
+  if (r.dealerRentApplied > 0) {
+    sectionTitle('KESİNTİLER');
+    row('Dağıtıcı Kirası', '−' + tl(r.dealerRentApplied));
+    y += 2;
+  }
+
+  sectionTitle('SONUÇ');
   row('TOPLAM NET KAZANÇ/yıl', tl(r.totalNet), true);
   y += 4;
 
@@ -108,7 +132,7 @@ export async function buildFuelPdf(input: FuelInput, r: FuelResult): Promise<jsP
     doc.setFont('NTRK', 'normal'); doc.setFontSize(7.5); doc.setTextColor(196, 212, 229);
     doc.text(method === 'maliyet' && r.costValue != null
       ? `Arsa ${tl(r.costLand)} + Yapılar ${tl(r.costBuildings)}`
-      : `Net kazanç ÷ %${input.capRate}`, M + 5, y + 25);
+      : `Net kazanç / %${input.capRate}`, M + 5, y + 25);
   }
   y += boxH + 6;
 

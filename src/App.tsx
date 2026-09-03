@@ -9,6 +9,7 @@ import { FuelApp } from './fuel/FuelApp';
 import { CostApproachApp } from './cost/CostApproachApp';
 import { DetailedUstHakkiApp } from './usthakki/DetailedUstHakkiApp';
 import { SimpleUstHakkiApp } from './usthakki/SimpleUstHakkiApp';
+import { GelirBazliUstHakkiApp } from './usthakki/GelirBazliUstHakkiApp';
 import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { readDataSheet } from './export/excelImport';
@@ -443,7 +444,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
    "Arsa Gelir Projeksiyon Yöntemi" mevcut haliyle korunur (ArsaApp);
    "Otel Gelir Hesabı" ise tamamen bağımsız yeni bir modüldür (HotelApp).
    ═══════════════════════════════════════════════════════════════ */
-type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'maliyet' | 'usthakki-secim' | 'usthakki-detay' | 'usthakki-toplam' | 'usthakki-arsa';
+type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'maliyet' | 'usthakki-secim' | 'usthakki-detay' | 'usthakki-toplam' | 'usthakki-arsa' | 'usthakki-gelir-bazli';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
   const [ver, date] = BRAND.version.split(' · ');
   return (
@@ -496,7 +497,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
 
 function modeFromHash(): AppMode {
   const h = window.location.hash.replace('#', '');
-  return (['arsa', 'otel', 'tarimsal', 'akaryakit', 'maliyet', 'usthakki-secim', 'usthakki-detay', 'usthakki-toplam', 'usthakki-arsa'] as const).includes(h as never) ? (h as AppMode) : 'landing';
+  return (['arsa', 'otel', 'tarimsal', 'akaryakit', 'maliyet', 'usthakki-secim', 'usthakki-detay', 'usthakki-toplam', 'usthakki-arsa', 'usthakki-gelir-bazli'] as const).includes(h as never) ? (h as AppMode) : 'landing';
 }
 
 export default function App() {
@@ -531,6 +532,7 @@ export default function App() {
   else if (mode === 'usthakki-detay') content = <DetailedUstHakkiApp onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
   else if (mode === 'usthakki-toplam') content = <SimpleUstHakkiApp method="toplam" onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
   else if (mode === 'usthakki-arsa') content = <SimpleUstHakkiApp method="arsa" onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
+  else if (mode === 'usthakki-gelir-bazli') content = <GelirBazliUstHakkiApp onBack={() => { window.location.hash = 'usthakki-secim'; }} />;
   else if (mode === 'usthakki-secim') content = (
     <div className="app">
       <div className="topbar"><div className="topbar-inner">
@@ -541,7 +543,7 @@ export default function App() {
         <div className="step-head">
           <div className="step-eyebrow">Üst Hakkı Değerleme</div>
           <div className="step-title">Hangi Hesap Yöntemi?</div>
-          <div className="step-desc">Bir yöntem seçin. İkisi de kalan süreye göre otomatik dönem sayısı üretir.</div>
+          <div className="step-desc">Bir yöntem seçin. Hepsi kalan süreye göre otomatik dönem sayısı üretir.</div>
         </div>
         <div className="card">
           <div className="choice-grid">
@@ -554,6 +556,9 @@ export default function App() {
             <Choice on={false} name="Toplam Gelir Üzerinden Üst Hakkı Hesabı"
                     desc="Otel tarzı gelir/gider zinciri · dönemsel DCF tablo · döviz desteği"
                     onClick={() => { window.location.hash = 'usthakki-detay'; }} />
+            <Choice on={false} name="Basit Gelir Bazlı Üst Hakkı Hesabı"
+                    desc="Yukarıdakinin sadeleştirilmiş sürümü — tek gelir/gider oranı, ~13 alan"
+                    onClick={() => { window.location.hash = 'usthakki-gelir-bazli'; }} />
           </div>
         </div>
         <div className="card" style={{ marginTop: -4 }}>

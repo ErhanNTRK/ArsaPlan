@@ -244,7 +244,7 @@ export async function buildHotelPdf(
       const terminalPvForDetail = r.ina.terminalValue / Math.pow(1 + discRate, r.ina.cashFlows.length);
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
       const detailLines = doc.splitTextToSize(
-        `Terminal Değer Formülü: (Projeksiyon ötesi 1. yıl NOI'si) ÷ (Terminal Kapitalizasyon Oranı, %${(termCapForDetail * 100).toFixed(1).replace('.', ',')}) = ${cur(nextYearNoiForDetail)} ÷ %${(termCapForDetail * 100).toFixed(1).replace('.', ',')} = ${cur(r.ina.terminalValue)}  ·  Terminal Değerin Bugünkü Değeri: ${cur(terminalPvForDetail)}`,
+        `Terminal Değer Formülü: (Projeksiyon ötesi 1. yıl NOI'si) / (Terminal Kapitalizasyon Oranı, %${(termCapForDetail * 100).toFixed(1).replace('.', ',')}) = ${cur(nextYearNoiForDetail)} / %${(termCapForDetail * 100).toFixed(1).replace('.', ',')} = ${cur(r.ina.terminalValue)}  ·  Terminal Değerin Bugünkü Değeri: ${cur(terminalPvForDetail)}`,
         W,
       );
       for (const line of detailLines) { doc.text(line, M, y); y += 4.2; }

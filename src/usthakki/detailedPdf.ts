@@ -47,34 +47,6 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
     doc.text(value, PW - M - 3, y, { align: 'right' });
     y += 6.2;
   }
-  /** Çok sütunlu bir dönemsel detay tablosu çizer — başlıklar + zebra + otomatik sayfalanma. */
-  function periodTable(title: string, cols: { label: string; get: (yr: typeof r.years[number]) => number }[]) {
-    sectionTitle(title);
-    const h = 5.4;
-    const n = cols.length;
-    const C = [M + 2, ...cols.map((_, idx) => M + 20 + ((W - 20) / n) * (idx + 1) - 2)];
-    function tableHead() {
-      doc.setFillColor(...FAINT);
-      doc.rect(M, y - 3.8, W, h, 'F');
-      doc.setFont('NTRK', 'bold'); doc.setFontSize(6.2); doc.setTextColor(...GRAY);
-      doc.text('YIL', C[0], y);
-      cols.forEach((c, idx) => doc.text(c.label, C[idx + 1], y, { align: 'right' }));
-      y += h + 0.5;
-    }
-    tableHead();
-    let zebra = false;
-    for (const yr of r.years) {
-      const newPage = pageBreak(h + 2);
-      if (newPage) tableHead();
-      if (zebra) { doc.setFillColor(...FAINT); doc.rect(M, y - 3.8, W, h, 'F'); }
-      zebra = !zebra;
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(7); doc.setTextColor(...INK);
-      doc.text(String(yr.year), C[0], y);
-      cols.forEach((c, idx) => doc.text(cur(c.get(yr), input), C[idx + 1], y, { align: 'right' }));
-      y += h;
-    }
-    y += 4;
-  }
 
   const hasIdentity = !!(input.hotelName || input.ada || input.parsel);
   if (hasIdentity) {
@@ -160,37 +132,30 @@ export async function buildDetailedUstHakkiPdf(input: DetailedUstHakkiInput, r: 
   }
   y += 4;
 
-  /* ── KALEM 2: Tam veri detayı — motorun hesapladığı, önceden PDF'e hiç
-     yansımayan 5 gelir + 13 gider kalemi, dört ayrı tabloda ── */
-  periodTable('GELİR KALEMLERİ DETAYI', [
-    { label: 'ODA', get: (yr) => yr.roomIncome },
-    { label: 'YİYECEK', get: (yr) => yr.foodIncome },
-    { label: 'DİĞER', get: (yr) => yr.otherIncome },
-    { label: 'TOPLANTI', get: (yr) => yr.meetingIncome },
-    { label: 'DÜKKAN', get: (yr) => yr.shopIncome },
-  ]);
-
-  periodTable('İŞLETME GİDERLERİ DETAYI', [
-    { label: 'ODA GİD.', get: (yr) => yr.roomExpense },
-    { label: 'YİYECEK GİD.', get: (yr) => yr.foodExpense },
-    { label: 'DİĞER GİD.', get: (yr) => yr.otherExpense },
-    { label: 'GENEL YÖN.', get: (yr) => yr.generalMgmtExpense },
-    { label: 'ENERJİ', get: (yr) => yr.energyExpense },
-    { label: 'TAMİRAT', get: (yr) => yr.repairExpense },
-  ]);
-
-  periodTable('SABİT GİDERLER DETAYI', [
-    { label: 'İŞLETMECİ PRİMİ', get: (yr) => yr.operatorPremium },
-    { label: 'EMLAK VERGİSİ', get: (yr) => yr.propertyTax },
-    { label: 'SİGORTA', get: (yr) => yr.insurance },
-    { label: 'YENİLEME FONU', get: (yr) => yr.renewalFund },
-  ]);
-
-  periodTable('ÜST HAKKI SAHİBİNE ÖZGÜ ÖDEMELER', [
-    { label: 'ECRİMİSİL', get: (yr) => yr.ecrimisil },
-    { label: 'ÜST HAKKI ÖDEMESİ', get: (yr) => yr.ustHakkiOdeme },
-    { label: 'BAYİLİK', get: (yr) => yr.bayilik },
-  ]);
+  /* ── KALEM 1 (düzeltme): Dört ayrı per-yıl detay tablosu kaldırıldı —
+     Salih yalnızca BAŞLANGIÇ/1. yıl değerlerinin (Ecrimisil tutarı vb.)
+     görünür olmasını istedi, her yıl için ayrı tablo değil. Kompakt bir
+     "Girdi Varsayımları" listesiyle değiştirildi. ── */
+  sectionTitle('GİRDİ VARSAYIMLARI (1. YIL TABANI VE ORANLAR)');
+  row('Gelir Artış Oranı (tüm kalemler)', `%${input.roomGrowthPct}`);
+  if (input.foodIncomeBase > 0) row('Yiyecek Geliri (1. yıl)', cur(input.foodIncomeBase, input));
+  if (input.otherIncomeBase > 0) row('Diğer Gelirler (1. yıl)', cur(input.otherIncomeBase, input));
+  if (input.meetingIncomeBase > 0) row('Toplantı/Salon Geliri (1. yıl)', cur(input.meetingIncomeBase, input));
+  if (input.shopIncomeBase > 0) row('Dükkan Kira Geliri (1. yıl)', cur(input.shopIncomeBase, input));
+  row('Oda Gideri Oranı', `%${input.roomExpensePct}`);
+  row('Yiyecek Gideri Oranı', `%${input.foodExpensePct}`);
+  row('Diğer Gider Oranı', `%${input.otherExpensePct}`);
+  row('Genel Yönetim Oranı', `%${input.generalMgmtPct}`);
+  row('Enerji Oranı', `%${input.energyPct}`);
+  row('Basit Tamirat Oranı', `%${input.repairPct}`);
+  row('İşletmeci Prim Oranı', `%${input.operatorPremiumPct}`);
+  row('Emlak Vergisi Oranı', `%${input.propertyTaxPct}`);
+  row('Bina Sigortası Oranı', `%${input.insurancePct}`);
+  row('Yenileme Fonu Oranı', `%${input.renewalFundPct}`);
+  if (input.ecrimisilBase > 0) row('Ecrimisil (1. yıl, artış %' + input.ecrimisilGrowthPct + ')', cur(input.ecrimisilBase, input));
+  if (input.ustHakkiOdemeBase > 0) row('Üst Hakkı Ödemesi (1. yıl, artış %' + input.ustHakkiOdemeGrowthPct + ')', cur(input.ustHakkiOdemeBase, input));
+  if (input.bayilikBase > 0) row('Bayilik (1. yıl, artış %' + input.bayilikGrowthPct + ')', cur(input.bayilikBase, input));
+  y += 2;
 
   pageBreak(30);
   sectionTitle('SONUÇ — HESAP DETAYI');

@@ -582,7 +582,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       doc.rect(M, y - 4.2, W, h, 'F');
       doc.setFont('NTRK', 'bold'); doc.setFontSize(7.6); doc.setTextColor(255, 255, 255);
       doc.text(t('YAPI'), M + 3, y);
-      doc.text(t('ALAN × BİRİM MALİYET'), C2, y, { align: 'right' });
+      doc.text(t('ALAN x BİRİM MALİYET'), C2, y, { align: 'right' });
       doc.text(t('MALİYET'), C3, y, { align: 'right' });
       y += h + 0.6;
       let z = true;
@@ -593,7 +593,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
         doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...INK);
         doc.text(`${t(rw.type)} (${rw.buildingClass}${rw.depreciation > 0 ? ` · ${t('yıpranma')} ${pct(rw.depreciation, 0)}` : ''})`, M + 3, y);
         doc.setFont('NTRK', 'bold');
-        doc.text(`${m2(rw.area)} × ${tlm2(rw.effectiveUnitCost)}`, C2, y, { align: 'right' });
+        doc.text(`${m2(rw.area)} x ${tlm2(rw.effectiveUnitCost)}`, C2, y, { align: 'right' });
         doc.text(tl(rw.cost), C3, y, { align: 'right' });
         y += h;
       }
@@ -667,7 +667,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     section('KAT TABLOSU');
     floorTable();
     if (apt.mode === 'taks-kaks') {
-      row('Taban Oturumu Limiti (parsel × TAKS)', m2(apt.footprintArea));
+      row('Taban Oturumu Limiti (parsel x TAKS)', m2(apt.footprintArea));
       if (apt.extraSaleableArea > 0) row('İlave Satılabilir Alan (emsal dışı)', m2(apt.extraSaleableArea));
     }
     row('Bahçe / Açık Alan', m2(apt.gardenArea));

@@ -1,9 +1,14 @@
 /**
  * ÜST HAKKI YÖNTEM 1/2 — PDF çıktısı.
- * Salih'in kuralı: "150.000.000 ÷3 ×2 gibi ara hesaplar gösterilmeyecek" —
- * yalnız Parsel bilgileri ve nihai Üst Hakkı Değeri (Yöntem 2'de ayrıca
- * Üst Hakkı Arsa Değeri + Bina Değeri bileşenleri, çünkü Salih'in örneği
- * bunları açıkça "gösterilecek" diye belirtti).
+ *
+ * DÜZELTME (2026-09-03, Salih onayı — eski kural TERSİNE ÇEVRİLDİ):
+ * Önceki kural "150.000.000 ÷3 ×2 gibi ara hesaplar gösterilmeyecek" idi.
+ * Artık TAM TERSİ isteniyor: "neyi çarpıp neyi bulduğu" açıkça görünmeli —
+ * Arsa/Toplam Değer × 2/3 (Daimi Müstakil Hak Oranı) × (Kalan/Toplam Süre)
+ * adımlarının HER BİRİ ayrı satırlarda gösteriliyor.
+ *
+ * Ayrıca sonuç kutusu artık raporun EN BAŞINDA — diğer tüm modüllerle
+ * (Ayrıntılı Üst Hakkı dahil) tutarlı.
  */
 import { jsPDF } from 'jspdf';
 import { BRAND } from '../brand/brand';
@@ -20,6 +25,7 @@ interface SimpleInput {
 }
 const SYM: Record<SimpleInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const cur = (v: number, input: SimpleInput) => Math.round(v).toLocaleString('tr-TR') + ' ' + SYM[input.currency];
+const R = (v: number) => Math.round(v * 100) / 100;
 
 export async function buildSimpleUstHakkiPdf(
   method: 'toplam' | 'arsa', input: SimpleInput, whole: WholeValueResult, land: LandOnlyResult,
@@ -47,6 +53,24 @@ export async function buildSimpleUstHakkiPdf(
   }
   const r = method === 'toplam' ? whole : land;
   const sureBirimi = input.sureUnit === 'ay' ? 'Ay' : 'Yıl';
+  const finalValue = method === 'toplam' ? whole.ustHakkiValue : land.nihaiUstHakkiDegeri;
+  const sureOrani = input.toplamSure > 0 ? Math.max(0, input.kalanSure) / input.toplamSure : 0;
+
+  /* ── SONUÇ — artık en başta ── */
+  const boxH = input.currency !== 'TL' ? 32 : 24;
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
+  doc.setFillColor(...GOLD);
+  doc.rect(M, y + boxH - 1.5, W, 1.5, 'F');
+  doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
+  doc.text(method === 'toplam' ? 'ÜST HAKKI DEĞERİ' : 'NİHAİ ÜST HAKKI DEĞERİ', M + 5, y + 8);
+  doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
+  doc.text(cur(finalValue, input), M + 5, y + 19);
+  if (input.currency !== 'TL') {
+    doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(196, 212, 229);
+    doc.text(`TL Karşılığı: ${Math.round(finalValue * (input.fxRate ?? 1)).toLocaleString('tr-TR')} ₺`, M + 5, y + 27);
+  }
+  y += boxH + 8;
 
   sectionTitle('PARSEL BİLGİLERİ');
   if (input.hotelName) row('Otel Adı', input.hotelName);
@@ -66,35 +90,30 @@ export async function buildSimpleUstHakkiPdf(
   sectionTitle('SÜRE');
   row('Kalan Süre', `${input.kalanSure} ${sureBirimi}`);
   row('Toplam Süre', `${input.toplamSure} ${sureBirimi}`);
-  row('Süre Birimi', sureBirimi);
+  row('Süre Oranı (Kalan / Toplam)', `%${(sureOrani * 100).toFixed(1)}`);
   y += 2;
 
+  /* ── KALEM 4: Hesap adımları — "neyi çarpıp neyi bulduğu" artık açık ── */
   if (method === 'toplam') {
-    sectionTitle('DAİMİ MÜSTAKİL HAK HESABI');
-    row('Taşınmazın Değeri', cur(whole.cost.totalValue, input), true);
+    sectionTitle('HESAP ADIMLARI');
+    row('Toplam Değer (Arsa + Yapı)', cur(whole.cost.totalValue, input));
+    row('x Daimi Müstakil Hak Oranı', '2/3 (%66,7)');
+    row('= Daimi Müstakil Hak Değeri', cur(whole.permanentValue, input), true);
+    row(`x Süre Oranı (${input.kalanSure}/${input.toplamSure} ${sureBirimi})`, `%${(sureOrani * 100).toFixed(1)}`);
+    row('= ÜST HAKKI DEĞERİ', cur(whole.ustHakkiValue, input), true);
     y += 2;
   } else {
-    sectionTitle('SONUÇ');
-    row('Üst Hakkı Arsa Değeri', cur(land.ustHakkiArsaDegeri, input));
-    row('+ Bina Değeri', cur(land.buildingValueAdded, input));
+    const landPermanent = R(land.cost.landValue * (2 / 3));
+    sectionTitle('HESAP ADIMLARI');
+    row('Arsa Değeri', cur(land.cost.landValue, input));
+    row('x Daimi Müstakil Hak Oranı', '2/3 (%66,7)');
+    row('= Arsa Daimi Müstakil Hak Değeri', cur(landPermanent, input), true);
+    row(`x Süre Oranı (${input.kalanSure}/${input.toplamSure} ${sureBirimi})`, `%${(sureOrani * 100).toFixed(1)}`);
+    row('= Üst Hakkı Arsa Değeri', cur(land.ustHakkiArsaDegeri, input), true);
+    row('+ Bina Değeri (tam, oranlanmadan eklenir)', cur(land.buildingValueAdded, input));
+    row('= NİHAİ ÜST HAKKI DEĞERİ', cur(land.nihaiUstHakkiDegeri, input), true);
     y += 2;
   }
-
-  const boxH = input.currency !== 'TL' ? 32 : 24;
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(M, y, W, boxH, 2, 2, 'F');
-  doc.setFillColor(...GOLD);
-  doc.rect(M, y + boxH - 1.5, W, 1.5, 'F');
-  doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(196, 212, 229);
-  doc.text(method === 'toplam' ? 'ÜST HAKKI DEĞERİ' : 'NİHAİ ÜST HAKKI DEĞERİ', M + 5, y + 8);
-  doc.setFont('NTRK', 'bold'); doc.setFontSize(19); doc.setTextColor(255, 255, 255);
-  const finalValue = method === 'toplam' ? whole.ustHakkiValue : land.nihaiUstHakkiDegeri;
-  doc.text(cur(finalValue, input), M + 5, y + 19);
-  if (input.currency !== 'TL') {
-    doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(196, 212, 229);
-    doc.text(`TL Karşılığı: ${Math.round(finalValue * (input.fxRate ?? 1)).toLocaleString('tr-TR')} ₺`, M + 5, y + 27);
-  }
-  y += boxH + 8;
 
   drawFooter(doc, BRAND.version, `Yöntem: ${title} · Tutarlar KDV hariçtir`);
   return doc;
