@@ -87,13 +87,21 @@ export async function buildGelirBazliUstHakkiWorkbook(input: GelirBazliUstHakkiI
   row++;
 
   section('GİRDİ VARSAYIMLARI');
-  kv('Toplam Gelir (1. yıl)', input.toplamGelirBase, TL(input));
+  kv('Toplam Gelir (1. yıl, oda tablosundan)', r.toplamGelirBase, TL(input));
   kv('Gelir Artış Oranı', `%${input.gelirArtisOraniPct}`);
   kv('İşletme Gideri Oranı', `%${input.isletmeGideriOraniPct}`);
   kv('Sabit Gider Oranı', `%${input.sabitGiderOraniPct}`);
-  if (input.ecrimisilBase > 0) kv(`Ecrimisil (1. yıl, artış %${input.ecrimisilGrowthPct})`, input.ecrimisilBase, TL(input));
-  if (input.ustHakkiOdemeBase > 0) kv(`Üst Hakkı Ödemesi (1. yıl, artış %${input.ustHakkiOdemeGrowthPct})`, input.ustHakkiOdemeBase, TL(input));
-  if (input.bayilikBase > 0) kv(`Bayilik (1. yıl, artış %${input.bayilikGrowthPct})`, input.bayilikBase, TL(input));
+  if (input.ecrimisilPctOfRevenue > 0) kv(`Ecrimisil (Toplam Gelirin %${input.ecrimisilPctOfRevenue}'i)`, r.years[0]?.ecrimisil ?? 0, TL(input));
+  if (input.ustHakkiOdemePctOfRevenue > 0) kv(`Üst Hakkı Ödemesi (Toplam Gelirin %${input.ustHakkiOdemePctOfRevenue}'i)`, r.years[0]?.ustHakkiOdeme ?? 0, TL(input));
+  if (input.bayilikPctOfRevenue > 0) kv(`Bayilik (Toplam Gelirin %${input.bayilikPctOfRevenue}'i)`, r.years[0]?.bayilik ?? 0, TL(input));
+  row++;
+
+  section('ODA TABLOSU (1. YIL)');
+  for (const room of input.rooms) {
+    if (room.count <= 0) continue;
+    kv(`${room.name || 'Oda'} (${room.count} adet × %${room.occupancyPct} doluluk × ${room.days} gün)`,
+      room.count * room.price * (room.occupancyPct / 100) * room.days, TL(input));
+  }
   row++;
 
   section(`DÖNEMSEL ÖZET TABLOSU (${r.years.length} DÖNEM)`);

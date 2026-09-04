@@ -1,78 +1,56 @@
-# ArsaPlan v9.17.0 — Üst Hakkı 4. Yöntem, Akaryakıt Gelir Kalemleri Düzeltmesi, Font Hatası Zinciri
+# ArsaPlan v9.18.0 — Basit Gelir Bazlı Üst Hakkı: Otomatik Toplam Gelir ve Ödemeler
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **441/441 test yeşil** ·
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **446/446 test yeşil** ·
 `npm run build` başarılı.
 
-## 1. Üst Hakkı — YENİ dördüncü yöntem: "Basit Gelir Bazlı Üst Hakkı Hesabı"
+## Salih'in bulduğu tasarım uyuşmazlığı düzeltildi
 
-"Toplam Gelir Üzerinden Üst Hakkı Hesabı" (Ayrıntılı) modelinin
-sadeleştirilmiş kardeşi — Salih'in testinde (%3,7 fark) doğrulanan
-mimari artık gerçek bir özellik. Seçim ekranına dördüncü kart olarak
-eklendi.
+v9.17.0'da eklenen "Basit Gelir Bazlı Üst Hakkı Hesabı" (4. yöntem),
+Toplam Gelir'i ve Ecrimisil/Üst Hakkı Ödemesi/Bayilik tutarlarını **elle
+girmeyi** istiyordu — Salih bunun "meşakkatli" olduğunu, otomatik
+hesaplanmasını beklediğini belirtti.
 
-**39 alan yerine ~13 alan:**
-- 5 gelir kalemi yerine TEK "Toplam Gelir" tabanı
-- 6 işletme gideri oranı yerine TEK oran
-- 4 sabit gider oranı yerine TEK oran
-- Ecrimisil/Üst Hakkı Ödemesi/Bayilik AYNEN korunuyor
-- Kalan Süre = Projeksiyon Süresi, terminal değer yok (Ayrıntılı ile aynı doğru ilke)
-- Maliyet Yaklaşımı yok (yalnızca gelir akışı üzerinden)
+### 1. Toplam Gelir artık KENDİ oda tablosundan otomatik hesaplanıyor
 
-PDF/Excel: sonuç en başta, "Girdi Varsayımları" bölümü, dönemsel özet
-tablosu — diğer üç Üst Hakkı modeliyle aynı tasarım dili. Banka
-İsmi/Şube İsmi/Tarih şeridi de dahil.
+Yeni "Oda Tablosu" kartı (Oda Türü / Adet / Günlük Fiyat / Doluluk % /
+Gün) eklendi — Otel modülüyle aynı mantık, ama **tamamen bağımsız, ayrı
+bir veri girişi** (Otel modülüne hiç dokunmuyor, veri aktarımı yok).
+Toplam Gelir artık salt-okunur, oda tablosundan otomatik toplanıyor.
 
-Yeni dosyalar: `gelirBazliEngine.ts`, `gelirBazliPdf.ts`,
-`gelirBazliExcel.ts`, `GelirBazliUstHakkiApp.tsx` — 11 yeni test.
+### 2. Ecrimisil / Üst Hakkı Ödemesi / Bayilik artık Toplam Gelir'in oranı
 
-## 2. Akaryakıt — "Market Geliri gider gibi görünüyor" hatası düzeltildi
+Önceden her biri kendi taban tutarı + kendi büyüme oranıyla elle
+giriliyordu (6 alan). Artık **tek bir oran** girilir (varsayılan %2 / %5
+/ %1 — yalnızca başlangıç önerisi, sözleşmeye göre değiştirilebilir),
+tutar her yıl Toplam Gelir'le birlikte otomatik büyür. 6 alan yerine 3
+alan, ayrıca 1. yıl tutarı canlı olarak gösteriliyor.
 
-"DİĞER GELİRLER VE KESİNTİLER" tek başlığı, gelir kalemlerini (Market,
-Oto Yıkama vb.) bir kesintiyle (Dağıtıcı Kirası) karıştırıyordu. Artık
-**"DİĞER GELİR KALEMLERİ"**, **"KESİNTİLER"**, **"SONUÇ"** olarak üç
-ayrı, net başlık — hem PDF'te hem Excel'de. "Ciro × kâr%" modundaki
-kalemlerin hesap detayı da artık gösteriliyor.
+## Bir bug iddiası da araştırıldı — kod doğru çıktı
 
-Ayrıca önceki turda düzeltilmiş olan "her kalem kendi ismiyle" davranışı
-(Market Geliri, Oto Yıkama, Restoran Geliri gibi — yalnız Market değil,
-TÜMÜ) bu zip ile ilk kez teslim ediliyor.
-
-## 3. Font karakteri hatası zinciri — altı dosyada düzeltildi
-
-Özel fontumuzda (NTRK) "×", "÷", "â" karakterlerinin bazı bağlamlarda
-metni **sessizce kestiği** keşfedildi — bu, önceki turda (v9.16.0)
-eklenen Otel İNA detay tablosunun "Terminal Değer Formülü" satırını da
-etkiliyordu (yalnız başlık görünüyordu, gerçek formül/rakamlar
-görünmüyordu). Düzeltilen dosyalar: `usthakki/simplePdf.ts`,
-`fuel/pdf.ts`, `fuel/excel.ts`, `hotel/pdf.ts`, `export/pdf.ts` (üç eski
-kullanım).
+"Toplam Süre 49, Kalan Süre 42 girdim ama PDF'te 49 görünüyordu"
+şikayeti test edildi: motor gerçekten 42 yıl projekte ediyor, PDF'te
+"Kalan Süre (= Projeksiyon Süresi): 42 yıl" ve "DÖNEMSEL ÖZET TABLOSU (42
+DÖNEM)" doğru yazıyor. "Toplam Süre: 49" ayrı, doğru etiketli bir bilgi
+satırı — hesaba hiç girmiyor. Muhtemelen iki satırın yan yana durması
+karışıklığa yol açtı; hesap doğru.
 
 ## Hesaplamalarda değişiklik oldu mu?
 
-**Hayır**, iki kalem de (2, 3) yalnızca gösterim düzeltmesi. Kalem 1 ise
-tamamen yeni bir hesaplama seçeneği — mevcut hiçbir hesaba dokunmuyor.
+Yalnızca bu yeni (henüz kimsenin gerçek veriyle kullanmadığı) 4. yöntemi
+etkiliyor — diğer üç Üst Hakkı modeli ve uygulamanın geri kalanı hiç
+değişmedi.
 
-## Değişen/Eklenen Dosyalar
+## Değişen Dosyalar
 
 ```
-src/usthakki/gelirBazliEngine.ts       YENİ — Yöntem 4 motoru
-src/usthakki/gelirBazliPdf.ts          YENİ — Yöntem 4 PDF
-src/usthakki/gelirBazliExcel.ts        YENİ — Yöntem 4 Excel
-src/usthakki/GelirBazliUstHakkiApp.tsx YENİ — Yöntem 4 UI
-src/usthakki/gelirBazliYontem4.test.ts YENİ — 11 test
-src/App.tsx                            Yöntem 4 yönlendirmesi + seçim ekranı kartı
-
-src/fuel/pdf.ts, excel.ts              Gelir/Kesinti bölüm ayrımı + font düzeltmesi
-src/fuel/kalem-market-geliri-ismi.test.ts   7 test (genişletildi)
-
-src/hotel/pdf.ts                       Terminal Değer Formülü font düzeltmesi
-src/hotel/bu-oturum-yedi-kalem.test.ts Güçlendirilmiş test (formülün TAMAMI kontrol ediliyor)
-
-src/export/pdf.ts                      Üç eski × kullanımı düzeltildi
-src/usthakki/simplePdf.ts              × / ÷ font düzeltmesi
+src/usthakki/gelirBazliEngine.ts        Oda tablosu + oran bazlı ödemeler
+src/usthakki/gelirBazliPdf.ts           Oda tablosu bölümü eklendi
+src/usthakki/gelirBazliExcel.ts         Oda tablosu bölümü eklendi
+src/usthakki/GelirBazliUstHakkiApp.tsx  Oda tablosu UI + oran alanları
+src/usthakki/gelirBazliYontem4.test.ts  16 test (5 yeni, düzeltmeyi kilitliyor)
 ```
 
-## Kapanan konular
+## Beklemede
 
-- ~~KML uydu görüntüsü~~ — kullanıcı istemedi, kapatıldı.
-- ~~İndirgenmiş Kat Karşılığı Yöntemi~~ — vazgeçildi.
+- "Toplam Süre" satırının PDF'ten tamamen kaldırılıp kaldırılmayacağı
+  (karışıklığı önlemek için) — Salih'in onayı bekleniyor.

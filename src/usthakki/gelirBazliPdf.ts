@@ -75,13 +75,21 @@ export async function buildGelirBazliUstHakkiPdf(
   y += 2;
 
   sectionTitle('GİRDİ VARSAYIMLARI');
-  row('Toplam Gelir (1. yıl)', cur(input.toplamGelirBase, input));
+  row('Toplam Gelir (1. yıl, oda tablosundan)', cur(r.toplamGelirBase, input));
   row('Gelir Artış Oranı', `%${input.gelirArtisOraniPct}`);
   row('İşletme Gideri Oranı', `%${input.isletmeGideriOraniPct}`);
   row('Sabit Gider Oranı', `%${input.sabitGiderOraniPct}`);
-  if (input.ecrimisilBase > 0) row('Ecrimisil (1. yıl, artış %' + input.ecrimisilGrowthPct + ')', cur(input.ecrimisilBase, input));
-  if (input.ustHakkiOdemeBase > 0) row('Üst Hakkı Ödemesi (1. yıl, artış %' + input.ustHakkiOdemeGrowthPct + ')', cur(input.ustHakkiOdemeBase, input));
-  if (input.bayilikBase > 0) row('Bayilik (1. yıl, artış %' + input.bayilikGrowthPct + ')', cur(input.bayilikBase, input));
+  if (input.ecrimisilPctOfRevenue > 0) row('Ecrimisil (Toplam Gelirin %' + input.ecrimisilPctOfRevenue + '\'i)', cur(r.years[0]?.ecrimisil ?? 0, input));
+  if (input.ustHakkiOdemePctOfRevenue > 0) row('Üst Hakkı Ödemesi (Toplam Gelirin %' + input.ustHakkiOdemePctOfRevenue + '\'i)', cur(r.years[0]?.ustHakkiOdeme ?? 0, input));
+  if (input.bayilikPctOfRevenue > 0) row('Bayilik (Toplam Gelirin %' + input.bayilikPctOfRevenue + '\'i)', cur(r.years[0]?.bayilik ?? 0, input));
+  y += 2;
+
+  sectionTitle('ODA TABLOSU (1. YIL)');
+  for (const room of input.rooms) {
+    if (room.count <= 0) continue;
+    row(`${room.name || 'Oda'} (${room.count} adet × ${cur(room.price, input)} × %${room.occupancyPct} × ${room.days} gün)`,
+      cur(room.count * room.price * (room.occupancyPct / 100) * room.days, input));
+  }
   y += 2;
 
   sectionTitle(`DÖNEMSEL ÖZET TABLOSU (${r.years.length} DÖNEM)`);

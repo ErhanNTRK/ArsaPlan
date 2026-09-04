@@ -4,14 +4,16 @@
  * Salih'in testinde %3,7 farkla neredeyse aynı sonuca ulaşıyor.
  */
 import { useEffect, useMemo, useState, useRef } from 'react';
-import { computeGelirBazliUstHakki, createDefaultGelirBazliInput, type GelirBazliUstHakkiInput } from './gelirBazliEngine';
+import { computeGelirBazliUstHakki, createDefaultGelirBazliInput, type GelirBazliUstHakkiInput, type GelirBazliRoomRow } from './gelirBazliEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
 import { readDataSheet } from '../export/excelImport';
 import { Num } from '../ui/fields';
+import { RTable, RRow, RCell } from '../ui/RTable';
 import { downloadGelirBazliUstHakkiPdf } from './gelirBazliPdf';
 import { downloadGelirBazliUstHakkiExcel } from './gelirBazliExcel';
 
+const uid = () => Math.random().toString(36).slice(2, 9);
 const CUR_SYM: Record<GelirBazliUstHakkiInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const DRAFT = 'arsaplan-usthakki-gelirbazli-v1';
 
@@ -24,6 +26,8 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
 
   const fileRef = useRef<HTMLInputElement>(null);
   const patch = (p: Partial<GelirBazliUstHakkiInput>) => setState((s) => ({ ...s, ...p }));
+  const patchRoom = (id: string, p: Partial<GelirBazliRoomRow>) =>
+    patch({ rooms: state.rooms.map((x) => (x.id === id ? { ...x, ...p } : x)) });
 
   const cur = CUR_SYM[state.currency];
   const TL = (v: number) => Math.round(v).toLocaleString('tr-TR') + ' ' + cur;
@@ -68,7 +72,7 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
       </div></div>
       <div className="hint" style={{ margin: "6px 0 0" }}>Excel'e görünmeyen bir veri sayfası eklenir; aynı dosyayı "Excel Yükle" ile geri yükleyince tüm girdiler birebir doldurulur.</div>
 
-      {state.toplamGelirBase > 0 && (
+      {r.toplamGelirBase > 0 && (
         <div className="hotel-summary-sticky no-print">
           <div className="hotel-summary-inner">
             <div><span>Projeksiyon Süresi</span><b>{state.kalanSureYil} yıl</b></div>
@@ -123,10 +127,33 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
         </div>
 
         <div className="card">
-          <div className="card-title">Gelir ve Gider Varsayımları</div>
+          <div className="card-title">Oda Tablosu — Toplam Gelir otomatik hesaplanır</div>
+          <RTable headers={['Oda Türü', 'Adet', `Günlük Fiyat (${cur})`, 'Doluluk %', 'Gün', 'Yıllık Gelir', '']}>
+            {state.rooms.map((room) => (
+              <RRow key={room.id}>
+                <RCell label="Oda Türü"><input value={room.name} onChange={(e) => patchRoom(room.id, { name: e.target.value })} /></RCell>
+                <RCell label="Adet"><Num value={room.count} onChange={(n) => patchRoom(room.id, { count: n })} /></RCell>
+                <RCell label={`Günlük Fiyat (${cur})`}><Num value={room.price} onChange={(n) => patchRoom(room.id, { price: n })} /></RCell>
+                <RCell label="Doluluk %"><Num value={room.occupancyPct} onChange={(n) => patchRoom(room.id, { occupancyPct: n })} /></RCell>
+                <RCell label="Gün"><Num value={room.days} onChange={(n) => patchRoom(room.id, { days: n })} /></RCell>
+                <RCell label="Yıllık Gelir"><b>{TL(room.count * room.price * (room.occupancyPct / 100) * room.days)}</b></RCell>
+                <RCell label="">
+                  {state.rooms.length > 1 && (
+                    <button type="button" className="b-del" onClick={() => patch({ rooms: state.rooms.filter((x) => x.id !== room.id) })}>✕</button>
+                  )}
+                </RCell>
+              </RRow>
+            ))}
+          </RTable>
+          <button type="button" className="btn-ghost" onClick={() => patch({ rooms: [...state.rooms, { id: uid(), name: 'Standart', count: 0, price: 0, occupancyPct: 60, days: 365 }] })}>➕ Oda Türü Ekle</button>
+          <div className="hrow-labeled" style={{ marginTop: 12 }}>
+            <div className="pfield pfield--ro pfield--big"><span>TOPLAM GELİR (1. yıl)</span><b>{TL(r.toplamGelirBase)}</b></div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Gider Oranları</div>
           <div className="hrow-labeled">
-            <label className="pfield"><span>Toplam Gelir (1. yıl, {cur}) <b style={{ color: '#c0392b' }}>*zorunlu</b></span>
-              <Num value={state.toplamGelirBase} onChange={(n) => patch({ toplamGelirBase: n })} /></label>
             <label className="pfield pfield--s"><span>Gelir Artış Oranı %</span>
               <Num value={state.gelirArtisOraniPct} onChange={(n) => patch({ gelirArtisOraniPct: n })} /></label>
             <label className="pfield pfield--s"><span>İşletme Gideri Oranı %</span>
@@ -140,19 +167,17 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
         <div className="card">
           <div className="card-title">Üst Hakkı Sahibine Özgü Ödemeler</div>
           <div className="hrow-labeled">
-            <label className="pfield"><span>Ecrimisil (1. yıl, {cur})</span>
-              <Num value={state.ecrimisilBase} onChange={(n) => patch({ ecrimisilBase: n })} /></label>
-            <label className="pfield pfield--s"><span>Artış %</span>
-              <Num value={state.ecrimisilGrowthPct} onChange={(n) => patch({ ecrimisilGrowthPct: n })} /></label>
-            <label className="pfield"><span>Üst Hakkı Ödemesi (1. yıl, {cur})</span>
-              <Num value={state.ustHakkiOdemeBase} onChange={(n) => patch({ ustHakkiOdemeBase: n })} /></label>
-            <label className="pfield pfield--s"><span>Artış %</span>
-              <Num value={state.ustHakkiOdemeGrowthPct} onChange={(n) => patch({ ustHakkiOdemeGrowthPct: n })} /></label>
-            <label className="pfield"><span>Bayilik (1. yıl, {cur})</span>
-              <Num value={state.bayilikBase} onChange={(n) => patch({ bayilikBase: n })} /></label>
-            <label className="pfield pfield--s"><span>Artış %</span>
-              <Num value={state.bayilikGrowthPct} onChange={(n) => patch({ bayilikGrowthPct: n })} /></label>
+            <label className="pfield pfield--s"><span>Ecrimisil — Toplam Gelirin %'si</span>
+              <Num value={state.ecrimisilPctOfRevenue} onChange={(n) => patch({ ecrimisilPctOfRevenue: n })} /></label>
+            <div className="pfield pfield--ro"><span>1. Yıl Tutarı</span><b>{TL(r.years[0]?.ecrimisil ?? 0)}</b></div>
+            <label className="pfield pfield--s"><span>Üst Hakkı Ödemesi — Toplam Gelirin %'si</span>
+              <Num value={state.ustHakkiOdemePctOfRevenue} onChange={(n) => patch({ ustHakkiOdemePctOfRevenue: n })} /></label>
+            <div className="pfield pfield--ro"><span>1. Yıl Tutarı</span><b>{TL(r.years[0]?.ustHakkiOdeme ?? 0)}</b></div>
+            <label className="pfield pfield--s"><span>Bayilik — Toplam Gelirin %'si</span>
+              <Num value={state.bayilikPctOfRevenue} onChange={(n) => patch({ bayilikPctOfRevenue: n })} /></label>
+            <div className="pfield pfield--ro"><span>1. Yıl Tutarı</span><b>{TL(r.years[0]?.bayilik ?? 0)}</b></div>
           </div>
+          <div className="hint" style={{ marginTop: 6 }}>Varsayılan oranlar (%2 / %5 / %1) yalnızca bir başlangıç noktasıdır — gerçek sözleşme koşullarınıza göre değiştirin. Her yıl Toplam Gelir'le birlikte otomatik büyür.</div>
         </div>
 
         <div className="card">
