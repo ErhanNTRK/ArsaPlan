@@ -95,36 +95,37 @@ export interface GelirBazliUstHakkiResult {
 const R = (v: number) => Math.round(v * 100) / 100;
 const R5000 = (v: number) => Math.round(v / 5000) * 5000;
 
-export function computeRoomRevenue(rooms: GelirBazliRoomRow[]): number {
-  return R(rooms.reduce((s, r) =>
+export function computeRoomRevenue(rooms: GelirBazliRoomRow[] | null | undefined): number {
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  return R(safeRooms.reduce((s, r) =>
     s + Math.max(0, r.count) * Math.max(0, r.price) * (Math.min(100, Math.max(0, r.occupancyPct)) / 100) * Math.max(0, r.days), 0));
 }
 
 export function computeGelirBazliUstHakki(input: GelirBazliUstHakkiInput): GelirBazliUstHakkiResult {
   const warnings: string[] = [];
-  const i = Math.max(0, input.discountRatePct) / 100;
+  const i = Math.max(0, Number(input.discountRatePct) || 0) / 100;
   const n = Math.max(0, Math.round(input.kalanSureYil));
   if (n <= 0) warnings.push('Kalan süre 0 veya negatif; dönemsel tablo hesaplanamıyor.');
 
   const toplamGelirBase = computeRoomRevenue(input.rooms);
   if (toplamGelirBase <= 0) warnings.push('Oda tablosu boş veya 0 gelir üretiyor; en az bir oda satırı girin.');
 
-  const g = input.gelirArtisOraniPct / 100;
+  const g = (Number(input.gelirArtisOraniPct) || 0) / 100;
   const years: GelirBazliPeriodRow[] = [];
   let sumPv = 0;
 
   for (let t = 1; t <= n; t++) {
     const growth = Math.pow(1 + g, t - 1);
     const totalRevenue = R(toplamGelirBase * growth);
-    const isletmeGideri = R(totalRevenue * Math.max(0, input.isletmeGideriOraniPct) / 100);
-    const sabitGider = R(totalRevenue * Math.max(0, input.sabitGiderOraniPct) / 100);
+    const isletmeGideri = R(totalRevenue * Math.max(0, Number(input.isletmeGideriOraniPct) || 0) / 100);
+    const sabitGider = R(totalRevenue * Math.max(0, Number(input.sabitGiderOraniPct) || 0) / 100);
     const noi = R(totalRevenue - isletmeGideri - sabitGider);
 
     // DÜZELTME: artık Toplam Gelir'in oranı olarak, gelirle BİRLİKTE
     // otomatik büyüyor — ayrı bir taban/büyüme oranı girilmesi gerekmiyor.
-    const ecrimisil = R(totalRevenue * Math.max(0, input.ecrimisilPctOfRevenue) / 100);
-    const ustHakkiOdeme = R(totalRevenue * Math.max(0, input.ustHakkiOdemePctOfRevenue) / 100);
-    const bayilik = R(totalRevenue * Math.max(0, input.bayilikPctOfRevenue) / 100);
+    const ecrimisil = R(totalRevenue * Math.max(0, Number(input.ecrimisilPctOfRevenue) || 0) / 100);
+    const ustHakkiOdeme = R(totalRevenue * Math.max(0, Number(input.ustHakkiOdemePctOfRevenue) || 0) / 100);
+    const bayilik = R(totalRevenue * Math.max(0, Number(input.bayilikPctOfRevenue) || 0) / 100);
 
     const ustHakkiSahibineKalan = R(noi - ecrimisil - ustHakkiOdeme - bayilik);
     // 1. dönem indirgenmez (Ayrıntılı modelin konvansiyonuyla tutarlı);
@@ -139,7 +140,7 @@ export function computeGelirBazliUstHakki(input: GelirBazliUstHakkiInput): Gelir
   const haircut = Math.min(100, Math.max(0, input.donemSonuIndirgemePct)) / 100;
   const ustHakkiDegeriLocal = R(sumPv * (1 - haircut));
   const ustHakkiDegeriRounded = R5000(ustHakkiDegeriLocal);
-  const fx = input.currency === 'TL' ? 1 : Math.max(0, input.fxRate);
+  const fx = input.currency === 'TL' ? 1 : Math.max(0, Number(input.fxRate) || 0);
   const ustHakkiDegeriTl = input.currency === 'TL' ? ustHakkiDegeriRounded : R5000(ustHakkiDegeriRounded * fx);
 
   return { discountRate: i, toplamGelirBase, years, sumPresentValue: sumPv, ustHakkiDegeriLocal, ustHakkiDegeriRounded, ustHakkiDegeriTl, warnings };
