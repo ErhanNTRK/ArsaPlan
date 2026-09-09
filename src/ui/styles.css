@@ -436,3 +436,235 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 }
 .result-hero span { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #C4D4E5; }
 .result-hero b { font-size: 26px; font-variant-numeric: tabular-nums; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ArsaPlan Kurumsal UI Revizyonu — 09.09.2026
+   Yalnızca sunum katmanı. Hesaplama/state mantığına dokunmaz.
+   ═══════════════════════════════════════════════════════════════ */
+:root {
+  --navy: #12345b;
+  --navy-2: #1d4b78;
+  --navy-50: #f1f5f9;
+  --accent: #b38a45;
+  --accent-dim: #f8f3e9;
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --line: #d9e0e8;
+  --line-2: #c5cfdb;
+  --text: #172536;
+  --text-2: #526274;
+  --text-3: #8190a0;
+  --r: 10px;
+  --r-sm: 7px;
+  --shadow: 0 1px 2px rgba(18,52,91,.04), 0 6px 20px rgba(18,52,91,.055);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.app {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.topbar {
+  border-radius: 0 0 2px 2px;
+  box-shadow: 0 2px 10px rgba(18,52,91,.12);
+}
+.topbar-inner { max-width: none; }
+.topbar h1 { font-size: 16px; letter-spacing: -.25px; }
+.topbar p { color: #b7c7d9; }
+.topbar-actions { gap: 18px; }
+.topbar-link { font-size: 12px; }
+.progress-row { margin-top: 12px; }
+.progress-track { height: 3px; }
+.progress-fill { background: var(--accent); }
+
+.step {
+  width: 100%;
+  padding: 26px 22px 14px;
+}
+.step-head { margin-bottom: 20px; }
+.step-eyebrow { color: var(--accent); font-size: 10.5px; letter-spacing: .14em; }
+.step-title { color: var(--navy); font-size: 27px; letter-spacing: -.6px; }
+.step-desc { color: var(--text-2); font-size: 13px; }
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.card-title {
+  color: var(--navy);
+  font-size: 11px;
+  letter-spacing: .105em;
+  margin-bottom: 14px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid #e5eaf0;
+}
+
+.field { margin-bottom: 11px; }
+.label { color: #48596b; font-size: 12px; }
+.hint { color: #7a8999; font-size: 11px; }
+input, select, textarea {
+  border-color: #c8d2de;
+  border-radius: 7px;
+  color: var(--text);
+}
+input:hover, select:hover, textarea:hover { border-color: #aebbc9; }
+input:focus, select:focus, textarea:focus {
+  border-color: var(--navy-2);
+  box-shadow: 0 0 0 3px rgba(29,75,120,.08);
+}
+
+.hrow-labeled { gap: 10px 14px; }
+.pfield { min-width: 110px; }
+.pfield > span { color: #68798b; opacity: 1; font-size: 10.5px; }
+.pfield input, .pfield select { border-radius: 7px; }
+
+.btn {
+  min-height: 40px;
+  border-radius: 7px;
+  font-weight: 700;
+  letter-spacing: -.05px;
+}
+.btn-primary {
+  background: var(--navy);
+  border-color: var(--navy);
+}
+.btn-primary:hover { background: #0d2948; }
+.btn-ghost {
+  background: #fff;
+  border-color: #c9d3df;
+  color: var(--navy);
+}
+.btn-accent { background: var(--accent); }
+.add-btn {
+  background: #f5f8fb;
+  border: 1px solid #c7d5e4;
+  color: var(--navy);
+}
+.add-btn:hover { background: #edf3f8; border-color: #9fb4c9; }
+
+.choice {
+  border-color: #ccd6e0;
+  border-radius: 7px;
+  padding: 12px;
+}
+.choice.on { border-color: var(--navy); background: #f1f5f9; }
+
+.mini-kpi > div {
+  border: 1px solid #dce4ec;
+  background: #f5f8fb;
+  border-radius: 7px;
+}
+.mini-kpi span { color: #68798b; }
+.mini-kpi b { color: var(--navy); }
+
+.hotel-summary-sticky {
+  background: rgba(255,255,255,.98);
+  border-bottom: 1px solid #dce3eb;
+  box-shadow: 0 2px 10px rgba(18,52,91,.055);
+}
+.hotel-summary-inner {
+  width: min(100%, 1180px);
+  max-width: 1180px;
+  padding: 11px 22px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+.hotel-summary-inner > div {
+  min-height: 38px;
+  padding: 0 18px;
+  border-right: 1px solid #e1e6ec;
+}
+.hotel-summary-inner > div:first-child { padding-left: 0; }
+.hotel-summary-inner > div:last-child { border-right: 0; }
+.hotel-summary-inner span { color: #718092; font-size: 9.5px; }
+.hotel-summary-inner b { color: var(--navy); font-size: 14px; }
+
+/* Geniş ekran: veri giriş tabloları daha rahat okunur. */
+.h-row {
+  grid-template-columns: 1.4fr .8fr 1.15fr .85fr .9fr 1.15fr 30px;
+  gap: 9px;
+  padding: 7px 6px;
+}
+.h-row-anc { grid-template-columns: 1.7fr 1fr 1.25fr 1fr 30px; }
+.h-row .b-cell input, .h-row .b-cell select {
+  padding: 8px 22px 8px 9px;
+  font-size: 13px;
+}
+.b-row {
+  grid-template-columns: 1.15fr .72fr .95fr .72fr 1.1fr 1fr 30px;
+  gap: 8px;
+  padding: 7px 6px;
+}
+.b-row .b-cell input, .b-row .b-cell select { padding: 8px 22px 8px 9px; }
+.b-cost { color: var(--navy); font-weight: 800; }
+.b-del { opacity: .72; }
+.b-del:hover { opacity: 1; }
+
+.proj-table th { color: #607286; background: #f4f7fa; }
+.proj-table td { padding: 8px; }
+.proj-table tr:nth-child(even) td { background: #fafbfd; }
+.rtable th, .floor-table-responsive th {
+  color: #607286;
+  background: #f4f7fa;
+}
+.rtable td, .floor-table-responsive td { padding: 9px 8px; }
+
+.isletme-row {
+  background: #fafbfd;
+  border-color: #dbe3eb;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.note-box { background: #f2f6fa; border: 1px solid #e0e7ee; }
+.card-optional { background: #fbfcfd; }
+
+.navbar {
+  background: rgba(255,255,255,.98);
+  border-top: 1px solid #dbe2ea;
+  box-shadow: 0 -3px 12px rgba(18,52,91,.045);
+}
+.navbar-inner { width: min(100%, 1180px); max-width: 1180px; }
+
+.result-hero {
+  background: linear-gradient(135deg, #12345b, #1b4b78);
+  border-radius: 9px;
+  box-shadow: 0 5px 18px rgba(18,52,91,.12);
+}
+
+@media (min-width: 1200px) {
+  .app { max-width: 1500px; width: min(100%, 1500px); }
+  .step { padding-left: 30px; padding-right: 30px; }
+  .hotel-summary-inner, .navbar-inner { max-width: 1500px; width: min(100%, 1500px); }
+  .topbar-inner { width: 100%; }
+}
+
+@media (min-width: 1500px) {
+  .step { padding-left: 42px; padding-right: 42px; }
+  .card { padding: 22px; }
+}
+
+@media (max-width: 900px) {
+  .app { width: 100%; }
+  .step { padding-left: 16px; padding-right: 16px; }
+  .hotel-summary-inner { padding-left: 16px; padding-right: 16px; }
+  .hotel-summary-inner > div { padding: 0 10px; }
+}
+
+@media (max-width: 700px) {
+  .card { padding: 15px; }
+  .card-title { margin-bottom: 11px; }
+  .hotel-summary-inner { grid-template-columns: repeat(2, 1fr); }
+  .hotel-summary-inner > div:nth-child(2) { border-right: 0; }
+  .hotel-summary-inner > div:nth-child(-n+2) { border-bottom: 1px solid #e1e6ec; padding-bottom: 7px; }
+  .hotel-summary-inner > div:nth-child(n+3) { padding-top: 7px; }
+}
