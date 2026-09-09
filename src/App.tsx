@@ -14,6 +14,7 @@ import { Result } from './ui/Result';
 import { BRAND } from './brand/brand';
 import { readDataSheet } from './export/excelImport';
 import { ThemeToggle } from './ui/ThemeToggle';
+import { CorporateShell, MethodLanding, StepNavigation } from './ui/CorporateLayout';
 import { getLang, setLang, startDomTranslation, stopDomTranslation, type Lang } from './i18n';
 import HotelApp from './hotel/HotelApp';
 
@@ -371,6 +372,8 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
+      <StepNavigation steps={STEPS} current={step} canAdvance={!stop} onChange={setStep} />
+
       {!isResult && input.parcel.area > 0 && result.financial.revenue > 0 && (
         <div className="hotel-summary-sticky no-print">
           <div className="hotel-summary-inner">
@@ -446,53 +449,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
    ═══════════════════════════════════════════════════════════════ */
 type AppMode = 'landing' | 'arsa' | 'otel' | 'tarimsal' | 'akaryakit' | 'maliyet' | 'usthakki-secim' | 'usthakki-detay' | 'usthakki-toplam' | 'usthakki-arsa' | 'usthakki-gelir-bazli';
 function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => void }) {
-  const [ver, date] = BRAND.version.split(' · ');
-  return (
-    <div className="app">
-      <div className="topbar">
-        <div className="topbar-inner">
-          <div>
-            <h1>{BRAND.appName}</h1>
-            <p>{BRAND.tagline}</p>
-          </div>
-          <img className="brand-logo brand-logo--hero" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} />
-        </div>
-      </div>
-      <div className="step">
-        <div className="step-head">
-          <div className="step-eyebrow">Başlangıç</div>
-          <div className="step-title">Ne Hesaplamak İstiyorsunuz?</div>
-          <div className="step-desc">Bir yöntem seçerek analize başlayın.</div>
-        </div>
-        <div className="card">
-          <div className="choice-grid">
-            <Choice on={false} name="Arsa Gelir Projeksiyon Yöntemi"
-                    desc="Konut / Ticari / Karma Kullanım · Kat karşılığı ve gelir projeksiyonu karşılaştırması"
-                    onClick={() => onSelect('arsa')} />
-            <Choice on={false} name="Otel Gelir Hesabı"
-                    desc="Gelir İndirgeme Yaklaşımı · Oda, yardımcı gelir ve ticari kira gelirleri üzerinden kapitalizasyon"
-                    onClick={() => onSelect('otel')} />
-            <Choice on={false} name="Akaryakıt Gelir Hesabı"
-                    desc="Litre/ciro bazlı gelir yöntemi + opsiyonel maliyet yaklaşımı · KDV hariç fiyatlarla"
-                    onClick={() => onSelect('akaryakit')} />
-            <Choice on={false} name="Maliyet Yaklaşımı"
-                    desc="Herhangi bir taşınmaz türü · Arsa + Yapılar + Şerefiye/Düzeltme/Çevre Düzenlemesi"
-                    onClick={() => onSelect('maliyet')} />
-            <Choice on={false} name="Tarımsal Ürün Gelir Hesabı"
-                    desc="Ekili / Dikili / Karma ürün deseni · verim kataloğu · amorti yılı yaklaşımı"
-                    onClick={() => onSelect('tarimsal')} />
-            <Choice on={false} name="Üst Hakkı Değerleme"
-                    desc="Standart Hesap veya Ayrıntılı (otel tarzı) Değer Analizi · dönem sayısı kalan süre kadar"
-                    onClick={() => onSelect('usthakki-secim')} />
-          </div>
-        </div>
-        <div className="landing-footer">
-          <span>Sürüm {ver}</span><span>·</span><span>Son Güncelleme {date}</span>
-          <span>·</span><span>8 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
-        </div>
-      </div>
-    </div>
-  );
+  return <MethodLanding onSelect={onSelect} />;
 }
 
 function modeFromHash(): AppMode {
@@ -546,7 +503,7 @@ export default function App() {
           <div className="step-desc">Bir yöntem seçin. Hepsi kalan süreye göre otomatik dönem sayısı üretir.</div>
         </div>
         <div className="card">
-          <div className="choice-grid">
+          <div className="choice-grid corp-method-list-sub">
             <Choice on={false} name="Toplam Değer Esaslı Üst Hakkı Tespiti"
                     desc="Arsa+Yapı Değeri × 2/3 × (Kalan/Toplam Süre) — sade ve hızlı"
                     onClick={() => { window.location.hash = 'usthakki-toplam'; }} />
@@ -570,15 +527,20 @@ export default function App() {
   else if (mode === 'arsa') content = <ArsaApp onBack={back} />;
   else content = <Landing onSelect={choose} />;
 
-  return (<>{content}<ThemeToggle />
+  const controls = (<>
+    <ThemeToggle />
+    <button type="button" className="lang-toggle-fab no-print"
+      title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
+      onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
+      {lang === 'tr' ? '🌐 EN' : '🌐 TR'}
+    </button>
+  </>);
+  return (<>
+    <CorporateShell mode={mode} onHome={back} controls={controls}>{content}</CorporateShell>
     {lang === 'en' && (
       <div className="en-partial-note no-print">
         This version does not yet fully support English — some sections remain in Turkish.
       </div>
     )}
-    <button type="button" className="lang-toggle-fab no-print"
-    title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
-    onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
-    {lang === 'tr' ? '🌐 EN' : '🌐 TR'}
-  </button></>);
+  </>);
 }

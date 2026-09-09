@@ -1,0 +1,33 @@
+﻿DORA ARAYÜZÜ — DOĞRULAMA KAYDI
+Tarih: 9 Eylül 2026
+Kaynak: Kullanıcının paylaştığı yerel ArsaPlan klasörü.
+
+Son test sonucu: 58 test dosyası, 449 başarılı test.
+446 mevcut test + adım doğrulamalarını koruyan 3 yeni test.
+TypeScript kontrolü: başarılı.
+Vite üretim derlemesi: başarılı, 487 modül.
+
+Windows ortam notları:
+- Standart Vite yapılandırma yükleyicisi, üst klasör okumasında erişim
+  hatası verdi. Doğrulama aynı Vite/React/base ayarları ile programatik
+  olarak çalıştırıldı; projedeki vite.config.ts değiştirilmedi.
+- İki mevcut test dosyasındaki Linux /tmp çıktı yolları yalnız test
+  çalışması boyunca çalışma klasörüne yönlendirildi, sonra geri alındı.
+  Test beklentileri değiştirilmedi. ZIP özgün test dosyalarını içerir.
+- Testler iki işçi ve 20 saniye zaman aşımıyla çalıştırıldı. İlk yoğun
+  paralel çalıştırmadaki rapor zaman aşımı hataları bu koşullarda kalmadı.
+- Mevcut büyük dosya/dinamik import uyarıları devam ediyor. Doğrudan
+  jsPDF şerit birim testlerinde kullanılan örnek font için uyarı var;
+  ilgili testler ve gerçek PDF üretim testleri geçti.
+
+Kapsam:
+- Mevcut 146 proje dosyası asıl klasörle karşılaştırıldı.
+- Değişen mevcut dosyalar: src/App.tsx, src/main.tsx, public/dora-logo.png.
+- Yeni dosyalar: src/ui/CorporateLayout.tsx, src/ui/corporate.css,
+  src/ui/corporate-navigation.test.tsx, .gitignore ve bu doğrulama notu.
+- Hesap motorları, veri tabloları, sayısal alan ayrıştırıcısı, PDF/Excel
+  üretim dosyaları, package.json, package-lock.json ve GitHub yayın akışı
+  asıl klasördeki dosyalarla birebir aynı.
+- ArsaApp içindeki mevcut state, varsayılanlar, hesap ve doğrulama akışı
+  ilk return öncesine kadar metin olarak aynı.
+- Tarayıcı, fiziksel telefon ve banka sistemiyle uçtan uca kontrol yapılmadı.
