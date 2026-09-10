@@ -40,7 +40,7 @@ export function MethodLanding({ onSelect }: { onSelect: (method: MethodKey) => v
     <div className="app corporate-landing">
       <header className="topbar"><div className="topbar-inner"><div><h1>{BRAND.appName}</h1><p>{BRAND.tagline}</p></div><img className="brand-logo brand-logo--hero" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} /></div></header>
       <main className="step">
-        <div className="corp-landing-heading"><div className="step-eyebrow">Yöntemler</div><h2>Hangi hesaplama ile başlamak istiyorsunuz?</h2></div>
+        <div className="corp-landing-heading"><div className="step-eyebrow">Değerleme çalışma alanı</div><h2>Hangi hesaplama ile başlamak istiyorsunuz?</h2><p>Yöntemi seçin; gerekli girdiler ve kontrol noktaları sırayla açılır.</p></div>
         <div className="corp-method-list">
           {METHODS.map((method, i) => (
             <button key={method.key} type="button" className="corp-method" onClick={() => onSelect(method.key)}>
@@ -50,7 +50,7 @@ export function MethodLanding({ onSelect }: { onSelect: (method: MethodKey) => v
             </button>
           ))}
         </div>
-        <footer className="corp-landing-footer"><span>{BRAND.company}</span><span>6 ana yöntem · Arayüz 1.2</span></footer>
+        <footer className="corp-landing-footer"><span>{BRAND.company}</span><span>6 ana yöntem · Arayüz 1.3</span></footer>
       </main>
     </div>
   );

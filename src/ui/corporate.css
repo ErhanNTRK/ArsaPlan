@@ -48,24 +48,24 @@ button, input, select, textarea { font-family: inherit; }
 .corporate-main .progress-label { color: #dce7ed; font-size: 10px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
 
 /* Başlangıç: altı yöntem tek ekranda, yakın aralıklarla görünür. */
-.corporate-main .step { width: min(1380px, calc(100% - clamp(24px, 5vw, 76px))); max-width: none; margin: 0 auto; padding: 18px 0 32px; }
-.corporate-landing .step { padding-top: 20px; }
-.corp-landing-heading { display: flex; align-items: baseline; gap: 12px; margin: 0 0 12px; }
-.corp-landing-heading .step-eyebrow { margin: 0; padding-right: 12px; border-right: 1px solid var(--line-2); color: var(--accent); font-size: 11px; letter-spacing: .12em; white-space: nowrap; }
-.corp-landing-heading h2 { margin: 0; color: var(--navy); font-size: clamp(16px, 1.4vw, 19px); line-height: 1.2; letter-spacing: -.025em; }
-.corp-landing-heading p { display: none; }
-.corp-method-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; overflow: hidden; padding: 1px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--line); box-shadow: 0 7px 20px rgba(22, 48, 66, .05); }
-.corp-method { display: grid; grid-template-columns: 30px minmax(0, 1fr) max-content; grid-template-rows: auto auto; align-items: center; column-gap: 11px; min-height: 68px; padding: 9px 13px; color: var(--text); text-align: left; background: var(--surface); border: 0; border-radius: 0; cursor: pointer; transition: background .14s ease, box-shadow .14s ease; }
-.corp-method:hover, .corp-method:focus-visible { position: relative; z-index: 1; background: #f8fbfc; box-shadow: inset 3px 0 0 var(--accent); outline: 0; }
-.corp-method-icon { display: grid; width: 29px; height: 29px; place-items: center; color: var(--navy-2); background: var(--navy-50); border-radius: 5px; }
-.corp-method-icon svg { width: 18px; height: 18px; }
+.corporate-main .step { width: min(1380px, calc(100% - clamp(24px, 5vw, 76px))); max-width: none; margin: 0 auto; padding: 24px 0 32px; }
+.corporate-landing .step { padding-top: 28px; }
+.corp-landing-heading { margin: 0 0 20px; }
+.corp-landing-heading .step-eyebrow { margin: 0 0 6px; color: #9b711d; font-size: 11px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.corp-landing-heading h2 { margin: 0; color: var(--navy); font-size: clamp(22px, 2.1vw, 28px); line-height: 1.16; letter-spacing: -.035em; }
+.corp-landing-heading p { display: block; margin: 7px 0 0; color: var(--muted); font-size: 14px; line-height: 1.4; }
+.corp-method-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; overflow: visible; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.corp-method { display: grid; grid-template-columns: 42px minmax(0, 1fr) max-content; grid-template-rows: auto auto auto; align-items: start; column-gap: 12px; min-height: 108px; padding: 16px; color: var(--text); text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 8px rgba(15, 42, 55, .035); cursor: pointer; transition: border-color .14s ease, box-shadow .14s ease, transform .14s ease; }
+.corp-method:hover, .corp-method:focus-visible { position: relative; z-index: 1; background: #fff; border-color: #b9c9d0; box-shadow: 0 8px 18px rgba(15, 42, 55, .11); outline: 0; transform: translateY(-1px); }
+.corp-method-icon { display: grid; width: 40px; height: 40px; place-items: center; color: var(--navy-2); background: var(--navy-50); border-radius: 6px; }
+.corp-method-icon svg { width: 21px; height: 21px; }
 .corp-method-copy { display: contents; }
-.corp-method-subtitle { grid-column: 2; color: var(--muted); font-size: 10px; font-weight: 600; line-height: 1.18; letter-spacing: .02em; }
-.corp-method-title { grid-column: 2; color: var(--navy); font-size: 14px; font-weight: 750; line-height: 1.25; }
-.corp-method-description { display: none; }
-.corp-method-open { grid-column: 3; grid-row: 1 / span 2; color: var(--navy-2); font-size: 11px; font-weight: 750; white-space: nowrap; }
-.corp-method-open span { padding-left: 4px; color: var(--accent); font-size: 15px; }
-.corp-landing-footer { display: flex; justify-content: space-between; margin: 10px 2px 0; color: var(--muted); font-size: 10px; }
+.corp-method-subtitle { grid-column: 2; color: var(--muted); font-size: 11px; font-weight: 650; line-height: 1.25; letter-spacing: .01em; }
+.corp-method-title { grid-column: 2; color: var(--navy); font-size: 16px; font-weight: 750; line-height: 1.24; }
+.corp-method-description { grid-column: 2; display: block; color: #5d6c75; font-size: 12px; line-height: 1.35; }
+.corp-method-open { grid-column: 3; grid-row: 1 / span 3; align-self: center; color: var(--navy-2); font-size: 12px; font-weight: 750; white-space: nowrap; }
+.corp-method-open span { padding-left: 4px; color: var(--accent); font-size: 17px; }
+.corp-landing-footer { display: flex; justify-content: space-between; margin: 18px 2px 0; padding-top: 13px; color: var(--muted); border-top: 1px solid var(--line); font-size: 11px; }
 
 /* Adım navigasyonu */
 .corp-stepnav { width: min(1380px, calc(100% - clamp(24px, 5vw, 76px))); margin: 13px auto 0; display: flex; gap: 5px; overflow-x: auto; scrollbar-width: thin; }
@@ -116,10 +116,11 @@ button, input, select, textarea { font-family: inherit; }
   .corporate-main .topbar-actions { order: 3; width: 100%; justify-content: flex-start; }
   .corporate-main .brand-logo { height: 30px; max-width: 135px; }
   .corporate-main .topbar-actions .topbar-link { padding: 4px 5px; font-size: 10px; }
-  .corp-landing-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
-  .corp-landing-heading .step-eyebrow { padding: 0; border: 0; }
+  .corp-landing-heading { margin-bottom: 14px; }
   .corp-method-list { grid-template-columns: 1fr; }
-  .corp-method { grid-template-columns: 29px minmax(0, 1fr) max-content; min-height: 55px; padding: 7px 10px; }
+  .corp-method { grid-template-columns: 36px minmax(0, 1fr) max-content; min-height: 86px; padding: 12px; }
+  .corp-method-icon { width: 35px; height: 35px; }
+  .corp-method-icon svg { width: 18px; height: 18px; }
   .corp-method-subtitle, .corp-method-title { grid-column: 2; }
   .corp-method-description { display: none; }
   .corp-method-open { grid-column: 3; font-size: 10px; }
