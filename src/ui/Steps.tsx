@@ -288,13 +288,13 @@ function Step3Villa({ input, upd }: P) {
 
       <div className="card card-wide">
         <div className="card-title">2 · Emsal Dışı Satılabilir Alan</div>
-        <Field label="Emsal dışı satılabilir alan var mı?">
-          <Seg value={e.hasExtra} onChange={(b) => upd('emsal', { hasExtra: b })}
-               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
-        </Field>
-        {e.hasExtra && (
-          <>
-            <Field label="Nasıl hesaplansın?">
+        <div className="area-setup area-setup--extra">
+          <Field label="Emsal dışı alan var mı?">
+            <Seg value={e.hasExtra} onChange={(b) => upd('emsal', { hasExtra: b })}
+                 options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+          </Field>
+          {e.hasExtra && <>
+            <Field label="Hesap yöntemi">
               <Seg value={e.extraMode} onChange={(m) => upd('emsal', { extraMode: m })}
                    options={[{ value: 'oran', label: 'Emsalin yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
             </Field>
@@ -305,20 +305,20 @@ function Step3Villa({ input, upd }: P) {
             ) : (
               <Field label="Alan"><Num value={e.extraArea} onChange={(n) => upd('emsal', { extraArea: n })} suffix="m²" /></Field>
             )}
-            <div className="note-box">Emsal dışı satılabilir alan: <b>{fmtM2(c.extraArea)}</b></div>
-          </>
-        )}
+          </>}
+        </div>
+        {e.hasExtra && <div className="note-box">Emsal dışı satılabilir alan: <b>{fmtM2(c.extraArea)}</b></div>}
       </div>
 
       <div className="card card-wide">
         <div className="card-title">3 · Çatı Katı</div>
-        <Field label="Çatı katı var mı?">
-          <Seg value={e.hasAttic} onChange={(b) => upd('emsal', { hasAttic: b })}
-               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
-        </Field>
-        {e.hasAttic && (
-          <>
-            <Field label="Nasıl hesaplansın?">
+        <div className="area-setup area-setup--level">
+          <Field label="Çatı katı var mı?">
+            <Seg value={e.hasAttic} onChange={(b) => upd('emsal', { hasAttic: b })}
+                 options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+          </Field>
+          {e.hasAttic && <>
+            <Field label="Hesap yöntemi">
               <Seg value={e.atticMode} onChange={(m) => upd('emsal', { atticMode: m })}
                    options={[{ value: 'oran', label: 'Tabanın yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
             </Field>
@@ -333,20 +333,20 @@ function Step3Villa({ input, upd }: P) {
               <Seg value={e.atticInEmsal} onChange={(b) => upd('emsal', { atticInEmsal: b })}
                    options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
             </Field>
-            <div className="note-box">Çatı katı alanı: <b>{fmtM2(c.atticArea)}</b></div>
-          </>
-        )}
+          </>}
+        </div>
+        {e.hasAttic && <div className="note-box">Çatı katı alanı: <b>{fmtM2(c.atticArea)}</b></div>}
       </div>
 
       <div className="card card-wide">
         <div className="card-title">4 · Bodrum Kat</div>
-        <Field label="Bodrum kat var mı?">
-          <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
-               options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
-        </Field>
-        {e.hasBasement && (
-          <>
-            <Field label="Nasıl hesaplansın?">
+        <div className="area-setup area-setup--level">
+          <Field label="Bodrum kat var mı?">
+            <Seg value={e.hasBasement} onChange={(b) => upd('emsal', { hasBasement: b })}
+                 options={[{ value: false, label: 'Yok' }, { value: true, label: 'Var' }]} />
+          </Field>
+          {e.hasBasement && <>
+            <Field label="Hesap yöntemi">
               <Seg value={e.basementMode} onChange={(m) => upd('emsal', { basementMode: m })}
                    options={[{ value: 'oran', label: 'Tabanın yüzdesi' }, { value: 'manuel', label: 'Elle giriş' }]} />
             </Field>
@@ -361,9 +361,9 @@ function Step3Villa({ input, upd }: P) {
               <Seg value={e.basementInEmsal} onChange={(b) => upd('emsal', { basementInEmsal: b })}
                    options={[{ value: false, label: 'Hayır' }, { value: true, label: 'Evet' }]} />
             </Field>
-            <div className="note-box">Bodrum kat alanı: <b>{fmtM2(c.basementArea)}</b></div>
-          </>
-        )}
+          </>}
+        </div>
+        {e.hasBasement && <div className="note-box">Bodrum kat alanı: <b>{fmtM2(c.basementArea)}</b></div>}
       </div>
 
       <div className="card result-preview">

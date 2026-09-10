@@ -81,25 +81,31 @@ button, input, select, textarea { font-family: inherit; }
 /* Form alanları: aynı bilgi, daha sıkı aralıklar. */
 .corporate-main .step-head { position: relative; margin: 0 0 11px; padding: 0 0 10px; border-bottom: 1px solid var(--line); }
 .corporate-main .step-eyebrow { margin-bottom: 4px; color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .11em; text-transform: uppercase; }
-.corporate-main .step-title { color: var(--navy); font-size: 20px; line-height: 1.15; letter-spacing: -.025em; }
-.corporate-main .step-desc { margin-top: 3px; color: var(--muted); font-size: 12px; line-height: 1.35; }
+.corporate-main .step-title { color: var(--navy); font-size: 22px; line-height: 1.15; letter-spacing: -.025em; }
+.corporate-main .step-desc { margin-top: 3px; color: var(--muted); font-size: 13px; line-height: 1.4; }
 .corporate-main .step-reset { position: absolute; right: 0; bottom: 10px; padding: 4px 6px; color: var(--muted); font-size: 11px; }
 .corporate-main .card { margin-bottom: 9px; padding: 13px; border: 1px solid var(--line); border-radius: var(--r); box-shadow: 0 3px 10px rgba(24, 53, 73, .035); }
-.corporate-main .card-title { margin-bottom: 9px; color: var(--navy); font-size: 13px; font-weight: 750; }
+.corporate-main .card-title { margin-bottom: 11px; color: var(--navy); font-size: 14px; font-weight: 750; }
 .corporate-main .field-grid { gap: 8px 10px; }
-.corporate-main .field label, .corporate-main .label { margin-bottom: 3px; font-size: 10px; font-weight: 700; }
-.corporate-main input, .corporate-main select, .corporate-main textarea { min-height: 34px; padding: 6px 8px; border-radius: 5px; font-size: 13px; }
+.corporate-main .field label, .corporate-main .label { margin-bottom: 4px; font-size: 11px; font-weight: 700; }
+.corporate-main input, .corporate-main select, .corporate-main textarea { min-height: 36px; padding: 7px 9px; border-radius: 5px; font-size: 14px; }
 .corporate-main textarea { min-height: 60px; }
 .corporate-main .choice-grid { gap: 6px; }
 .corporate-main .choice { gap: 8px; padding: 9px 10px; border-radius: 6px; }
-.corporate-main .choice-name { font-size: 12px; line-height: 1.2; }
-.corporate-main .choice-desc { margin-top: 2px; font-size: 10px; line-height: 1.25; }
+.corporate-main .choice-name { font-size: 13px; line-height: 1.2; }
+.corporate-main .choice-desc { margin-top: 2px; font-size: 11px; line-height: 1.3; }
 .corporate-main .choice-grid--asset { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .corporate-main .choice-grid--asset .choice { min-height: 57px; align-items: center; }
 .corporate-main .choice-grid--asset .choice-desc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .corporate-main .choice-grid--asset .choice-dot { flex: 0 0 auto; }
 .corporate-main .corp-method-list-sub { gap: 6px; }
 .corporate-main .corp-method-list-sub .choice { padding: 10px 11px; }
+.corporate-main .area-setup { display: grid; grid-template-columns: minmax(180px, .8fr) minmax(240px, 1.2fr) minmax(150px, .6fr); gap: 10px 12px; align-items: end; }
+.corporate-main .area-setup--level { grid-template-columns: minmax(160px, .75fr) minmax(220px, 1.1fr) minmax(140px, .55fr) minmax(180px, .8fr); }
+.corporate-main .area-setup .field { margin-bottom: 0; }
+.corporate-main .area-setup .seg { gap: 5px; }
+.corporate-main .area-setup .seg button { min-height: 36px; padding: 7px 8px; font-size: 12px; }
+.corporate-main .area-setup + .note-box { margin-top: 10px; }
 .corporate-main .stamp { margin-top: 12px; font-size: 10px; line-height: 1.35; }
 
 /* Alt eylemler, sabit ama sol navigasyon varsayımı olmadan tam genişlikte. */
@@ -128,6 +134,8 @@ button, input, select, textarea { font-family: inherit; }
   .corp-method-open span { color: var(--accent); font-size: 17px; }
   .corporate-main .step-reset { position: static; display: block; margin-top: 8px; padding-left: 0; }
   .corp-stepnav { margin-top: 9px; }
+  .corporate-main .area-setup, .corporate-main .area-setup--level { grid-template-columns: 1fr 1fr; }
+  .corporate-main .area-setup .field:last-child { grid-column: auto; }
 }
 
 @media (max-width: 520px) {
@@ -140,6 +148,7 @@ button, input, select, textarea { font-family: inherit; }
   .corporate-main .choice-grid--asset .choice-desc { display: none; }
   .corporate-main .choice-grid--asset .choice-dot { width: 13px; height: 13px; }
   .corporate-main .card { padding: 10px; }
+  .corporate-main .area-setup, .corporate-main .area-setup--level { grid-template-columns: 1fr; gap: 9px; }
   .corp-utilities { right: 9px; bottom: 57px; }
   .corp-utilities .theme-toggle, .corp-utilities .lang-toggle-fab { transform: scale(.88); transform-origin: right bottom; }
   .corp-landing-footer { font-size: 9px; }
