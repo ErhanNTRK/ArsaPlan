@@ -50,7 +50,7 @@ export function MethodLanding({ onSelect }: { onSelect: (method: MethodKey) => v
             </button>
           ))}
         </div>
-        <footer className="corp-landing-footer"><span>{BRAND.company}</span><span>6 ana yöntem · {BRAND.version}</span></footer>
+        <footer className="corp-landing-footer"><span>{BRAND.company}</span><span>6 ana yöntem · Arayüz 1.2</span></footer>
       </main>
     </div>
   );
