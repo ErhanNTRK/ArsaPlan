@@ -24,7 +24,7 @@ export function Step1({ input, setTop, onSample }: P & { onSample?: () => void }
   return (
     <div className="card card-wide">
       <div className="card-title">Ne Değerleniyor?</div>
-      <div className="choice-grid">
+      <div className="choice-grid choice-grid--asset">
         {ASSETS.map((a) => (
           <Choice key={a.v} on={input.assetType === a.v}
                   name={a.label} desc={a.desc}

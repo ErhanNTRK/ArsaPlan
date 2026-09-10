@@ -23,26 +23,14 @@ function ModuleIcon({ index }: { index: number }) {
   return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[index]}</svg>;
 }
 
-export function CorporateShell({ mode, onHome, controls, children }: {
-  mode: string; onHome: () => void; controls: ReactNode; children: ReactNode;
+export function CorporateShell({ controls, children }: {
+  controls: ReactNode; children: ReactNode;
 }) {
-  const active = METHODS.find(m => mode === m.key || (m.key === 'usthakki-secim' && mode.startsWith('usthakki')));
   return (
-    <div className={`corporate-shell ${mode === 'landing' ? 'corporate-home' : ''}`}>
+    <div className="corporate-shell">
       <a className="corp-skip" href="#corporate-content">İçeriğe geç</a>
-      <aside className="corp-sidebar no-print">
-        <div className="corp-sidebar-brand"><span className="corp-monogram">AP</span><div>ArsaPlan<small>DEĞERLEME ÇALIŞMA ALANI</small></div></div>
-        <nav className="corp-navigation" aria-label="Çalışma alanı">
-          <div className="corp-nav-caption">ÇALIŞMA ALANI</div>
-          <button type="button" className={`corp-nav-item ${!active ? 'is-active' : ''}`} onClick={onHome} aria-current={!active ? 'page' : undefined}>
-            <span className="corp-nav-symbol" aria-hidden="true">▦</span><span>Yöntemler</span>
-          </button>
-          {active && <div className="corp-nav-item is-active corp-current" aria-current="page"><ModuleIcon index={METHODS.indexOf(active)} /><span>{active.title}</span></div>}
-        </nav>
-        <div className="corp-sidebar-footer"><span>Dora Gayrimenkul<br />Değerleme A.Ş.</span><div className="corp-author"><span>EÖ</span><div>Erhan Öntürk<small>ArsaPlan</small></div></div></div>
-        <div className="corp-tools">{controls}</div>
-      </aside>
       <div className="corporate-main" id="corporate-content">{children}</div>
+      <div className="corp-utilities no-print">{controls}</div>
     </div>
   );
 }
@@ -52,7 +40,7 @@ export function MethodLanding({ onSelect }: { onSelect: (method: MethodKey) => v
     <div className="app corporate-landing">
       <header className="topbar"><div className="topbar-inner"><div><h1>{BRAND.appName}</h1><p>{BRAND.tagline}</p></div><img className="brand-logo brand-logo--hero" src={`${import.meta.env.BASE_URL}dora-logo.png`} alt={BRAND.company} /></div></header>
       <main className="step">
-        <div className="corp-landing-heading"><div className="step-eyebrow">Yöntemler</div><h2>Ne hesaplamak istiyorsunuz?</h2><p>Bir değerleme yöntemi seçerek analize başlayın.</p></div>
+        <div className="corp-landing-heading"><div className="step-eyebrow">Yöntemler</div><h2>Hangi hesaplama ile başlamak istiyorsunuz?</h2></div>
         <div className="corp-method-list">
           {METHODS.map((method, i) => (
             <button key={method.key} type="button" className="corp-method" onClick={() => onSelect(method.key)}>

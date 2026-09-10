@@ -536,7 +536,7 @@ export default function App() {
     </button>
   </>);
   return (<>
-    <CorporateShell mode={mode} onHome={back} controls={controls}>{content}</CorporateShell>
+    <CorporateShell controls={controls}>{content}</CorporateShell>
     {lang === 'en' && (
       <div className="en-partial-note no-print">
         This version does not yet fully support English — some sections remain in Turkish.
