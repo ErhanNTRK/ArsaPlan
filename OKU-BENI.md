@@ -1,56 +1,46 @@
-# ArsaPlan v9.18.0 — Basit Gelir Bazlı Üst Hakkı: Otomatik Toplam Gelir ve Ödemeler
+# ArsaPlan v9.19.0 — Yan Ürün Gelirinin Sunumu Düzeltildi, Antep Fıstığı Eklendi
 
-Doğrulama: `tsc -b` 0 hata · `npx vitest run` **446/446 test yeşil** ·
-`npm run build` başarılı.
+Doğrulama: `tsc -b` 0 hata · `npx vitest run` **458/458 test yeşil** ·
+`npm run build` başarılı (59 test dosyası).
 
-## Salih'in bulduğu tasarım uyuşmazlığı düzeltildi
+## Erhan'ın PDF ekran görüntüsüyle bulduğu sorun düzeltildi
 
-v9.17.0'da eklenen "Basit Gelir Bazlı Üst Hakkı Hesabı" (4. yöntem),
-Toplam Gelir'i ve Ecrimisil/Üst Hakkı Ödemesi/Bayilik tutarlarını **elle
-girmeyi** istiyordu — Salih bunun "meşakkatli" olduğunu, otomatik
-hesaplanmasını beklediğini belirtti.
+Tarımsal Ürün Gelir Hesabı'nda, yan ürünü olan bir kalemde (örn. Mısır +
+Sap/Koçan), ana ürün satırında kalın gösterilen rakam **zaten** ana+yan
+ürün toplamıydı — ama hemen altında yan ürünün kendi neti de ayrıca
+gösterildiği için, "yan ürünün ayrıca toplama eklenmesi gerekiyor" gibi
+yanlış bir izlenim veriyordu.
 
-### 1. Toplam Gelir artık KENDİ oda tablosundan otomatik hesaplanıyor
+**Hesabın kendisi hiçbir zaman yanlış değildi** — yalnızca sunum
+netleştirildi:
 
-Yeni "Oda Tablosu" kartı (Oda Türü / Adet / Günlük Fiyat / Doluluk % /
-Gün) eklendi — Otel modülüyle aynı mantık, ama **tamamen bağımsız, ayrı
-bir veri girişi** (Otel modülüne hiç dokunmuyor, veri aktarımı yok).
-Toplam Gelir artık salt-okunur, oda tablosundan otomatik toplanıyor.
+```
+ÖNCEDEN:
+  Mısır                                  403.886 TL   (zaten toplam, ama belirsiz)
+    + Yan ürün: Mısır Sapı / Koçanı       40.389 TL   (ek mi, dahil mi belirsiz)
 
-### 2. Ecrimisil / Üst Hakkı Ödemesi / Bayilik artık Toplam Gelir'in oranı
+ŞİMDİ:
+  Mısır                                  363.497 TL   (yalnızca ana ürün)
+    + Yan ürün: Mısır Sapı / Koçanı       40.389 TL
+    = Toplam (ana + yan ürün)            403.886 TL   (kalın, açıkça etiketli)
+```
 
-Önceden her biri kendi taban tutarı + kendi büyüme oranıyla elle
-giriliyordu (6 alan). Artık **tek bir oran** girilir (varsayılan %2 / %5
-/ %1 — yalnızca başlangıç önerisi, sözleşmeye göre değiştirilebilir),
-tutar her yıl Toplam Gelir'le birlikte otomatik büyür. 6 alan yerine 3
-alan, ayrıca 1. yıl tutarı canlı olarak gösteriliyor.
+Hem PDF hem Excel çıktısında aynı düzeltme uygulandı.
 
-## Bir bug iddiası da araştırıldı — kod doğru çıktı
+## Antep Fıstığı eklendi (muhafazakar değerlerle)
 
-"Toplam Süre 49, Kalan Süre 42 girdim ama PDF'te 49 görünüyordu"
-şikayeti test edildi: motor gerçekten 42 yıl projekte ediyor, PDF'te
-"Kalan Süre (= Projeksiyon Süresi): 42 yıl" ve "DÖNEMSEL ÖZET TABLOSU (42
-DÖNEM)" doğru yazıyor. "Toplam Süre: 49" ayrı, doğru etiketli bir bilgi
-satırı — hesaba hiç girmiyor. Muhtemelen iki satırın yan yana durması
-karışıklığa yol açtı; hesap doğru.
-
-## Hesaplamalarda değişiklik oldu mu?
-
-Yalnızca bu yeni (henüz kimsenin gerçek veriyle kullanmadığı) 4. yöntemi
-etkiliyor — diğer üç Üst Hakkı modeli ve uygulamanın geri kalanı hiç
-değişmedi.
+Tarımsal Ürün Gelir Hesabı kataloğuna. Erhan'ın geri bildirimi: ilk
+denenen varsayılan (10 kg/ağaç) saha tecrübesine göre yüksek çıkıyordu
+— varsayılan **6 kg/ağaç**'a, gider oranı **%35**'e çekildi (kıraç/orta
+bakımlı arazi ağırlıklı, muhafazakar bir "sektör ortalaması"). Fiyat
+(700 TL/kg, Şanlıurfa Ticaret Borsası) değişmedi.
 
 ## Değişen Dosyalar
 
 ```
-src/usthakki/gelirBazliEngine.ts        Oda tablosu + oran bazlı ödemeler
-src/usthakki/gelirBazliPdf.ts           Oda tablosu bölümü eklendi
-src/usthakki/gelirBazliExcel.ts         Oda tablosu bölümü eklendi
-src/usthakki/GelirBazliUstHakkiApp.tsx  Oda tablosu UI + oran alanları
-src/usthakki/gelirBazliYontem4.test.ts  16 test (5 yeni, düzeltmeyi kilitliyor)
+src/agri/pdf.ts                          Yan ürün etiketi düzeltildi
+src/agri/excel.ts                        Yan ürün etiketi düzeltildi
+src/agri/catalog.ts                      Antep Fıstığı (muhafazakar)
+src/agri/antep-fistigi.test.ts           5 test
+src/agri/kalem7-yan-urun-toplam-etiketi.test.ts   4 test (yeni)
 ```
-
-## Beklemede
-
-- "Toplam Süre" satırının PDF'ten tamamen kaldırılıp kaldırılmayacağı
-  (karışıklığı önlemek için) — Salih'in onayı bekleniyor.

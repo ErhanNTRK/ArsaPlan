@@ -3,7 +3,7 @@
  * Ayrıntılı modelin (Toplam Gelir Üzerinden) sadeleştirilmiş kardeşi.
  */
 import { describe, it, expect } from 'vitest';
-import { computeGelirBazliUstHakki, createDefaultGelirBazliInput, type GelirBazliUstHakkiInput } from './gelirBazliEngine';
+import { computeGelirBazliUstHakki, createDefaultGelirBazliInput, computeRoomRevenue, type GelirBazliUstHakkiInput } from './gelirBazliEngine';
 
 function baseInput(): GelirBazliUstHakkiInput {
   return {
@@ -60,6 +60,34 @@ describe('computeGelirBazliUstHakki — motor', () => {
     const r = computeGelirBazliUstHakki(input);
     expect(r.ustHakkiDegeriRounded).toBeGreaterThan(0);
     expect(r.ustHakkiDegeriRounded).toBeLessThan(r.toplamGelirBase * 10);
+  });
+});
+
+describe('DÜZELTME — Beyaz ekran hatası: eski (rooms alanı olmayan) taslak yüklenince çökmüyor', () => {
+  it('rooms hiç yoksa (eski v9.17.0 taslağı), computeGelirBazliUstHakki hata fırlatmıyor, 0 gelir döner', () => {
+    const eskiTaslak = {
+      hotelName: '', ada: '', parsel: '', parcelArea: 0, fromKml: false,
+      currency: 'TL' as const, fxRate: 1, kalanSureYil: 20, toplamSureYil: 30,
+      gelirArtisOraniPct: 15, isletmeGideriOraniPct: 45, sabitGiderOraniPct: 12,
+      ecrimisilPctOfRevenue: 2, ustHakkiOdemePctOfRevenue: 5, bayilikPctOfRevenue: 1,
+      discountRatePct: 35, donemSonuIndirgemePct: 0,
+      // rooms KASITLI OLARAK YOK — eski taslağı simüle ediyor
+    } as any;
+    expect(() => computeGelirBazliUstHakki(eskiTaslak)).not.toThrow();
+    const r = computeGelirBazliUstHakki(eskiTaslak);
+    expect(r.toplamGelirBase).toBe(0);
+    expect(r.warnings.length).toBeGreaterThan(0);
+  });
+
+  it('rooms null ise de çökmüyor', () => {
+    const input = { ...baseInput(), rooms: null } as any;
+    expect(() => computeGelirBazliUstHakki(input)).not.toThrow();
+  });
+
+  it('computeRoomRevenue, tanımsız/null girdide 0 döner, hata fırlatmaz', () => {
+    expect(computeRoomRevenue(undefined)).toBe(0);
+    expect(computeRoomRevenue(null)).toBe(0);
+    expect(computeRoomRevenue([])).toBe(0);
   });
 });
 

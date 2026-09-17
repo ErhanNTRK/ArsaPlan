@@ -108,7 +108,7 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
       doc.text(row.price.toLocaleString('tr-TR') + ' ₺/kg', C[3], y, { align: 'right' });
       doc.text('%' + row.expensePct.toLocaleString('tr-TR'), C[4], y, { align: 'right' });
       doc.setFont('NTRK', 'bold'); doc.setTextColor(...GREEN);
-      doc.text(tl(row.netWithByproduct), C[5], y, { align: 'right' });
+      doc.text(tl(row.net), C[5], y, { align: 'right' });
       y += h;
       if (row.byproductResult) {
         const b = row.byproductResult;
@@ -119,6 +119,15 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
         doc.text(b.price.toLocaleString('tr-TR') + ' ₺/kg', C[3], y, { align: 'right' });
         doc.text('%' + b.expensePct.toLocaleString('tr-TR'), C[4], y, { align: 'right' });
         doc.text(tl(b.net), C[5], y, { align: 'right' });
+        y += h - 1;
+        // DÜZELTME: ana ürün + yan ürün toplamı, ayrı ve AÇIKÇA "TOPLAM" etiketli
+        // bir satırda gösteriliyor — önceden ana ürün satırında (kalın) doğrudan
+        // netWithByproduct gösteriliyordu, bu da "yan ürün ayrıca eklenecek" gibi
+        // yanlış bir izlenim veriyordu (Erhan'ın PDF ekran görüntüsüyle bulduğu sorun).
+        doc.setFont('NTRK', 'normal'); doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+        doc.text('  = Toplam (ana + yan ürün)', C[0], y);
+        doc.setFont('NTRK', 'bold'); doc.setTextColor(...GREEN);
+        doc.text(tl(row.netWithByproduct), C[5], y, { align: 'right' });
         y += h - 1;
       }
     }

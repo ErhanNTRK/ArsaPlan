@@ -109,7 +109,7 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
       ws.getCell(row, 5).numFmt = '#,##0.00 "₺/kg"';
       ws.getCell(row, 6).value = cr.expensePct / 100;
       ws.getCell(row, 6).numFmt = '0.0%';
-      ws.getCell(row, 7).value = cr.netWithByproduct;
+      ws.getCell(row, 7).value = cr.net;
       ws.getCell(row, 7).numFmt = TL;
       ws.getCell(row, 7).font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E6B41' } };
       for (let c = 2; c <= 7; c++) {
@@ -133,6 +133,17 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
         ws.getCell(row, 7).numFmt = TL;
         for (let c = 2; c <= 7; c++) {
           ws.getCell(row, c).font = { name: 'Arial', size: 8.5, italic: true, color: { argb: 'FF5A6774' } };
+          if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' };
+        }
+        row++;
+        // DÜZELTME: ana ürün satırı artık yalnızca kendi net gelirini (cr.net)
+        // gösteriyor; yan ürünle toplamı (cr.netWithByproduct) burada, açıkça
+        // "Toplam" etiketli ayrı bir satırda gösteriliyor.
+        ws.getCell(row, 2).value = '  = Toplam (ana + yan ürün)';
+        ws.getCell(row, 7).value = cr.netWithByproduct;
+        ws.getCell(row, 7).numFmt = TL;
+        for (let c = 2; c <= 7; c++) {
+          ws.getCell(row, c).font = { name: 'Arial', size: 9, bold: true, color: { argb: 'FF1E6B41' } };
           if (c > 2) ws.getCell(row, c).alignment = { horizontal: 'right' };
         }
         row++;

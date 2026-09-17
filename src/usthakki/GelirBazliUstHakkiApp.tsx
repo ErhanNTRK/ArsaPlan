@@ -17,33 +17,23 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const CUR_SYM: Record<GelirBazliUstHakkiInput['currency'], string> = { TL: '₺', USD: '$', EUR: '€' };
 const DRAFT = 'arsaplan-usthakki-gelirbazli-v1';
 
-// localStorage'daki eski/bozuk taslak verisi sayfanın tamamen beyaz ekrana
-// düşmesine neden olmamalı. Varsayılan şema ile güvenli biçimde birleştir.
-function loadDraft(): GelirBazliUstHakkiInput {
-  const defaults = createDefaultGelirBazliInput();
-  try {
-    const raw = localStorage.getItem(DRAFT);
-    if (!raw) return defaults;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return defaults;
-
-    const rooms = Array.isArray(parsed.rooms) && parsed.rooms.length > 0
-      ? parsed.rooms.filter((room: any) => room && typeof room === 'object').map((room: any, index: number) => ({
-          ...defaults.rooms[0],
-          ...room,
-          id: typeof room.id === 'string' && room.id ? room.id : `room-${index + 1}`,
-        }))
-      : defaults.rooms;
-
-    return { ...defaults, ...parsed, rooms };
-  } catch {
-    // Bozuk JSON / erişilemeyen localStorage: temiz başlangıç yap.
-    return defaults;
-  }
-}
-
 export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
-  const [state, setState] = useState<GelirBazliUstHakkiInput>(loadDraft);
+  const [state, setState] = useState<GelirBazliUstHakkiInput>(() => {
+    // SAVUNMA: eski (v9.17.0 ve öncesi, rooms/pctOfRevenue alanları
+    // olmayan) bir taslak yüklenirse çökmesin — beyaz ekran hatasının
+    // kaynağı buydu. createDefaultGelirBazliInput() ile birleştirip
+    // eksik alanları tamamlıyoruz, ayrıca rooms'un GERÇEKTEN bir dizi
+    // olduğunu da ayrıca doğruluyoruz (bozuk/kısmi bir taslağa karşı).
+    const fallback = createDefaultGelirBazliInput();
+    try {
+      const s = localStorage.getItem(DRAFT);
+      if (s) {
+        const parsed = JSON.parse(s);
+        return { ...fallback, ...parsed, rooms: Array.isArray(parsed.rooms) && parsed.rooms.length > 0 ? parsed.rooms : fallback.rooms };
+      }
+    } catch { /* yok */ }
+    return fallback;
+  });
   useEffect(() => { try { localStorage.setItem(DRAFT, JSON.stringify(state)); } catch { /* dolu */ } }, [state]);
 
   const fileRef = useRef<HTMLInputElement>(null);
