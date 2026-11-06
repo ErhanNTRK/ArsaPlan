@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LOC } from '../i18n';
 
 /**
@@ -83,51 +83,45 @@ export const fmtPct = (v: number, d = 1) =>
 export const fmtNum = (v: number, d = 2) =>
   isFinite(v) ? v.toLocaleString(LOC(), { maximumFractionDigits: d }) : '–';
 
-interface FieldCtxValue { id: string; describedBy?: string; invalid: boolean; claimed: { current: boolean } }
-const FieldCtx = createContext<FieldCtxValue | null>(null);
-
-/** Alan etiketini ilk girdi kontrolüne (id / aria-describedby / aria-invalid) bağlar. */
-function useFieldProps() {
-  const f = useContext(FieldCtx);
-  const mine = useRef<string | undefined>(undefined);
-  if (mine.current === undefined && f && !f.claimed.current) { f.claimed.current = true; mine.current = f.id; }
-  if (!f || mine.current === undefined) return {};
-  return {
-    id: mine.current,
-    'aria-describedby': f.describedBy,
-    'aria-invalid': f.invalid || undefined,
-  } as { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean };
-}
-
+/**
+ * Etiketi alanın İLK girdi kontrolüne (input/select/textarea) bağlar:
+ * id, aria-describedby (ipucu/hata) ve aria-invalid DOM üzerinde atanır.
+ * Kontrol bileşenleri (Txt/Num/Pct/Sel) değişmeden kalır; StrictMode'dan etkilenmez.
+ */
 export function Field({ label, hint, error, children }:
   { label: string; hint?: string; error?: string | null; children: ReactNode }) {
   const id = useId();
-  const claimed = useRef(false);
+  const wrap = useRef<HTMLDivElement>(null);
   const noteId = error || hint ? `${id}-note` : undefined;
+  useEffect(() => {
+    const ctl = wrap.current?.querySelector<HTMLElement>(
+      'input:not([type=file]):not([type=hidden]):not([type=checkbox]):not([type=radio]),select,textarea');
+    if (!ctl) return;
+    if (!ctl.id) ctl.id = id;
+    if (ctl.id !== id) return;
+    if (noteId) ctl.setAttribute('aria-describedby', noteId); else ctl.removeAttribute('aria-describedby');
+    if (error) ctl.setAttribute('aria-invalid', 'true'); else ctl.removeAttribute('aria-invalid');
+  });
   return (
-    <FieldCtx.Provider value={{ id, describedBy: noteId, invalid: !!error, claimed }}>
-      <div className={error ? 'field field-error' : 'field'}>
-        <label className="label" htmlFor={id}>{label}</label>
-        {children}
-        {error ? <div className="field-error-msg" id={noteId} role="alert">⚠ {error}</div>
-               : hint && <div className="hint" id={noteId}>{hint}</div>}
-      </div>
-    </FieldCtx.Provider>
+    <div ref={wrap} className={error ? 'field field-error' : 'field'}>
+      <label className="label" htmlFor={id}>{label}</label>
+      {children}
+      {error ? <div className="field-error-msg" id={noteId} role="alert">⚠ {error}</div>
+             : hint && <div className="hint" id={noteId}>{hint}</div>}
+    </div>
   );
 }
 
 export function Txt({ value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
-  const fp = useFieldProps();
-  return <input type="text" {...fp} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+  return <input type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
 }
 
 /** Sayısal alan — boş bırakılabilir, 0 silinebilir (Dora dersi). Yazarken binlik ayracı eklenir. */
 export function Num({ value, onChange, suffix, step, placeholder, plain }: {
   value: number; onChange: (v: number) => void; suffix?: string; step?: string; placeholder?: string; plain?: boolean;
 }) {
-  const fp = useFieldProps();
   const [focused, setFocused] = useState(false);
   const [raw, setRaw] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -154,7 +148,7 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
         ref={inputRef}
         type="text"
         inputMode="decimal"
-        {...fp}
+       
         placeholder={placeholder}
         title={step ? `Adım: ${step}` : undefined}
         value={display}
@@ -183,12 +177,11 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
 
 /** Yüzde alanı: kullanıcı 25 yazar, motor 0.25 alır. */
 export function Pct({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const fp = useFieldProps();
   return (
     <div className="suffix-wrap">
       <input
         type="number"
-        {...fp}
+       
         inputMode="decimal"
         step="0.5"
         value={String(Math.round(value * 1000) / 10)}
@@ -202,9 +195,8 @@ export function Pct({ value, onChange }: { value: number; onChange: (v: number) 
 export function Sel<T extends string>({ value, onChange, options }: {
   value: T; onChange: (v: T) => void; options: Array<{ value: T; label: string }>;
 }) {
-  const fp = useFieldProps();
   return (
-    <select {...fp} value={value} onChange={(e) => onChange(e.target.value as T)}>
+    <select value={value} onChange={(e) => onChange(e.target.value as T)}>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );

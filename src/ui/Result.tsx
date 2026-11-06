@@ -558,6 +558,13 @@ export function Result({ input, result, version, setInput }: {
         )}
         {!isletme && (
           <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <input type="checkbox" checked={input.showGlossaryInPdf !== false}
+                   onChange={(e) => setInput?.((s) => ({ ...s, showGlossaryInPdf: e.target.checked }))} />
+            <span>Terimler sözlüğünü PDF'e ekle (TAKS, KAKS, emsal, hasılat gibi terimlerin kısa açıklamaları)</span>
+          </label>
+        )}
+        {!isletme && (
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <input type="checkbox" checked={!!input.showScenariosInPdf}
                    onChange={(e) => setInput?.((s) => ({ ...s, showScenariosInPdf: e.target.checked }))} />
             <span>Senaryo tablosunu PDF'e ekle (kötümser / baz / iyimser satış fiyatı ve maliyet varsayımlarıyla arsa değeri)</span>

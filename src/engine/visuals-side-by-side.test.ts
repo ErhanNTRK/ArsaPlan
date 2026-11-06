@@ -60,6 +60,8 @@ describe('PDF — Parsel Krokisi ve Yapı Kesiti yan yana (ortak başlık, denge
     const { doc } = await buildPdf(input, r, 'test');
     // Hata vermeden, makul sayıda sayfayla üretildiğini doğrula (aşırı
     // yükseklik olsaydı sayfa taşması/hata riski çok artardı).
-    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(3);
+    // (Not: rapora okuyucu için açıklama notları ve terimler sözlüğü eklendiğinden
+    //  üst sınır 3'ten 5'e çıkarıldı; asıl amaç kesitin kontrolsüz uzamamasıdır.)
+    expect(doc.getNumberOfPages()).toBeLessThanOrEqual(5);
   });
 });

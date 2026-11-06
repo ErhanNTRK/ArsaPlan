@@ -408,6 +408,8 @@ export interface ProjectInput {
   showSensitivityInPdf?: boolean;
   /** Senaryo tablosu (kötümser / baz / iyimser) PDF'e eklensin mi? (varsayılan: hayır) */
   showScenariosInPdf?: boolean;
+  /** Terimler sözlüğü PDF'e eklensin mi? (varsayılan: evet — yalnızca false ise eklenmez) */
+  showGlossaryInPdf?: boolean;
   /** Senaryo varsayımları; boşsa varsayılanlar kullanılır. Oranlar kesir: 0.10 = %10 */
   scenarios?: Scenario[];
   reportDate?: string | null;
