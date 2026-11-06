@@ -344,6 +344,13 @@ export interface ResidualInput {
   salesCostRate?: number;
 }
 
+/** Senaryo varsayımı: satış fiyatı ve yapım birim maliyeti değişimi (kesir) */
+export interface Scenario {
+  name: string;
+  priceDelta: number;
+  costDelta: number;
+}
+
 export interface ShareInput {
   enabled: boolean;
   ownerShare: number;
@@ -399,6 +406,10 @@ export interface ProjectInput {
   showReportDate?: boolean;
   /** Duyarlılık tablosu PDF'e eklensin mi? (varsayılan: hayır — ekranda her zaman görünür) */
   showSensitivityInPdf?: boolean;
+  /** Senaryo tablosu (kötümser / baz / iyimser) PDF'e eklensin mi? (varsayılan: hayır) */
+  showScenariosInPdf?: boolean;
+  /** Senaryo varsayımları; boşsa varsayılanlar kullanılır. Oranlar kesir: 0.10 = %10 */
+  scenarios?: Scenario[];
   reportDate?: string | null;
   /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
   bankName?: string | null;

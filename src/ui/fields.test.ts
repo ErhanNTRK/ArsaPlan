@@ -50,3 +50,28 @@ describe('parseLocaleNumber — Türkçe/uluslararası sayı ayrıştırma düze
     expect(parseLocaleNumber('1.234.567')).toBe(1234567);
   });
 });
+
+import { formatTyping } from './fields';
+describe('formatTyping — yazarken binlik ayracı', () => {
+  it('tam sayı gruplanır', () => {
+    expect(formatTyping('1000000')).toBe('1.000.000');
+    expect(formatTyping('999')).toBe('999');
+    expect(formatTyping('1000')).toBe('1.000');
+  });
+  it('ondalık virgül korunur', () => {
+    expect(formatTyping('1234,5')).toBe('1.234,5');
+    expect(formatTyping('0,')).toBe('0,');
+    expect(formatTyping('0,05')).toBe('0,05');
+  });
+  it('sonda yazılan nokta ondalığa çevrilir', () => {
+    expect(formatTyping('0.')).toBe('0,');
+    expect(formatTyping('1.000.')).toBe('1.000,');
+  });
+  it('eklenen binlik noktalar tekrar biçimlenir', () => {
+    expect(formatTyping('1.0005')).toBe('10.005');
+  });
+  it('eksi işareti korunur, baştaki sıfırlar atılır', () => {
+    expect(formatTyping('-1500')).toBe('-1.500');
+    expect(formatTyping('007')).toBe('7');
+  });
+});

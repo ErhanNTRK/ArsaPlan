@@ -80,7 +80,7 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         )}
         {(z.taks ?? 0) > 0 && (z.kaks ?? 0) > 0 && (z.taks as number) > (z.kaks as number) && (
           <div className="warn-box" style={{ marginBottom: 10 }}>
-            ⚠ TAKS ({z.taks}) KAKS'tan ({z.kaks}) büyük. Emsal, taban oturumunun tamamını karşılamaz; değerleri kontrol ediniz.
+            ⚠ TAKS ({String(z.taks).replace('.', ',')}) KAKS'tan ({String(z.kaks).replace('.', ',')}) büyük. Emsal, taban oturumunun tamamını karşılamaz; değerleri kontrol ediniz.
           </div>
         )}
         {lejantOther && (

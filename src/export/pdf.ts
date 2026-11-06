@@ -1,5 +1,6 @@
 import { mahalleUzun } from '../geo/mahalle';
 import { buildSensitivity } from '../engine/sensitivity';
+import { buildScenarios } from '../engine/scenarios';
 /**
  * RAPOR PDF — v5 kurumsal görsel dil
  * Uzman değerlendirmesi bu belgede YER ALMAZ (advicePdf.ts ile ayrı indirilir);
@@ -747,6 +748,36 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     g.priceFactors.forEach((k, i) => {
       cell(k === 1 ? 'Mevcut' : `${k > 1 ? '+' : '-'}%${Math.round(Math.abs(k - 1) * 100)}`, 0, true);
       g.values[i].forEach((v, j) => cell(tl(v), j + 1, i === 2 && j === 2, i === 2 && j === 2));
+      y += 6.4;
+    });
+    y += 4;
+  }
+
+  if (input.showScenariosInPdf) {
+    const rows = buildScenarios(input, input.scenarios);
+    section('SENARYO ANALİZİ — ARSA DEĞERİ');
+    pageBreak(40);
+    const cw = [W * 0.17, W * 0.13, W * 0.13, W * 0.19, W * 0.19, W * 0.19];
+    const heads = ['Senaryo', 'Satış', 'Maliyet', 'Hasılat', 'Toplam Maliyet', 'Arsa Değeri'];
+    const cellAt = (txt: string, ci: number, bold: boolean, hl: boolean) => {
+      const x0 = M + cw.slice(0, ci).reduce((a, b) => a + b, 0);
+      if (hl) { doc.setFillColor(...FAINT); doc.rect(x0, y - 4.4, cw[ci], 6.4, 'F'); }
+      doc.setFont('NTRK', bold ? 'bold' : 'normal'); doc.setFontSize(8.4);
+      doc.setTextColor(...(bold ? NAVY : INK));
+      if (ci === 0) doc.text(t(txt), x0 + 3, y);
+      else doc.text(t(txt), x0 + cw[ci] - 3, y, { align: 'right' });
+    };
+    heads.forEach((h, ci) => cellAt(h, ci, true, false));
+    y += 6.4;
+    const sgn = (v: number) => (v === 0 ? '0%' : `${v > 0 ? '+' : '-'}%${Math.round(Math.abs(v) * 100)}`);
+    rows.forEach((r, i) => {
+      const bold = i === 1;
+      cellAt(r.name, 0, true, bold);
+      cellAt(sgn(r.priceDelta), 1, bold, bold);
+      cellAt(sgn(r.costDelta), 2, bold, bold);
+      cellAt(tl(r.revenue), 3, bold, bold);
+      cellAt(tl(r.totalCost), 4, bold, bold);
+      cellAt(tl(r.landValue), 5, bold, bold);
       y += 6.4;
     });
     y += 4;

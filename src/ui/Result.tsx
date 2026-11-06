@@ -1,6 +1,7 @@
 import { mahalleKisa } from '../geo/mahalle';
 import { useMemo, useState } from 'react';
 import { buildSensitivity } from '../engine/sensitivity';
+import { buildScenarios, DEFAULT_SCENARIOS } from '../engine/scenarios';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
@@ -25,6 +26,13 @@ export function Result({ input, result, version, setInput }: {
   const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel'>(null);
   const [err, setErr] = useState<string | null>(null);
   const sens = useMemo(() => (isletme ? null : buildSensitivity(input)), [input, isletme]);
+  const scenarios = input.scenarios && input.scenarios.length === 3 ? input.scenarios : DEFAULT_SCENARIOS;
+  const scen = useMemo(() => (isletme ? null : buildScenarios(input, input.scenarios)), [input, isletme]);
+  const setScenario = (i: number, patch: Partial<{ priceDelta: number; costDelta: number }>) =>
+    setInput?.((s) => {
+      const base = s.scenarios && s.scenarios.length === 3 ? s.scenarios : DEFAULT_SCENARIOS;
+      return { ...s, scenarios: base.map((x, k) => (k === i ? { ...x, ...patch } : x)) };
+    });
 
   /** Dışa aktarma modülleri yalnızca tıklandığında yüklenir (dinamik import). */
   async function run(kind: 'pdf' | 'advice' | 'jpeg' | 'excel') {
@@ -52,6 +60,37 @@ export function Result({ input, result, version, setInput }: {
 
   return (
     <>
+      <div className="card no-print" id="rapor-indir">
+        <div className="card-title">Raporu İndir</div>
+        <div className="dl-grid">
+          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
+            {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
+          </button>
+          <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
+            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
+          </button>
+          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
+            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'JPEG (Sayfa Sayfa)'}
+          </button>
+          {!isletme && (
+            <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
+              {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
+            </button>
+          )}
+        </div>
+        {!isletme && (
+          <div className="hint" style={{ marginTop: 8 }}>
+            Rapor PDF ve JPEG'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
+            Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
+          </div>
+        )}
+        {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
+        <div className="hint" style={{ marginTop: 8 }}>
+          <a href="#rapor-ayarlari" onClick={(e) => { e.preventDefault(); document.getElementById('rapor-ayarlari')?.scrollIntoView({ behavior: 'smooth' }); }}>
+            Rapor ayarları (banka, şube, tarih, nihai değer) sayfanın altındadır ↓
+          </a>
+        </div>
+      </div>
 
       {isletme ? (
       <>
@@ -326,6 +365,31 @@ export function Result({ input, result, version, setInput }: {
           <Row label="İndirgemeli Gelir Projeksiyonu Değeri" value={fmtTL(f.discountedLandValueRounded)} />
         )}
         <Row label="Gelir Projeksiyonuna Denk Gelen Arsa Payı" value={fmtPct(s.balancedShare)} />
+        {(() => {
+          const salesCostShare = f.salesCost * s.contractorShare;
+          const net = s.contractorNet - salesCostShare;
+          const target = f.revenue * input.residual.profitRate;
+          const ok = net >= target;
+          return (
+            <div style={{ marginTop: 14 }}>
+              <div className="card-subtitle" style={{ fontWeight: 700, marginBottom: 4 }}>Müteahhit Açısından Kontrol</div>
+              <Row label={`Müteahhide Kalan Hasılat (%${(s.contractorShare * 100).toFixed(0)})`} value={fmtTL(s.contractorValue)} tone="pos" />
+              <Row label="Toplam Yapım Maliyeti" value={fmtTL(f.totalCost)} tone="neg" />
+              {salesCostShare > 0 && <Row label="Satış Giderleri (müteahhit payı)" value={fmtTL(salesCostShare)} tone="neg" />}
+              <Row label="Müteahhit Net Kazancı" value={fmtTL(net)} tone={net >= 0 ? 'pos' : 'neg'} />
+              <Row label={`Kâr Beklentisi (%${(input.residual.profitRate * 100).toFixed(0)} × toplam hasılat)`} value={fmtTL(target)} />
+              <Row label="Fark (net kazanç − beklenti)" value={fmtTL(net - target)} tone={ok ? 'pos' : 'neg'} />
+              <div style={{ marginTop: 6 }}>
+                <span className={`badge ${ok ? 'badge-green' : 'badge-navy'}`}>
+                  {ok ? 'Müteahhidin kâr beklentisi karşılanıyor' : 'Müteahhidin kâr beklentisi karşılanmıyor'}
+                </span>
+              </div>
+              <div className="hint" style={{ marginTop: 6 }}>
+                Arsa sahibi payı, beklentiyi tam karşılayan düzeyi ({fmtPct(s.balancedShare)}) aşarsa müteahhit hedef kârın altında kalır.
+              </div>
+            </div>
+          );
+        })()}
         <div style={{ marginTop: 10 }}>
           <span className={`badge ${s.verdict === 'yakin' ? 'badge-green' : 'badge-navy'}`}>
             {VERDICT_TEXT[s.verdict]}
@@ -370,6 +434,58 @@ export function Result({ input, result, version, setInput }: {
                         background: i === 2 && j === 2 ? 'var(--accent-soft, rgba(184,134,63,.16))' : undefined,
                       }}>{fmtTL(v)}</td>
                     ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {scen && (
+        <div className="card">
+          <div className="card-title">Senaryo Analizi — Kötümser / Baz / İyimser</div>
+          <div className="hint" style={{ marginBottom: 8 }}>
+            Satış birim değeri ve yapım birim maliyeti yüzde olarak değiştirilerek arsa değeri yeniden hesaplanır.
+            Kötümser ve iyimser varsayımları düzenleyebilirsiniz.
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Senaryo</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Satış değişimi (%)</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Maliyet değişimi (%)</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Hasılat</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Toplam Maliyet</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>Arsa Değeri</th>
+                  <th style={{ textAlign: 'right', padding: '6px 8px' }}>₺/m²</th>
+                </tr>
+              </thead>
+              <tbody>
+                {scen.map((r, i) => (
+                  <tr key={r.name} style={i === 1 ? { fontWeight: 700 } : undefined}>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>{r.name}</th>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>
+                      {i === 1 ? '0' : (
+                        <input type="number" step="1" aria-label={`${r.name} senaryosu satış değişimi (%)`}
+                               style={{ width: 70, textAlign: 'right' }}
+                               value={Math.round(scenarios[i].priceDelta * 100)}
+                               onChange={(e) => setScenario(i, { priceDelta: (Number(e.target.value) || 0) / 100 })} />
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>
+                      {i === 1 ? '0' : (
+                        <input type="number" step="1" aria-label={`${r.name} senaryosu maliyet değişimi (%)`}
+                               style={{ width: 70, textAlign: 'right' }}
+                               value={Math.round(scenarios[i].costDelta * 100)}
+                               onChange={(e) => setScenario(i, { costDelta: (Number(e.target.value) || 0) / 100 })} />
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>{fmtTL(r.revenue)}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>{fmtTL(r.totalCost)}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>{fmtTL(r.landValue)}</td>
+                    <td style={{ textAlign: 'right', padding: '6px 8px' }}>{fmtTLm2(r.unitValue)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -426,18 +542,25 @@ export function Result({ input, result, version, setInput }: {
       </>
       )}
 
-      <div className="card no-print">
-        <div className="card-title">Raporu İndir</div>
+      <div className="card no-print" id="rapor-ayarlari">
+        <div className="card-title">Rapor Ayarları</div>
         <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <input type="checkbox" checked={!!input.showReportDate}
                  onChange={(e) => setInput?.((s) => ({ ...s, showReportDate: e.target.checked }))} />
-          <span>Rapor Tarihini Göster (opsiyonel)</span>
+          <span>Rapor Tarihini Göster (raporun başlığına tarih ekler; boş bırakılırsa bugünün tarihi)</span>
         </label>
         {!isletme && (
           <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <input type="checkbox" checked={!!input.showSensitivityInPdf}
                    onChange={(e) => setInput?.((s) => ({ ...s, showSensitivityInPdf: e.target.checked }))} />
-            <span>Duyarlılık tablosunu PDF'e ekle (opsiyonel)</span>
+            <span>Duyarlılık tablosunu PDF'e ekle (satış fiyatı ±%10 ve kâr oranı ±5 puan için 5×5 arsa değeri tablosu)</span>
+          </label>
+        )}
+        {!isletme && (
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <input type="checkbox" checked={!!input.showScenariosInPdf}
+                   onChange={(e) => setInput?.((s) => ({ ...s, showScenariosInPdf: e.target.checked }))} />
+            <span>Senaryo tablosunu PDF'e ekle (kötümser / baz / iyimser satış fiyatı ve maliyet varsayımlarıyla arsa değeri)</span>
           </label>
         )}
         {input.showReportDate && (
@@ -497,29 +620,7 @@ export function Result({ input, result, version, setInput }: {
             </>
           )}
         </div>
-        <div className="dl-grid">
-          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
-            {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
-          </button>
-          <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
-            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
-          </button>
-          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
-            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'JPEG (Sayfa Sayfa)'}
-          </button>
-          {!isletme && (
-            <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
-              {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
-            </button>
-          )}
-        </div>
-        {!isletme && (
-          <div className="hint" style={{ marginTop: 8 }}>
-            Rapor PDF ve JPEG'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
-            Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
-          </div>
-        )}
-        {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
+        <div className="hint">Raporu indirmek için sayfanın en üstündeki düğmeleri kullanın; ayarlar rapora yansır.</div>
       </div>
     </>
   );

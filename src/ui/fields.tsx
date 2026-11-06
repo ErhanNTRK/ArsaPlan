@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { LOC } from '../i18n';
 
 /**
@@ -47,6 +47,28 @@ export function parseLocaleNumber(input: string): number {
   return negative ? -n : n;
 }
 
+/**
+ * Yazarken biçimlendirme: binlik ayracı nokta, ondalık ayracı virgül.
+ * "1000000" → "1.000.000"; "1234,5" → "1.234,5".
+ * Kullanıcı ondalık için nokta yazarsa (son karakter '.') virgüle çevrilir
+ * ("0." → "0,"). Alandaki diğer noktalar bizim eklediğimiz binlik ayraçlarıdır.
+ */
+export function formatTyping(input: string): string {
+  let t = input ?? '';
+  const neg = t.trimStart().startsWith('-');
+  t = t.replace(/-/g, '');
+  if (t.endsWith('.') && !t.includes(',')) t = t.slice(0, -1) + ',';
+  const ci = t.indexOf(',');
+  let intp = ci === -1 ? t : t.slice(0, ci);
+  const frac = ci === -1 ? null : t.slice(ci + 1).replace(/\D/g, '');
+  intp = intp.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  intp = intp.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (neg ? '-' : '') + intp + (frac !== null ? ',' + frac : '');
+}
+
+/** Sayıyı düzenleme biçimine (TR) çevirir: 1234.5 → "1.234,5" */
+const toEditText = (v: number) => (v === 0 ? '' : formatTyping(String(v).replace('.', ',')));
+
 export const fmtTL = (v: number) =>
   isFinite(v) ? Math.round(v).toLocaleString(LOC()) + ' ₺' : '–';
 export const fmtTLm2 = (v: number) =>
@@ -61,44 +83,93 @@ export const fmtPct = (v: number, d = 1) =>
 export const fmtNum = (v: number, d = 2) =>
   isFinite(v) ? v.toLocaleString(LOC(), { maximumFractionDigits: d }) : '–';
 
+interface FieldCtxValue { id: string; describedBy?: string; invalid: boolean; claimed: { current: boolean } }
+const FieldCtx = createContext<FieldCtxValue | null>(null);
+
+/** Alan etiketini ilk girdi kontrolüne (id / aria-describedby / aria-invalid) bağlar. */
+function useFieldProps() {
+  const f = useContext(FieldCtx);
+  const mine = useRef<string | undefined>(undefined);
+  if (mine.current === undefined && f && !f.claimed.current) { f.claimed.current = true; mine.current = f.id; }
+  if (!f || mine.current === undefined) return {};
+  return {
+    id: mine.current,
+    'aria-describedby': f.describedBy,
+    'aria-invalid': f.invalid || undefined,
+  } as { id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean };
+}
+
 export function Field({ label, hint, error, children }:
   { label: string; hint?: string; error?: string | null; children: ReactNode }) {
+  const id = useId();
+  const claimed = useRef(false);
+  const noteId = error || hint ? `${id}-note` : undefined;
   return (
-    <div className={error ? 'field field-error' : 'field'}>
-      <label className="label">{label}</label>
-      {children}
-      {error ? <div className="field-error-msg">⚠ {error}</div>
-             : hint && <div className="hint">{hint}</div>}
-    </div>
+    <FieldCtx.Provider value={{ id, describedBy: noteId, invalid: !!error, claimed }}>
+      <div className={error ? 'field field-error' : 'field'}>
+        <label className="label" htmlFor={id}>{label}</label>
+        {children}
+        {error ? <div className="field-error-msg" id={noteId} role="alert">⚠ {error}</div>
+               : hint && <div className="hint" id={noteId}>{hint}</div>}
+      </div>
+    </FieldCtx.Provider>
   );
 }
 
 export function Txt({ value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder?: string;
 }) {
-  return <input type="text" value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
+  const fp = useFieldProps();
+  return <input type="text" {...fp} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />;
 }
 
-/** Sayısal alan — boş bırakılabilir, 0 silinebilir (Dora dersi). */
+/** Sayısal alan — boş bırakılabilir, 0 silinebilir (Dora dersi). Yazarken binlik ayracı eklenir. */
 export function Num({ value, onChange, suffix, step, placeholder, plain }: {
   value: number; onChange: (v: number) => void; suffix?: string; step?: string; placeholder?: string; plain?: boolean;
 }) {
+  const fp = useFieldProps();
   const [focused, setFocused] = useState(false);
   const [raw, setRaw] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  /** Düzenleme sonrası imlecin solunda kalması gereken rakam sayısı */
+  const caretDigits = useRef<number | null>(null);
   useEffect(() => { if (!focused) setRaw(value === 0 ? '' : String(value)); }, [value, focused]);
+
+  /** İmleci, biçimlendirme sonrası aynı rakamın yanına geri koyar. */
+  useLayoutEffect(() => {
+    const el = inputRef.current;
+    const want = caretDigits.current;
+    if (!el || want === null || !focused) return;
+    caretDigits.current = null;
+    let pos = 0, seen = 0;
+    while (pos < raw.length && seen < want) { if (/\d/.test(raw[pos])) seen++; pos++; }
+    el.setSelectionRange(pos, pos);
+  }, [raw, focused]);
 
   const display = focused ? raw : (value === 0 ? '' : plain ? String(value) : value.toLocaleString(LOC(), { maximumFractionDigits: 2 }));
 
   return (
     <div className="suffix-wrap">
       <input
+        ref={inputRef}
         type="text"
         inputMode="decimal"
+        {...fp}
         placeholder={placeholder}
         title={step ? `Adım: ${step}` : undefined}
         value={display}
-        onFocus={() => { setFocused(true); setRaw(value === 0 ? '' : String(value)); }}
-        onChange={(e) => setRaw(e.target.value.replace(/[^\d.,-]/g, ''))}
+        onFocus={() => { setFocused(true); setRaw(plain ? (value === 0 ? '' : String(value)) : toEditText(value)); }}
+        onChange={(e) => {
+          const el = e.target;
+          const cleaned = el.value.replace(/[^\d.,-]/g, '');
+          if (plain) { setRaw(cleaned); return; }
+          const before = cleaned.slice(0, el.selectionStart ?? cleaned.length);
+          caretDigits.current = (before.match(/\d/g) ?? []).length;
+          /* Yapıştırma (birden çok karakter eklenmiş): belirsiz "1234.56" gibi girişleri
+             yerel ayrıştırıcıyla çöz, sonra biçimle. */
+          const pasted = Math.abs(cleaned.length - raw.length) > 1 && cleaned.length > 1;
+          setRaw(pasted ? toEditText(parseLocaleNumber(cleaned)) : formatTyping(cleaned));
+        }}
         onBlur={() => {
           setFocused(false);
           const n = parseLocaleNumber(raw);
@@ -112,10 +183,12 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
 
 /** Yüzde alanı: kullanıcı 25 yazar, motor 0.25 alır. */
 export function Pct({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  const fp = useFieldProps();
   return (
     <div className="suffix-wrap">
       <input
         type="number"
+        {...fp}
         inputMode="decimal"
         step="0.5"
         value={String(Math.round(value * 1000) / 10)}
@@ -129,8 +202,9 @@ export function Pct({ value, onChange }: { value: number; onChange: (v: number) 
 export function Sel<T extends string>({ value, onChange, options }: {
   value: T; onChange: (v: T) => void; options: Array<{ value: T; label: string }>;
 }) {
+  const fp = useFieldProps();
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value as T)}>
+    <select {...fp} value={value} onChange={(e) => onChange(e.target.value as T)}>
       {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
