@@ -6,7 +6,7 @@ describe('PDF — Duyarlılık tablosu opsiyonel', () => {
     const { analyze } = await import('../engine');
     const make = (await import('../tests/fixtures/minimalProjectInput')).default;
     const { buildPdf } = await import('./pdf');
-    const input = { ...make(), showSensitivityInPdf: flag };
+    const input = { ...make(), showSensitivityInPdf: flag, showScenariosInPdf: flag };
     const { doc } = await buildPdf(input, analyze(input), 'test');
     return doc.getNumberOfPages();
   }
