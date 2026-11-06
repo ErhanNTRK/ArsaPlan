@@ -163,8 +163,17 @@ export function Step2({ input, upd, setTop }: P) {
           <Field label="Parsel"><Txt value={p.parsel} onChange={(v) => upd('parcel', { parsel: v })} /></Field>
         </div>
         <div className="grid-2">
-          <Field label="Parsel Alanı (tapu)"><Num value={p.area} onChange={(v) => upd('parcel', { area: v })} suffix="m²" /></Field>
-          <Field label="Net Parsel Alanı" hint="Terk / DOP sonrası">
+          <Field label="Parsel Alanı (tapu)">
+            <Num value={p.area}
+                 onChange={(v) => upd('parcel', {
+                   area: v,
+                   /* Net alan boşsa veya tapu alanıyla eşleşiyorsa (terk yok) birlikte güncellenir;
+                      kullanıcı net alanı elle değiştirdiyse dokunulmaz. */
+                   ...((!p.netArea || p.netArea === p.area) ? { netArea: v } : {}),
+                 })}
+                 suffix="m²" />
+          </Field>
+          <Field label="Net Parsel Alanı" hint="Terk / DOP sonrası · terk yoksa tapu alanıyla aynıdır">
             <Num value={p.netArea} onChange={(v) => upd('parcel', { netArea: v })} suffix="m²" />
           </Field>
         </div>
