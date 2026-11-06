@@ -399,7 +399,7 @@ export interface ProjectInput {
    * ham Gelir Projeksiyonu sonucu gösterilir (eski davranış, değişmez).
    * "manuel" seçilirse finalManualValue kullanılır.
    */
-  finalMethod?: 'gelir' | 'gelir-indirgemeli' | 'kat-karsiligi-indirgemeli' | 'manuel';
+  finalMethod?: 'gelir' | 'gelir-indirgemeli' | 'kat-karsiligi' | 'kat-karsiligi-indirgemeli' | 'manuel';
   /** finalMethod="manuel" iken kullanılan elle girilmiş nihai arsa değeri. */
   finalManualValue?: number | null;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */

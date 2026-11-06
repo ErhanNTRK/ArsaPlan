@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { buildSensitivity } from '../engine/sensitivity';
 import { buildScenarios, DEFAULT_SCENARIOS } from '../engine/scenarios';
 import { buildSummary } from '../export/summary';
+import { finalOptions, resolveFinal, type FinalMethod } from '../engine/finalValue';
 import { SummaryView } from './Summary';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
@@ -23,11 +24,12 @@ export function Result({ input, result, version, setInput }: {
 }) {
   const { capacity: c, financial: f, share: s, advice, apartment: apt, isletme } = result;
   const p = input.parcel;
-  const neg = f.residualLandValue < 0;
   const karma = apt != null && input.assetType !== 'konut';
   const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel' | 'summary'>(null);
   const [tab, setTab] = useState<'ozet' | 'detay'>('detay');
   const summary = useMemo(() => buildSummary(input, result), [input, result]);
+  const fin = resolveFinal(input, result);
+  const finOpts = finalOptions(input, result);
   const [err, setErr] = useState<string | null>(null);
   const sens = useMemo(() => (isletme ? null : buildSensitivity(input)), [input, isletme]);
   const scenarios = input.scenarios && input.scenarios.length === 3 ? input.scenarios : DEFAULT_SCENARIOS;
@@ -220,25 +222,31 @@ export function Result({ input, result, version, setInput }: {
 
       <div className="kpi-grid">
         <div className="kpi hero">
-          <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
-          <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValueRounded)}</div>
+          <div className="kpi-label">{`Arsa Değeri (${fin.name})`}</div>
+          <div className="kpi-value" style={fin.value < 0 ? { color: '#ff9c94' } : undefined}>{fmtTL(fin.value)}</div>
           {p.area === p.netArea ? (
-            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}</b></div>
+            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2((p.area > 0 ? fin.value / p.area : 0))}</b></div>
           ) : (
             <>
-              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2Precise(p.area)}</b> → <b>{fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}</b></div>
+              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2Precise(p.area)}</b> → <b>{fmtTLm2((p.area > 0 ? fin.value / p.area : 0))}</b></div>
               <div className="kpi-sub" style={{ marginTop: 2 }}>
-                Net Alan: <b>{fmtM2Precise(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0)}</b>
+                Net Alan: <b>{fmtM2Precise(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? fin.value / p.netArea : 0)}</b>
               </div>
             </>
           )}
-          {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null && (
+          {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null && fin.method === 'gelir-indirgemeli' && (
+            <div className="kpi-sub" style={{ marginTop: 4 }}>
+              İndirgemesiz Arsa Değeri: <b>{fmtTL(f.residualLandValueRounded)}</b>
+              {' '}(indirgeme: {input.residual.projectMonths} ay · %{((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())})
+            </div>
+          )}
+          {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null && fin.method === 'gelir' && (
             <div className="kpi-sub" style={{ marginTop: 4 }}>
               İndirgemeli Arsa Değeri ({input.residual.projectMonths} ay · %{((input.residual.timeDiscountRate ?? 0) * 100).toLocaleString(LOC())}):{' '}
               <b>{fmtTL(f.discountedLandValueRounded)}</b>
             </div>
           )}
-          {fxLines(input.fx, f.residualLandValue, (p.area > 0 ? f.residualLandValueRounded / p.area : 0)).map((l) => (
+          {fxLines(input.fx, fin.value, (p.area > 0 ? fin.value / p.area : 0)).map((l) => (
             <div className="kpi-sub" key={l.code}>
               {l.code}: <b>{fxMoney(l.symbol, l.value)}</b> · {fxMoney(l.symbol, l.unitValue)}/m² · kur {l.rate.toLocaleString(LOC())}
             </div>
@@ -601,17 +609,17 @@ export function Result({ input, result, version, setInput }: {
             <input value={input.branchName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
         </div>
         {(() => {
-          const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-          const method = input.finalMethod ?? (discountActive ? 'gelir-indirgemeli' : 'gelir');
+          const method = input.finalMethod ?? fin.method;
           return (
             <div className="grid-2" style={{ marginBottom: 10 }}>
               <label className="pfield">
-                <span>Nihai Değer — PDF'te ana kutuda hangisi görünsün?</span>
-                <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as typeof method }))}>
-                  <option value="gelir">Gelir Projeksiyonu{discountActive ? '' : ' (varsayılan)'}</option>
-                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri (varsayılan)</option>}
-                  {input.share.enabled && discountActive && <option value="kat-karsiligi-indirgemeli">İndirgemeli Kat Karşılığı Değeri</option>}
-                  <option value="manuel">Manuel — elle giriş</option>
+                <span>Nihai Değer — ana kutuda ve raporda hangisi görünsün?</span>
+                <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as FinalMethod }))}>
+                  {finOpts.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.name}{o.value !== 'manuel' && o.amount != null ? ` — ${fmtTL(o.amount)}` : ''}
+                    </option>
+                  ))}
                 </select>
               </label>
               {method === 'manuel' && (

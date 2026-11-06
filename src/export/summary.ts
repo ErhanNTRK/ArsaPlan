@@ -7,6 +7,7 @@ import type { ProjectInput, AnalysisResult } from '../engine';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
 import { mahalleUzun } from '../geo/mahalle';
 import { LOC } from '../i18n';
+import { resolveFinal } from '../engine/finalValue';
 
 const tl = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺';
 const tlm2 = (v: number) => Math.round(v).toLocaleString(LOC()) + ' ₺/m²';
@@ -62,16 +63,9 @@ export function buildSummary(input: ProjectInput, r: AnalysisResult): Summary {
   }
 
   /* ── Ana değer: PDF'teki ana kutuyla aynı mantık ── */
-  const method = input.finalMethod ?? (discountOn ? 'gelir-indirgemeli' : 'gelir');
-  let heroValue = f.residualLandValueRounded;
-  let heroLabel = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
-  if (method === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
-    heroValue = input.finalManualValue; heroLabel = 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)';
-  } else if (method === 'gelir-indirgemeli' && discountOn) {
-    heroValue = f.discountedLandValueRounded; heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)';
-  } else if (method === 'kat-karsiligi-indirgemeli' && input.share.enabled && discountOn) {
-    heroValue = s.discountedShareLandValueRounded; heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ KAT KARŞILIĞI)';
-  }
+  const fin = resolveFinal(input, r);
+  const heroValue = fin.value;
+  const heroLabel = fin.label;
 
   const type = apt
     ? `${input.assetType === 'karma' ? 'Karma Kullanım' : input.assetType === 'ticari' ? 'Ticari Apartman' : 'Çok Katlı Bina'}`

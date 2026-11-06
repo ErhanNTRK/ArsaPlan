@@ -1,6 +1,7 @@
 import { mahalleUzun } from '../geo/mahalle';
 import { buildSensitivity } from '../engine/sensitivity';
 import { buildScenarios } from '../engine/scenarios';
+import { resolveFinal } from '../engine/finalValue';
 /**
  * RAPOR PDF — v5 kurumsal görsel dil
  * Uzman değerlendirmesi bu belgede YER ALMAZ (advicePdf.ts ile ayrı indirilir);
@@ -167,21 +168,10 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   /* ── Sonuç şeridi ── */
   function hero() {
-    const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-    /* Kullanıcı yöntem seçmediyse: indirgeme girilmişse indirgemeli değer, yoksa klasik değer. */
-    const method = input.finalMethod ?? (discountActive ? 'gelir-indirgemeli' : 'gelir');
-    let heroValue = f.residualLandValueRounded;
-    let heroLabel = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
-    if (method === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
-      heroValue = input.finalManualValue;
-      heroLabel = 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)';
-    } else if (method === 'gelir-indirgemeli' && discountActive) {
-      heroValue = f.discountedLandValueRounded;
-      heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)';
-    } else if (method === 'kat-karsiligi-indirgemeli' && input.share.enabled && discountActive) {
-      heroValue = s.discountedShareLandValueRounded;
-      heroLabel = 'ARSA DEĞERİ (İNDİRGEMELİ KAT KARŞILIĞI)';
-    }
+    /* Esas değer: kullanıcının seçtiği yöntem; seçmediyse indirgeme varsa indirgemeli, yoksa klasik (finalValue.ts). */
+    const fin = resolveFinal(input, r);
+    const heroValue = fin.value;
+    const heroLabel = fin.label;
     const H = 27;
     doc.setFillColor(...NAVY);
     doc.roundedRect(M, y, W, H, 2.2, 2.2, 'F');
@@ -200,7 +190,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
       doc.text(val, PW - M - 5, sy, { align: 'right' });
     };
-    stat('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), y + 8.4);
+    stat('Arsa m² Birim Değeri', tlm2((p.area > 0 ? heroValue / p.area : 0)), y + 8.4);
     stat('Toplam İnşaat Alanı', m2(c.totalArea), y + 15.2);
     if (apt) stat('Satılabilir Alan', m2(apt.saleableTotal), y + 22);
     else stat(c.unitCount > 0 ? 'Villa Adedi' : 'Bahçe / Açık Alan',
@@ -209,7 +199,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (p.area !== p.netArea) {
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.8); doc.setTextColor(...GRAY);
       doc.text(
-        t(`Not: Tapu Alanı ${m2p(p.area)} → ${tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}  ·  Net Alan (terk sonrası) ${m2p(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0)}`),
+        t(`Not: Tapu Alanı ${m2p(p.area)} → ${tlm2((p.area > 0 ? heroValue / p.area : 0))}  ·  Net Alan (terk sonrası) ${m2p(p.netArea)} → ${tlm2(p.netArea > 0 ? heroValue / p.netArea : 0)}`),
         M + 2, y,
       );
       y += 6;
@@ -402,7 +392,11 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     const cxm = bx + BW2 / 2;
     const groundY = y0 + 5 + above.length * FH;
     const maxA = Math.max(...rows.map((r) => r.area), 1);
-    const propW = (a: number) => (a > 0 ? Math.max(BW2 * 0.24, BW2 * (a / maxA)) : BW2);
+    const propW = (a: number) => {
+      if (a <= 0) return BW2;
+      const ratio = a / maxA;
+      return Math.max(BW2 * 0.24, BW2 * (ratio > 0.9 ? 1 : ratio)); // %10 içindeki farklar aynı genişlik
+    };
     const labelSize = boxW < 100 ? 5.8 : 6.9;   // dar kutuda (yan yana mod) küçük yazı
     const labelX = bx + BW2 + (boxW < 100 ? 5 : 10);
 
@@ -437,19 +431,37 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       const commercial = r.kind === 'zemin' || r.kind === 'asma';
       doc.setDrawColor(...NAVY);
       if (r.kind === 'asma') {
+        /* Asma: zemin katın çift yükseklikli hacmi içinde, sağdan içeri doğru kısmi kat.
+           Çizim zemin satırında tamamlandığı için burada yalnız asma kat penceresi çizilir. */
         const zW = propW(zeminRow?.area ?? r.area);
         const ratio = zeminRow && zeminRow.area > 0 ? r.area / zeminRow.area : 0.5;
-        const aW = Math.max(zW * 0.35, Math.min(zW * 0.9, zW * ratio));
+        const aW = Math.max(zW * 0.35, Math.min(zW * 0.85, zW * ratio));
         const aX = cxm + zW / 2 - aW;
-        doc.setFillColor(232, 221, 198);
+        doc.setFillColor(232, 221, 198); doc.setDrawColor(...NAVY); doc.setLineWidth(0.35);
         doc.rect(aX, yy, aW, FH, 'FD');
         if (FH >= 3.2) drawWindows(aX, yy, aW, true);
       } else if (r.kind === 'zemin' && hasAsma) {
-        // çift yükseklikli zemin: üst yarı asma katla paylaşılır
+        /* Çift yükseklikli zemin kat: dış hat + vitrin camı (boşluk kısmı tam yükseklik) */
         const topY = yy - FH;
+        const aRow = above.find((q) => q.kind === 'asma');
+        const ratio = aRow && r.area > 0 ? aRow.area / r.area : 0.5;
+        const aW = Math.max(wdt * 0.35, Math.min(wdt * 0.85, wdt * ratio));
+        const voidW = wdt - aW;
         doc.setFillColor(244, 236, 221);
         doc.rect(x, topY, wdt, 2 * FH, 'FD');
-        if (FH >= 3.2) drawWindows(x, yy, wdt, true);
+        if (FH >= 3.2) {
+          // boşluk (çift yükseklik) vitrini — tam yükseklikte cam, ortada ince doğrama
+          doc.setFillColor(255, 255, 255); doc.setDrawColor(...NAVY); doc.setLineWidth(0.22);
+          const gx = x + voidW * 0.08, gw = voidW * 0.84, gy = topY + FH * 0.18, gh = 2 * FH - FH * 0.36;
+          doc.rect(gx, gy, gw, gh, 'FD');
+          doc.line(gx + gw / 2, gy, gx + gw / 2, gy + gh);
+          // asma altı: zemin seviyesi vitrini
+          drawWindows(x + voidW, yy, aW, true);
+          // asma döşemesi — asma kat altı çizgisi
+          doc.setLineWidth(0.5); doc.setDrawColor(...NAVY);
+          doc.line(x + voidW, yy, x + wdt, yy);
+          doc.setLineWidth(0.35);
+        }
       } else if (r.kind === 'piyes') {
         const pw = Math.max(propW(r.area), BW2 * 0.5);
         const px = cxm - pw / 2, eave = 2.2;
@@ -780,9 +792,10 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
         tl(f.discountedLandValue), { bold: true });
   }
-  row('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), { bold: true });
+  const finMain = resolveFinal(input, r);
+  row('Arsa m² Birim Değeri', tlm2((p.area > 0 ? finMain.value / p.area : 0)), { bold: true });
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
-  for (const l of fxLines(input.fx, f.residualLandValueRounded, (p.area > 0 ? f.residualLandValueRounded / p.area : 0))) {
+  for (const l of fxLines(input.fx, finMain.value, (p.area > 0 ? finMain.value / p.area : 0))) {
     row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
   }

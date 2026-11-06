@@ -1,4 +1,5 @@
 import type { ProjectInput, AssetType, HousingType } from '../engine';
+import { FinalMethodPicker } from './FinalMethodPicker';
 import { Ico } from './icons';
 import { computeCapacity, normalizeZoning, computeApartment, floorsFromHmax } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
@@ -551,6 +552,7 @@ export function Step5({ input, upd, setTop }: P) {
   const r = input.residual;
   return (
     <div className="cols">
+      <FinalMethodPicker input={input} setTop={setTop} />
       <div className="card card-wide">
         <div className="card-title">Kâr ve Finansman</div>
         <div className="grid-2">

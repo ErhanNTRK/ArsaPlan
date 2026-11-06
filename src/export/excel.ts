@@ -1,4 +1,5 @@
 import { mahalleUzun } from '../geo/mahalle';
+import { resolveFinal } from '../engine/finalValue';
 /**
  * EXCEL ÇIKTISI (.xlsx)
  * Bu modül yalnızca "Excel indir" tıklandığında yüklenir (dinamik import),
@@ -143,20 +144,9 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   row += 2;
 
   /* Sonuç bloğu — lacivert hero */
-  const heroMethod = input.finalMethod ?? 'gelir';
-  const heroDiscountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-  let heroLabelXl = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
-  let heroValueXl = f.residualLandValueRounded;
-  if (heroMethod === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
-    heroLabelXl = 'ARSA DEĞERİ (KULLANICI BELİRLEDİ)';
-    heroValueXl = input.finalManualValue;
-  } else if (heroMethod === 'gelir-indirgemeli' && heroDiscountActive) {
-    heroLabelXl = 'ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)';
-    heroValueXl = f.discountedLandValueRounded;
-  } else if (heroMethod === 'kat-karsiligi-indirgemeli' && input.share.enabled && heroDiscountActive) {
-    heroLabelXl = 'ARSA DEĞERİ (İNDİRGEMELİ KAT KARŞILIĞI)';
-    heroValueXl = s.discountedShareLandValueRounded;
-  }
+  const heroFin = resolveFinal(input, r);
+  const heroLabelXl = heroFin.label;
+  const heroValueXl = heroFin.value;
   ws1.mergeCells(`B${row}:B${row + 1}`);
   const hero = ws1.getCell(`B${row}`);
   hero.value = tt(heroLabelXl).replace(' (', '\n(');
