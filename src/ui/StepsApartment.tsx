@@ -73,6 +73,16 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
                onChange={(val) => upd('zoning', { lejant: val === 'Diğer (elle yazınız)' ? ' ' : val })}
                options={[{ value: '', label: 'Seçiniz…' }, ...LEJANTLAR.map((l) => ({ value: l, label: l }))]} />
         </Field>
+        {!z.lejant && (
+          <div className="warn-box" style={{ marginBottom: 10 }}>
+            ⚠ Plan lejantı seçilmedi. Devam edebilirsiniz; raporda "Lejant girilmedi" yazılır.
+          </div>
+        )}
+        {(z.taks ?? 0) > 0 && (z.kaks ?? 0) > 0 && (z.taks as number) > (z.kaks as number) && (
+          <div className="warn-box" style={{ marginBottom: 10 }}>
+            ⚠ TAKS ({z.taks}) KAKS'tan ({z.kaks}) büyük. Emsal, taban oturumunun tamamını karşılamaz; değerleri kontrol ediniz.
+          </div>
+        )}
         {lejantOther && (
           <Field label="Lejant (elle)">
             <Txt value={z.lejant === ' ' ? '' : z.lejant} onChange={(val) => upd('zoning', { lejant: val === '' ? ' ' : val })} />
@@ -135,8 +145,8 @@ export function Step3Apartment({ input, upd, karma = false }: P) {
         {taksKaks ? (
           <>
             <div className="grid-3">
-              <Field label="TAKS"><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
-              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+              <Field label="TAKS" error={(z.taks ?? 0) > 1 ? "TAKS 1'den büyük olamaz (örn. 0,30)." : null}><Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01" /></Field>
+              <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : (z.kaks > 10 ? 'KAKS değeri çok yüksek görünüyor, kontrol ediniz.' : null)}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
             {(() => {
               const k = input.parcel.kml;
               if (!k || k.setback <= 0 || z.mode !== 'taks-kaks' || !z.taks) return null;

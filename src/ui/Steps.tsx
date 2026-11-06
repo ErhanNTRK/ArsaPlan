@@ -220,6 +220,16 @@ function Step3Villa({ input, upd }: P) {
                onChange={(val) => upd('zoning', { lejant: val === 'Diğer (elle yazınız)' ? ' ' : val })}
                options={[{ value: '', label: 'Seçiniz…' }, ...LEJANTLAR.map((l) => ({ value: l, label: l }))]} />
         </Field>
+        {!z.lejant && (
+          <div className="warn-box" style={{ marginBottom: 10 }}>
+            ⚠ Plan lejantı seçilmedi. Devam edebilirsiniz; raporda "Lejant girilmedi" yazılır.
+          </div>
+        )}
+        {(z.taks ?? 0) > 0 && (z.kaks ?? 0) > 0 && (z.taks as number) > (z.kaks as number) && (
+          <div className="warn-box" style={{ marginBottom: 10 }}>
+            ⚠ TAKS ({z.taks}) KAKS'tan ({z.kaks}) büyük. Emsal, taban oturumunun tamamını karşılamaz; değerleri kontrol ediniz.
+          </div>
+        )}
         {lejantOther && (
           <Field label="Lejant (elle)">
             <Txt value={z.lejant === ' ' ? '' : z.lejant} onChange={(val) => upd('zoning', { lejant: val === '' ? ' ' : val })} />
@@ -232,14 +242,14 @@ function Step3Villa({ input, upd }: P) {
 
         {taksKaks ? (
           <div className="grid-3">
-            <Field label="TAKS">
+            <Field label="TAKS" error={(z.taks ?? 0) > 1 ? "TAKS 1'den büyük olamaz (örn. 0,30)." : null}>
               <Num value={z.taks ?? 0} onChange={(val) => upd('zoning', { taks: val || null })} step="0.01"
                    placeholder={!z.taks && z.kaks && z.hmax ? (() => {
                      const floors = floorsFromHmax(z.hmax);
                      return floors ? String(Math.round((z.kaks / floors) * 100) / 100) : undefined;
                    })() : undefined} />
             </Field>
-            <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : null}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
+            <Field label="KAKS" error={z.kaks == null ? 'Zorunlu: emsal değerini giriniz.' : (z.kaks > 10 ? 'KAKS değeri çok yüksek görünüyor, kontrol ediniz.' : null)}><Num value={z.kaks ?? 0} onChange={(val) => upd('zoning', { kaks: val || null })} step="0.01" /></Field>
             {!z.taks && z.kaks != null && (
               <div className="hint" style={{ gridColumn: '1 / -1' }}>
                 TAKS girilmedi — Kat Sayısı ({v.floorsAboveGround}) ve Emsal Alanından taban oturumu otomatik

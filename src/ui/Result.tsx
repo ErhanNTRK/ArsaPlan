@@ -50,94 +50,6 @@ export function Result({ input, result, version, setInput }: {
 
   return (
     <>
-      <div className="card no-print">
-        <div className="card-title">Raporu İndir</div>
-        <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <input type="checkbox" checked={!!input.showReportDate}
-                 onChange={(e) => setInput?.((s) => ({ ...s, showReportDate: e.target.checked }))} />
-          <span>Rapor Tarihini Göster (opsiyonel)</span>
-        </label>
-        {input.showReportDate && (
-          <label className="pfield" style={{ marginBottom: 10, maxWidth: 220 }}>
-            <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
-            <input type="date" value={input.reportDate ?? ''}
-                   onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
-          </label>
-        )}
-        <div className="grid-2" style={{ marginBottom: 10 }}>
-          <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
-            <input value={input.bankName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, bankName: e.target.value || null }))} /></label>
-          <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
-            <input value={input.branchName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
-        </div>
-        {(() => {
-          const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-          const method = input.finalMethod ?? 'gelir';
-          return (
-            <div className="grid-2" style={{ marginBottom: 10 }}>
-              <label className="pfield">
-                <span>Nihai Değer — PDF'te ana kutuda hangisi görünsün?</span>
-                <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as typeof method }))}>
-                  <option value="gelir">Gelir Projeksiyonu (varsayılan)</option>
-                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri</option>}
-                  {input.share.enabled && discountActive && <option value="kat-karsiligi-indirgemeli">İndirgemeli Kat Karşılığı Değeri</option>}
-                  <option value="manuel">Manuel — elle giriş</option>
-                </select>
-              </label>
-              {method === 'manuel' && (
-                <label className="pfield">
-                  <span>Manuel Değer (₺)</span>
-                  <input type="number" min={0} placeholder="Örn. 210000000"
-                         value={input.finalManualValue ?? ''}
-                         onChange={(e) => setInput?.((s) => ({ ...s, finalManualValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0) }))} />
-                </label>
-              )}
-            </div>
-          );
-        })()}
-        {input.share.enabled && (
-          <div className="hint" style={{ marginBottom: 4 }}>Raporda "Yöntem Karşılaştırması" bölümünde gösterilecek değerler:</div>
-        )}
-        <div className="grid-2" style={{ marginBottom: 10 }}>
-          {input.share.enabled && (
-            <>
-              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="checkbox" checked={input.showKatKarsiligiIndirgemeli ?? true}
-                       onChange={(e) => setInput?.((s) => ({ ...s, showKatKarsiligiIndirgemeli: e.target.checked }))} />
-                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Kat Karşılığı Değeri</span>
-              </label>
-              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input type="checkbox" checked={input.showGelirIndirgemeli ?? true}
-                       onChange={(e) => setInput?.((s) => ({ ...s, showGelirIndirgemeli: e.target.checked }))} />
-                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Gelir Projeksiyonu Değeri</span>
-              </label>
-            </>
-          )}
-        </div>
-        <div className="dl-grid">
-          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
-            {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
-          </button>
-          <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
-            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
-          </button>
-          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
-            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'JPEG (Sayfa Sayfa)'}
-          </button>
-          {!isletme && (
-            <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
-              {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
-            </button>
-          )}
-        </div>
-        {!isletme && (
-          <div className="hint" style={{ marginTop: 8 }}>
-            Rapor PDF ve JPEG'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
-            Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
-          </div>
-        )}
-        {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
-      </div>
 
       {isletme ? (
       <>
@@ -473,6 +385,95 @@ export function Result({ input, result, version, setInput }: {
       </div>
       </>
       )}
+
+      <div className="card no-print">
+        <div className="card-title">Raporu İndir</div>
+        <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+          <input type="checkbox" checked={!!input.showReportDate}
+                 onChange={(e) => setInput?.((s) => ({ ...s, showReportDate: e.target.checked }))} />
+          <span>Rapor Tarihini Göster (opsiyonel)</span>
+        </label>
+        {input.showReportDate && (
+          <label className="pfield" style={{ marginBottom: 10, maxWidth: 220 }}>
+            <span>Rapor Tarihi (boş bırakılırsa bugün)</span>
+            <input type="date" value={input.reportDate ?? ''}
+                   onChange={(e) => setInput?.((s) => ({ ...s, reportDate: e.target.value || null }))} />
+          </label>
+        )}
+        <div className="grid-2" style={{ marginBottom: 10 }}>
+          <label className="pfield"><span>Banka İsmi (opsiyonel)</span>
+            <input value={input.bankName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, bankName: e.target.value || null }))} /></label>
+          <label className="pfield"><span>Şube İsmi (opsiyonel)</span>
+            <input value={input.branchName ?? ''} onChange={(e) => setInput?.((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
+        </div>
+        {(() => {
+          const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+          const method = input.finalMethod ?? 'gelir';
+          return (
+            <div className="grid-2" style={{ marginBottom: 10 }}>
+              <label className="pfield">
+                <span>Nihai Değer — PDF'te ana kutuda hangisi görünsün?</span>
+                <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as typeof method }))}>
+                  <option value="gelir">Gelir Projeksiyonu (varsayılan)</option>
+                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri</option>}
+                  {input.share.enabled && discountActive && <option value="kat-karsiligi-indirgemeli">İndirgemeli Kat Karşılığı Değeri</option>}
+                  <option value="manuel">Manuel — elle giriş</option>
+                </select>
+              </label>
+              {method === 'manuel' && (
+                <label className="pfield">
+                  <span>Manuel Değer (₺)</span>
+                  <input type="number" min={0} placeholder="Örn. 210000000"
+                         value={input.finalManualValue ?? ''}
+                         onChange={(e) => setInput?.((s) => ({ ...s, finalManualValue: e.target.value === '' ? null : Math.max(0, Number(e.target.value) || 0) }))} />
+                </label>
+              )}
+            </div>
+          );
+        })()}
+        {input.share.enabled && (
+          <div className="hint" style={{ marginBottom: 4 }}>Raporda "Yöntem Karşılaştırması" bölümünde gösterilecek değerler:</div>
+        )}
+        <div className="grid-2" style={{ marginBottom: 10 }}>
+          {input.share.enabled && (
+            <>
+              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={input.showKatKarsiligiIndirgemeli ?? true}
+                       onChange={(e) => setInput?.((s) => ({ ...s, showKatKarsiligiIndirgemeli: e.target.checked }))} />
+                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Kat Karşılığı Değeri</span>
+              </label>
+              <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={input.showGelirIndirgemeli ?? true}
+                       onChange={(e) => setInput?.((s) => ({ ...s, showGelirIndirgemeli: e.target.checked }))} />
+                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Gelir Projeksiyonu Değeri</span>
+              </label>
+            </>
+          )}
+        </div>
+        <div className="dl-grid">
+          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
+            {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
+          </button>
+          <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
+            {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
+          </button>
+          <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('jpeg')}>
+            {busy === 'jpeg' ? 'Hazırlanıyor…' : 'JPEG (Sayfa Sayfa)'}
+          </button>
+          {!isletme && (
+            <button className="btn btn-ghost btn-sm" disabled={busy !== null} onClick={() => run('advice')}>
+              {busy === 'advice' ? 'Hazırlanıyor…' : 'Uzman Notu PDF'}
+            </button>
+          )}
+        </div>
+        {!isletme && (
+          <div className="hint" style={{ marginTop: 8 }}>
+            Rapor PDF ve JPEG'ler, talep eden kişiyle paylaşılabilir; uzman değerlendirmesi içermez.
+            Uzman Notu PDF yalnızca sistemi kullanan uzmana yöneliktir.
+          </div>
+        )}
+        {err && <div className="hint" style={{ color: 'var(--red)', marginTop: 8 }}>{err}</div>}
+      </div>
     </>
   );
 }

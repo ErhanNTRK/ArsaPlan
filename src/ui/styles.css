@@ -436,3 +436,13 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
 }
 .result-hero span { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #C4D4E5; }
 .result-hero b { font-size: 26px; font-variant-numeric: tabular-nums; }
+
+/* ── Mobil başlık çubuğu: bağlantılar alt satıra iner, logo sağda kesilmeden kalır ── */
+@media (max-width: 780px) {
+  .topbar-inner { flex-wrap: wrap; }
+  .topbar-inner > div:first-child { flex: 1 1 auto; min-width: 0; }
+  .topbar-actions { flex: 1 1 100%; flex-wrap: wrap; gap: 4px 12px; }
+  .topbar-actions .topbar-link { white-space: nowrap; }
+  .topbar-inner > .brand-logo { margin-left: auto; height: 34px; padding: 4px 10px; }
+  .topbar p { display: none; }
+}
