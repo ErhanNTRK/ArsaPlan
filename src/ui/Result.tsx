@@ -1,3 +1,4 @@
+import { mahalleKisa } from '../geo/mahalle';
 import { useState } from 'react';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
@@ -103,12 +104,12 @@ export function Result({ input, result, version, setInput }: {
               <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <input type="checkbox" checked={input.showKatKarsiligiIndirgemeli ?? true}
                        onChange={(e) => setInput?.((s) => ({ ...s, showKatKarsiligiIndirgemeli: e.target.checked }))} />
-                <span>İndirgemeli Kat Karşılığı Değeri</span>
+                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Kat Karşılığı Değeri</span>
               </label>
               <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <input type="checkbox" checked={input.showGelirIndirgemeli ?? true}
                        onChange={(e) => setInput?.((s) => ({ ...s, showGelirIndirgemeli: e.target.checked }))} />
-                <span>İndirgemeli Gelir Projeksiyonu Değeri</span>
+                <span>{(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 ? 'İndirgemeli ' : ''}Gelir Projeksiyonu Değeri</span>
               </label>
             </>
           )}
@@ -143,7 +144,7 @@ export function Result({ input, result, version, setInput }: {
         <div className="card">
           <div className="card-title">Taşınmaz</div>
           <div style={{ fontSize: 15, fontWeight: 700 }}>
-            {p.il} / {p.ilce}{p.mahalle ? ` · ${p.mahalle} Mah.` : ''}
+            {p.il} / {p.ilce}{p.mahalle ? ` · ${mahalleKisa(p.mahalle)}` : ''}
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 2 }}>
             Ada {p.ada || '—'} · Parsel {p.parsel || '—'} · {fmtM2(p.area)} · Ticari İşletme
@@ -235,7 +236,7 @@ export function Result({ input, result, version, setInput }: {
       <div className="card">
         <div className="card-title">Taşınmaz</div>
         <div style={{ fontSize: 15, fontWeight: 700 }}>
-          {p.il} / {p.ilce}{p.mahalle ? ` · ${p.mahalle} Mah.` : ''}
+          {p.il} / {p.ilce}{p.mahalle ? ` · ${mahalleKisa(p.mahalle)}` : ''}
         </div>
         <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 2 }}>
           Ada {p.ada || '—'} · Parsel {p.parsel || '—'} · {fmtM2(p.area)} · {input.zoning.lejant || 'Lejant girilmedi'}
@@ -248,12 +249,12 @@ export function Result({ input, result, version, setInput }: {
           <div className="kpi-label">Arsa Değeri (Gelir Projeksiyonu)</div>
           <div className="kpi-value" style={neg ? { color: '#ff9c94' } : undefined}>{fmtTL(f.residualLandValueRounded)}</div>
           {p.area === p.netArea ? (
-            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2(f.landUnitValue)}</b></div>
+            <div className="kpi-sub">Arsa birim değeri: <b>{fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}</b></div>
           ) : (
             <>
-              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2Precise(p.area)}</b> → <b>{fmtTLm2(f.landUnitValue)}</b></div>
+              <div className="kpi-sub">Tapu Alanı: <b>{fmtM2Precise(p.area)}</b> → <b>{fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}</b></div>
               <div className="kpi-sub" style={{ marginTop: 2 }}>
-                Net Alan: <b>{fmtM2Precise(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}</b>
+                Net Alan: <b>{fmtM2Precise(p.netArea)}</b> → <b>{fmtTLm2(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0)}</b>
               </div>
             </>
           )}
@@ -263,7 +264,7 @@ export function Result({ input, result, version, setInput }: {
               <b>{fmtTL(f.discountedLandValueRounded)}</b>
             </div>
           )}
-          {fxLines(input.fx, f.residualLandValue, f.landUnitValue).map((l) => (
+          {fxLines(input.fx, f.residualLandValue, (p.area > 0 ? f.residualLandValueRounded / p.area : 0)).map((l) => (
             <div className="kpi-sub" key={l.code}>
               {l.code}: <b>{fxMoney(l.symbol, l.value)}</b> · {fxMoney(l.symbol, l.unitValue)}/m² · kur {l.rate.toLocaleString(LOC())}
             </div>
@@ -389,7 +390,7 @@ export function Result({ input, result, version, setInput }: {
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
         <Row label={`Müteahhit Kârı (${fmtPct(input.residual.profitRate, 0)})`} value={fmtTL(f.developerProfit)} tone="neg" />
         <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(f.residualLandValueRounded)} tone="total" />
-        <Row label="Arsa m² Birim Değeri" value={fmtTLm2(f.landUnitValue)} />
+        <Row label="Arsa m² Birim Değeri" value={fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))} />
         <Row label="Arsa Değeri / Hasılat" value={fmtPct(f.landToRevenue)} />
       </div>
 

@@ -1,3 +1,4 @@
+import { mahalleUzun } from '../geo/mahalle';
 /**
  * RAPOR PDF — v5 kurumsal görsel dil
  * Uzman değerlendirmesi bu belgede YER ALMAZ (advicePdf.ts ile ayrı indirilir);
@@ -126,7 +127,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setDrawColor(...LINE);
     doc.roundedRect(M, y, W, 13.5, 1.6, 1.6, 'S');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(...INK);
-    doc.text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + p.mahalle + ' Mahallesi' : ''}`, M + 4, y + 5.6);
+    doc.text(`${p.il} / ${p.ilce}${p.mahalle ? ' · ' + mahalleUzun(p.mahalle) : ''}`, M + 4, y + 5.6);
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
     doc.text(t(`Ada ${p.ada || '—'} · Parsel ${p.parsel || '—'} · Tapu Alanı ${m2p(p.area)}`) + ' · ' + (input.zoning.lejant.trim() || t('Lejant girilmedi')), M + 4, y + 10.6);
     doc.setFontSize(8.2);
@@ -180,7 +181,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
       doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(255, 255, 255);
       doc.text(val, PW - M - 5, sy, { align: 'right' });
     };
-    stat('Arsa m² Birim Değeri', tlm2(f.landUnitValue), y + 8.4);
+    stat('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), y + 8.4);
     stat('Toplam İnşaat Alanı', m2(c.totalArea), y + 15.2);
     if (apt) stat('Satılabilir Alan', m2(apt.saleableTotal), y + 22);
     else stat(c.unitCount > 0 ? 'Villa Adedi' : 'Bahçe / Açık Alan',
@@ -189,7 +190,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     if (p.area !== p.netArea) {
       doc.setFont('NTRK', 'normal'); doc.setFontSize(7.8); doc.setTextColor(...GRAY);
       doc.text(
-        t(`Not: Tapu Alanı ${m2p(p.area)} → ${tlm2(f.landUnitValue)}  ·  Net Alan (terk sonrası) ${m2p(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValue / p.netArea : 0)}`),
+        t(`Not: Tapu Alanı ${m2p(p.area)} → ${tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))}  ·  Net Alan (terk sonrası) ${m2p(p.netArea)} → ${tlm2(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0)}`),
         M + 2, y,
       );
       y += 6;
@@ -719,9 +720,9 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
         tl(f.discountedLandValue), { bold: true });
   }
-  row('Arsa m² Birim Değeri', tlm2(f.landUnitValue), { bold: true });
+  row('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), { bold: true });
   row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
-  for (const l of fxLines(input.fx, f.residualLandValueRounded, f.landUnitValue)) {
+  for (const l of fxLines(input.fx, f.residualLandValueRounded, (p.area > 0 ? f.residualLandValueRounded / p.area : 0))) {
     row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
   }

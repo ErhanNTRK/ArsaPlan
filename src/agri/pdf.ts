@@ -1,3 +1,4 @@
+import { mahalleKisa } from '../geo/mahalle';
 /**
  * TARIMSAL ÜRÜN GELİR HESABI — PDF çıktısı.
  * Aynı kurumsal başlık/altbilgi/font/renk paletini kullanır (drawHeader/drawFooter,
@@ -22,7 +23,7 @@ export async function buildAgriPdf(input: AgriInput, r: AgriResult): Promise<jsP
   if (hasIdentity) {
     doc.setFont('NTRK', 'normal'); doc.setFontSize(9); doc.setTextColor(...GRAY);
     const parts = [
-      input.mahalle && `${input.mahalle} Mah.`,
+      input.mahalle && mahalleKisa(input.mahalle),
       input.ada && `Ada ${input.ada}`,
       input.parsel && `Parsel ${input.parsel}`,
       input.fromKml && '(KML)',

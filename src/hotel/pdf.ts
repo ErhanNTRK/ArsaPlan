@@ -1,3 +1,4 @@
+import { mahalleUzun } from '../geo/mahalle';
 /**
  * OTEL GELİRİ — PDF RAPORU
  * Mevcut export/pdf.ts kurumsal görsel dilini (font, header, footer, renk paleti)
@@ -39,7 +40,7 @@ export async function buildHotelPdf(
   doc.roundedRect(M, y, W, 13.5, 1.6, 1.6, 'S');
   doc.setFont('NTRK', 'bold'); doc.setFontSize(11); doc.setTextColor(...INK);
   const g = input.general;
-  doc.text(`${g.il || '—'} / ${g.ilce || '—'}${g.mahalle ? ' · ' + g.mahalle + ' Mahallesi' : ''}`, M + 4, y + 5.6);
+  doc.text(`${g.il || '—'} / ${g.ilce || '—'}${g.mahalle ? ' · ' + mahalleUzun(g.mahalle) : ''}`, M + 4, y + 5.6);
   doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...GRAY);
   doc.text(`Ada ${g.ada || '—'} · Parsel ${g.parsel || '—'}`, M + 4, y + 10.6);
   doc.setFontSize(8.2);

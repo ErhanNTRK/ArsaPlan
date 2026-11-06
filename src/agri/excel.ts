@@ -1,3 +1,4 @@
+import { mahalleKisa } from '../geo/mahalle';
 /**
  * TARIMSAL ÜRÜN GELİR HESABI — Excel (.xlsx) çıktısı.
  * Kurumsal banner, renk paleti ve tablo deseni export/excel.ts ile AYNIDIR
@@ -46,7 +47,7 @@ export async function downloadAgriExcel(input: AgriInput, r: AgriResult) {
   ws.getRow(2).height = 20;
   ws.mergeCells('A3:H3');
   const st = ws.getCell('A3');
-  const idParts = [input.mahalle && `${input.mahalle} Mah.`, input.ada && `Ada ${input.ada}`, input.parsel && `Parsel ${input.parsel}`].filter(Boolean).join(' · ');
+  const idParts = [input.mahalle && mahalleKisa(input.mahalle), input.ada && `Ada ${input.ada}`, input.parsel && `Parsel ${input.parsel}`].filter(Boolean).join(' · ');
   st.value = `  Ürün Deseni ve Gelir Yaklaşımı${idParts ? ' — ' + idParts : ''} · ${BRAND.company}`;
   st.font = { name: 'Arial', size: 9.5, color: { argb: 'FFC4D4E5' } };
   st.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };

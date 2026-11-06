@@ -99,9 +99,10 @@ export function computeShare(
   if (differenceRate > 0.05) verdict = 'kat-karsiligi-yuksek';
   else if (differenceRate < -0.05) verdict = 'gelir-yontemi-yuksek';
 
+  const discounted = months > 0 && rate > 0;
   const pct = (v: number) => (v * 100).toFixed(1).replace('.', ',');
   const gapExplanation = Math.abs(differenceRate) > 0.05
-    ? `İndirgemeli Kat Karşılığı Değeri ile İndirgemeli Gelir Projeksiyonu Değeri %${pct(Math.abs(differenceRate))} ` +
+    ? `${discounted ? 'İndirgemeli ' : ''}Kat Karşılığı Değeri ile ${discounted ? 'İndirgemeli ' : ''}Gelir Projeksiyonu Değeri %${pct(Math.abs(differenceRate))} ` +
       `oranında ayrışıyor. Bu, kat karşılığı oranınız (%${pct(ownerShare)}) ile müteahhit kâr oranınız ` +
       `(%${pct(residual.profitRate)}) arasında bir tutarsızlığa işaret edebilir — ikisini birlikte gözden ` +
       `geçirmeniz önerilir.`

@@ -376,15 +376,15 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
           <div className="hotel-summary-inner">
             <div><span>Hasılat</span><b>{Math.round(result.financial.revenue).toLocaleString('tr-TR')} ₺</b></div>
             <div><span>Toplam Maliyet</span><b>{Math.round(result.financial.totalCost).toLocaleString('tr-TR')} ₺</b></div>
-            <div><span>Gelir Projeksiyonu</span><b>{Math.round(result.financial.residualLandValue).toLocaleString('tr-TR')} ₺</b></div>
+            <div><span>Gelir Projeksiyonu</span><b>{Math.round(result.financial.residualLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
             {(input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
-              <div><span>Gelir Proj. (İndirgemeli)</span><b>{Math.round(result.financial.discountedLandValue).toLocaleString('tr-TR')} ₺</b></div>
+              <div><span>Gelir Proj. (İndirgemeli)</span><b>{Math.round(result.financial.discountedLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
             )}
             {input.share.enabled && (
-              <div><span>Kat Karşılığı</span><b>{Math.round(result.share.shareLandValue).toLocaleString('tr-TR')} ₺</b></div>
+              <div><span>Kat Karşılığı</span><b>{Math.round(result.share.shareLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
             )}
             {input.share.enabled && (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
-              <div><span>Kat Karş. (İndirgemeli)</span><b>{Math.round(result.share.discountedShareLandValue).toLocaleString('tr-TR')} ₺</b></div>
+              <div><span>Kat Karş. (İndirgemeli)</span><b>{Math.round(result.share.discountedShareLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
             )}
           </div>
         </div>
@@ -488,7 +488,7 @@ function Landing({ onSelect }: { onSelect: (m: Exclude<AppMode, 'landing'>) => v
         </div>
         <div className="landing-footer">
           <span>Sürüm {ver}</span><span>·</span><span>Son Güncelleme {date}</span>
-          <span>·</span><span>8 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
+          <span>·</span><span>6 Modül</span><span>·</span><span>{BRAND.company} · Erhan Öntürk</span>
         </div>
       </div>
     </div>
@@ -516,7 +516,7 @@ export default function App() {
   }, [lang, mode]);
 
   useEffect(() => {
-    const onHash = () => setMode(modeFromHash());
+    const onHash = () => { setMode(modeFromHash()); window.scrollTo({ top: 0 }); };
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
