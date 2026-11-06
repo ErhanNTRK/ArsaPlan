@@ -2,6 +2,8 @@ import { mahalleKisa } from '../geo/mahalle';
 import { useMemo, useState } from 'react';
 import { buildSensitivity } from '../engine/sensitivity';
 import { buildScenarios, DEFAULT_SCENARIOS } from '../engine/scenarios';
+import { buildSummary } from '../export/summary';
+import { SummaryView } from './Summary';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
@@ -23,7 +25,9 @@ export function Result({ input, result, version, setInput }: {
   const p = input.parcel;
   const neg = f.residualLandValue < 0;
   const karma = apt != null && input.assetType !== 'konut';
-  const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel'>(null);
+  const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel' | 'summary'>(null);
+  const [tab, setTab] = useState<'ozet' | 'detay'>('ozet');
+  const summary = useMemo(() => buildSummary(input, result), [input, result]);
   const [err, setErr] = useState<string | null>(null);
   const sens = useMemo(() => (isletme ? null : buildSensitivity(input)), [input, isletme]);
   const scenarios = input.scenarios && input.scenarios.length === 3 ? input.scenarios : DEFAULT_SCENARIOS;
@@ -35,12 +39,15 @@ export function Result({ input, result, version, setInput }: {
     });
 
   /** Dışa aktarma modülleri yalnızca tıklandığında yüklenir (dinamik import). */
-  async function run(kind: 'pdf' | 'advice' | 'jpeg' | 'excel') {
+  async function run(kind: 'pdf' | 'advice' | 'jpeg' | 'excel' | 'summary') {
     setBusy(kind); setErr(null);
     try {
       if (kind === 'pdf') {
         const { downloadPdf } = await import('../export/pdf');
         await downloadPdf(input, result, version);
+      } else if (kind === 'summary') {
+        const { downloadSummaryPdf } = await import('../export/summaryPdf');
+        await downloadSummaryPdf(input, result, version);
       } else if (kind === 'advice') {
         const { downloadAdvicePdf } = await import('../export/advicePdf');
         await downloadAdvicePdf(input, result, version);
@@ -65,6 +72,9 @@ export function Result({ input, result, version, setInput }: {
         <div className="dl-grid">
           <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('pdf')}>
             {busy === 'pdf' ? 'Hazırlanıyor…' : 'Rapor PDF'}
+          </button>
+          <button className="btn btn-primary btn-sm" disabled={busy !== null} onClick={() => run('summary')}>
+            {busy === 'summary' ? 'Hazırlanıyor…' : 'Özet PDF (1 sayfa)'}
           </button>
           <button className="btn btn-accent btn-sm" disabled={busy !== null} onClick={() => run('excel')}>
             {busy === 'excel' ? 'Hazırlanıyor…' : 'Excel'}
@@ -92,6 +102,17 @@ export function Result({ input, result, version, setInput }: {
         </div>
       </div>
 
+      <div className="seg no-print" role="tablist" aria-label="Sonuç görünümü" style={{ margin: '4px 0 12px' }}>
+        <button type="button" role="tab" aria-selected={tab === 'ozet'} className={tab === 'ozet' ? 'on' : ''}
+                onClick={() => setTab('ozet')}>Özet</button>
+        <button type="button" role="tab" aria-selected={tab === 'detay'} className={tab === 'detay' ? 'on' : ''}
+                onClick={() => setTab('detay')}>Ayrıntılı Sonuç</button>
+      </div>
+
+      {tab === 'ozet' ? (
+        <SummaryView summary={summary} />
+      ) : (
+      <>
       {isletme ? (
       <>
         <div className="card">
@@ -539,6 +560,9 @@ export function Result({ input, result, version, setInput }: {
           {BRAND.developerLine} · {BRAND.appName} {version}
         </div>
       </div>
+      </>
+      )}
+
       </>
       )}
 
