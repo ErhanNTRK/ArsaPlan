@@ -6,6 +6,7 @@
  * hesaplanır hale geldi, tek iskonto oranı (risksiz+prim ayrımı kaldırıldı).
  */
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { Ico } from '../ui/icons';
 import { computeDetailedUstHakki, BUILDING_TYPES, type DetailedUstHakkiInput, type DetailedRoomRow, type BuildingCostRow } from './detailedEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
@@ -90,7 +91,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
           ↺ Sayfayı Sıfırla
         </button>
         <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-          📂 Excel Yükle
+          <Ico n="folder" />Excel Yükle
           <input type="file" accept=".xlsx" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const data = await readDataSheet<S>(f);
@@ -181,7 +182,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
               </div>
             </div>
           ))}
-          <button type="button" className="btn-ghost" onClick={() => patch({ rooms: [...state.rooms, { ...DEFAULT_ROOM, id: uid(), name: '' }] })}>➕ Oda Tipi Ekle</button>
+          <button type="button" className="btn-ghost" onClick={() => patch({ rooms: [...state.rooms, { ...DEFAULT_ROOM, id: uid(), name: '' }] })}><Ico n="plus" />Oda Tipi Ekle</button>
           <div className="hrow-labeled" style={{ marginTop: 10 }}>
             <div className="pfield pfield--ro"><span>1. Yıl Oda Geliri</span><b>{TL(r.baseRoomIncome)}</b></div>
             <label className="pfield pfield--s"><span>Oda Fiyat Artış Oranı %</span>
@@ -276,7 +277,7 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
               ))}
             </RTable>
           )}
-          <button type="button" className="btn-ghost" onClick={() => patch({ buildings: [...state.buildings, { ...DEFAULT_BUILDING, id: uid() }] })}>➕ Yapı Ekle</button>
+          <button type="button" className="btn-ghost" onClick={() => patch({ buildings: [...state.buildings, { ...DEFAULT_BUILDING, id: uid() }] })}><Ico n="plus" />Yapı Ekle</button>
 
           <div className="hrow-labeled" style={{ marginTop: 12 }}>
             <div className="pfield pfield--ro"><span>Toplam Yapı Maliyeti</span><b>{TL(r.cost.buildingsCost)}</b></div>
@@ -364,8 +365,8 @@ export function DetailedUstHakkiApp({ onBack }: { onBack: () => void }) {
               <input value={state.branchName ?? ''} onChange={(e) => patch({ branchName: e.target.value || null })} /></label>
           </div>
           <div className="export-row no-print">
-            <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
-            <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>
+            <button type="button" className="btn-ghost" onClick={onPdf}><Ico n="file" />PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={onExcel}><Ico n="table" />Excel İndir</button>
           </div>
         </div>
 

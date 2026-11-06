@@ -446,3 +446,21 @@ textarea { min-height: 76px; resize: vertical; line-height: 1.5; }
   .topbar-inner > .brand-logo { margin-left: auto; height: 34px; padding: 4px 10px; }
   .topbar p { display: none; }
 }
+
+/* ── Adım isimli çubuk (stepper) ── */
+.stepper { list-style: none; display: flex; gap: 4px; margin: 10px 0 0; padding: 0; overflow-x: auto; }
+.stepper-item { flex: 1 1 0; min-width: 0; }
+.stepper-btn { all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 7px; width: 100%; padding: 4px 6px; border-radius: 6px; color: #9fb4cb; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.stepper-btn:not(:disabled) { cursor: pointer; color: #dbe6f2; }
+.stepper-btn:not(:disabled):hover { background: rgba(255,255,255,.1); }
+.stepper-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.stepper-dot { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; font-size: 10.5px; }
+.stepper-current .stepper-btn { color: #fff; }
+.stepper-current .stepper-dot { background: var(--accent); border-color: var(--accent); color: #10273a; }
+.stepper-done .stepper-dot { background: rgba(255,255,255,.18); }
+.stepper-label { overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .stepper-todo .stepper-label, .stepper-done .stepper-label { display: none; } .stepper-btn { padding: 4px; } }
+@media print { .stepper { display: none; } }
+
+/* ── Çizgi ikonlar ── */
+.ico { display: inline-block; vertical-align: -0.2em; margin-right: 6px; flex: 0 0 auto; }

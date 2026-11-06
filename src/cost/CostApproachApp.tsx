@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Ico } from '../ui/icons';
 import { analyzeCostApproach, createDefaultCostInput, type CostApproachInput, type AdjustmentType } from './engine';
 import { PROPERTY_CATEGORIES, DIGER_KATEGORI } from './categories';
 import { YAPI_SINIFLARI } from '../data/yapiSiniflari';
@@ -84,7 +85,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                       onClick={() => setInput(loadDraft())}>↺ Eski verileri geri getir</button>
             )}
             <label className="link-btn topbar-link">
-              📂 Excel Yükle
+              <Ico n="folder" />Excel Yükle
               <input type="file" accept=".xlsx" style={{ display: 'none' }}
                      onChange={async (e) => {
                        const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
@@ -132,7 +133,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
               İsterseniz KML yükleyip Arsa Alanı ve Ada/Parsel bilgilerini otomatik doldurun, isterseniz elle girin.
             </div>
             <label className="btn-ghost btn-sm" style={{ display: 'inline-block', marginBottom: 10 }}>
-              📐 KML Yükle
+              <Ico n="ruler" />KML Yükle
               <input type="file" accept=".kml" style={{ display: 'none' }}
                      onChange={(e) => { const f = e.target.files?.[0]; e.currentTarget.value = ''; if (f) onKml(f); }} />
             </label>
@@ -216,7 +217,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                       const suggested = suggestBuildingClass(t0);
                       return { ...s, buildings: [...s.buildings, { id: newId(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 }] };
                     })}>
-              ➕ Yapı Ekle
+              <Ico n="plus" />Yapı Ekle
             </button>
           </div>
 
@@ -308,7 +309,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           const suggested = suggestBuildingClass(t0);
                           return { ...s, mevcutBuildings: [...s.mevcutBuildings, { id: newId(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 }] };
                         })}>
-                  ➕ Mevcut Duruma Yapı Ekle
+                  <Ico n="plus" />Mevcut Duruma Yapı Ekle
                 </button>
                 <div className="hrow-labeled" style={{ marginTop: 10 }}>
                   <label className="pfield"><span>Mevcut Durum için ayrı Şerefiye/Düzeltme Tutarı (₺, opsiyonel)</span>
@@ -361,11 +362,11 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
               <button type="button" className="btn btn-primary btn-sm" disabled={busy !== null}
                       onClick={async () => { setBusy('pdf'); try { await downloadCostApproachPdf(input, result); } finally { setBusy(null); } }}>
-                {busy === 'pdf' ? 'Hazırlanıyor…' : '📄 PDF Raporu İndir'}
+                {busy === 'pdf' ? 'Hazırlanıyor…' : <><Ico n="file" />PDF Raporu İndir</>}
               </button>
               <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null}
                       onClick={async () => { setBusy('excel'); try { await downloadCostApproachExcel(input, result); } finally { setBusy(null); } }}>
-                📊 Excel Raporu İndir
+                <Ico n="table" />Excel Raporu İndir
               </button>
               <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null}
                       onClick={async () => {
@@ -375,7 +376,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           await downloadCostApproachJpeg(input, result);
                         } finally { setBusy(null); }
                       }}>
-                🖼️ JPEG (Sayfa Sayfa)
+                <Ico n="image" />JPEG (Sayfa Sayfa)
               </button>
               <button type="button" className="btn btn-ghost btn-sm" disabled={busy !== null}
                       onClick={async () => {
@@ -385,7 +386,7 @@ export function CostApproachApp({ onBack }: { onBack: () => void }) {
                           await downloadCostApproachZiraatExcel(input, result);
                         } finally { setBusy(null); }
                       }}>
-                {busy === 'ziraat' ? 'Hazırlanıyor…' : '🏦 Ziraat Tablosu İndir'}
+                {busy === 'ziraat' ? 'Hazırlanıyor…' : <><Ico n="bank" />Ziraat Tablosu İndir</>}
               </button>
             </div>
           </div>

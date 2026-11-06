@@ -4,6 +4,7 @@
  * Salih'in testinde %3,7 farkla neredeyse aynı sonuca ulaşıyor.
  */
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { Ico } from '../ui/icons';
 import { computeGelirBazliUstHakki, createDefaultGelirBazliInput, type GelirBazliUstHakkiInput, type GelirBazliRoomRow } from './gelirBazliEngine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
@@ -73,7 +74,7 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
           ↺ Sayfayı Sıfırla
         </button>
         <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-          📂 Excel Yükle
+          <Ico n="folder" />Excel Yükle
           <input type="file" accept=".xlsx" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const data = await readDataSheet<GelirBazliUstHakkiInput>(f);
@@ -157,7 +158,7 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
               </RRow>
             ))}
           </RTable>
-          <button type="button" className="btn-ghost" onClick={() => patch({ rooms: [...state.rooms, { id: uid(), name: 'Standart', count: 0, price: 0, occupancyPct: 60, days: 365 }] })}>➕ Oda Türü Ekle</button>
+          <button type="button" className="btn-ghost" onClick={() => patch({ rooms: [...state.rooms, { id: uid(), name: 'Standart', count: 0, price: 0, occupancyPct: 60, days: 365 }] })}><Ico n="plus" />Oda Türü Ekle</button>
           <div className="hrow-labeled" style={{ marginTop: 12 }}>
             <div className="pfield pfield--ro pfield--big"><span>TOPLAM GELİR (1. yıl)</span><b>{TL(r.toplamGelirBase)}</b></div>
           </div>
@@ -232,8 +233,8 @@ export function GelirBazliUstHakkiApp({ onBack }: { onBack: () => void }) {
               <input value={state.branchName ?? ''} onChange={(e) => patch({ branchName: e.target.value || null })} /></label>
           </div>
           <div className="export-row no-print">
-            <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
-            <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>
+            <button type="button" className="btn-ghost" onClick={onPdf}><Ico n="file" />PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={onExcel}><Ico n="table" />Excel İndir</button>
           </div>
         </div>
 

@@ -459,6 +459,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue), TL, false],
       ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue), TL, true],
       ['Müteahhit Kazancı', Math.round(f.developerProfit), TL, false],
+      ...(f.salesCost > 0 ? [['Satış Giderleri', Math.round(f.salesCost), TL, false] as [string, number | string, string, boolean]] : []),
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded), TL, true],
       ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), TLM2, false],
       ...(p.area !== p.netArea ? [
@@ -506,6 +507,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Bahçe Satış Hasılatı', Math.round(f.gardenRevenue)],
     ['TOPLAM SATIŞ HASILATI', Math.round(f.revenue)],
     ['Müteahhit Kazancı', Math.round(f.developerProfit)],
+    ...(f.salesCost > 0 ? [['Satış Giderleri', Math.round(f.salesCost)] as Row] : []),
     ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded)],
     ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0))],
     ...(p.area !== p.netArea ? [

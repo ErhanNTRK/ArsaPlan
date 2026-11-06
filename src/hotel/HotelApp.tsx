@@ -6,6 +6,7 @@
  * Kendi state'ini, kendi localStorage taslağını ve kendi adım akışını yönetir.
  */
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { Ico } from '../ui/icons';
 import { BRAND } from '../brand/brand';
 import { Field, Txt, Num, Pct, Sel, Seg } from '../ui/fields';
 
@@ -181,7 +182,7 @@ export default function HotelApp({ onBack }: { onBack: () => void }) {
               </button>
             )}
             <label className="link-btn topbar-link" title="Daha önce indirilen .xlsx dosyasından verileri geri yükler">
-              📊 Excel Yükle
+              <Ico n="table" />Excel Yükle
               <input type="file" accept=".xlsx" style={{ display: 'none' }}
                      onChange={async (e) => {
                        const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
@@ -798,7 +799,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
           const t0 = BUILDING_TYPES[0];
           const suggested = suggestedHotelUnitCost(t0);
           return { ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
-        })}>➕ Yapı Ekle</button>
+        })}><Ico n="plus" />Yapı Ekle</button>
 
         <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi (opsiyonel)</div>
         <div className="hrow-labeled">
@@ -872,7 +873,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
               const t0 = BUILDING_TYPES[0];
               const suggested = suggestedHotelUnitCost(t0);
               return { ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
-            })}>➕ Mevcut Duruma Yapı Ekle</button>
+            })}><Ico n="plus" />Mevcut Duruma Yapı Ekle</button>
 
             <div className="card-title" style={{ marginTop: 10, fontSize: 13 }}>Şerefiye / Düzeltme / Çevre Düzenlemesi — Mevcut Durum (opsiyonel)</div>
             <div className="hrow-labeled">
@@ -1077,7 +1078,7 @@ function HotelResult({ input, result, setFinal }: {
                   try { await downloadHotelPdf(input, result); }
                   finally { setBusy(false); }
                 }}>
-          {busy ? 'Hazırlanıyor…' : '📄 PDF Raporu İndir'}
+          {busy ? 'Hazırlanıyor…' : <><Ico n="file" />PDF Raporu İndir</>}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" disabled={busy}
                 onClick={async () => {
@@ -1085,7 +1086,7 @@ function HotelResult({ input, result, setFinal }: {
                   try { await downloadHotelExcel(input, result); }
                   finally { setBusy(false); }
                 }}>
-          📊 Excel Raporu İndir
+          <Ico n="table" />Excel Raporu İndir
         </button>
         </div>
       </div>

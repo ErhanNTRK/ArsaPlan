@@ -1,4 +1,5 @@
 import { mahalleUzun } from '../geo/mahalle';
+import { buildSensitivity } from '../engine/sensitivity';
 /**
  * RAPOR PDF — v5 kurumsal görsel dil
  * Uzman değerlendirmesi bu belgede YER ALMAZ (advicePdf.ts ile ayrı indirilir);
@@ -715,6 +716,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
   row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
+  if (f.salesCost > 0) row(`Satış Giderleri (${pct(input.residual.salesCostRate ?? 0, 0)})`, tl(f.salesCost), { color: RED });
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValueRounded), { band: true });
   if ((input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null) {
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
@@ -727,6 +729,28 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
   }
   y += 4;
+
+  if (input.showSensitivityInPdf) {
+    const g = buildSensitivity(input);
+    section('DUYARLILIK ANALİZİ — ARSA DEĞERİ');
+    pageBreak(50);
+    const colW = W / 6;
+    const cell = (txt: string, col: number, bold: boolean, hl = false) => {
+      if (hl) { doc.setFillColor(...FAINT); doc.rect(M + col * colW, y - 4.4, colW, 6.4, 'F'); }
+      doc.setFont('NTRK', bold ? 'bold' : 'normal'); doc.setFontSize(8.6);
+      doc.setTextColor(...(bold ? NAVY : INK));
+      doc.text(t(txt), col === 0 ? M + 3 : M + (col + 1) * colW - 3, y, { align: col === 0 ? 'left' : 'right' });
+    };
+    cell('Satış fiyatı \ Kâr', 0, true);
+    g.profitRates.forEach((pr, j) => cell(pct(pr, 1), j + 1, true));
+    y += 6.4;
+    g.priceFactors.forEach((k, i) => {
+      cell(k === 1 ? 'Mevcut' : `${k > 1 ? '+' : '-'}%${Math.round(Math.abs(k - 1) * 100)}`, 0, true);
+      g.values[i].forEach((v, j) => cell(tl(v), j + 1, i === 2 && j === 2, i === 2 && j === 2));
+      y += 6.4;
+    });
+    y += 4;
+  }
 
   if (input.zoning.planNotes.trim()) {
     section('PLAN NOTLARI');

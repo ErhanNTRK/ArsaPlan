@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Ico } from './ui/icons';
 import type { ProjectInput } from './engine';
 import { analyze } from './engine';
 import { VILLA_DEFAULT_CLASS, YAPI_SINIFLARI } from './data/yapiSiniflari';
@@ -71,6 +72,17 @@ const DEFAULT_INPUT: ProjectInput = {
   sales: { unitPrice: 0, apt: { bodrum: 0, bodrumTicari: 0, zemin: 0, asma: 0, normal: 0, piyes: 0 } },
   residual: { profitRate: 0.25, financeRateOfCost: 0 },
   share: { enabled: true, ownerShare: 0.45 },
+};
+
+/** Adım çubuğunda görünen kısa adlar */
+const STEP_SHORT: Record<string, string> = {
+  'Değerleme Konusu ve Taşınmaz': 'Taşınmaz',
+  'İmar ve Alan Üretimi': 'İmar',
+  'İmar ve Kat Kurgusu': 'İmar',
+  'Maliyet ve Satış': 'Maliyet ve Satış',
+  'Yapılar ve Maliyetler': 'Yapılar ve Maliyet',
+  'Satış Değeri': 'Satış',
+  'Değerleme': 'Değerleme',
 };
 
 const STEPS_KONUT = [
@@ -344,14 +356,14 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
                     onClick={() => { window.location.hash = ''; }}
                     title="Yöntem seçim ekranına dön">← Başlangıç</button>
             <button type="button" className="link-btn topbar-link" onClick={exportDraft}
-                    title="Analiz girişlerini .json dosyası olarak kaydeder">💾 Taslağı Kaydet</button>
+                    title="Analiz girişlerini .json dosyası olarak kaydeder"><Ico n="save" />Taslağı Kaydet</button>
             <label className="link-btn topbar-link" title="Kaydedilmiş .json taslağını geri yükler">
-              📂 Taslak Yükle
+              <Ico n="folder" />Taslak Yükle
               <input type="file" accept="application/json,.json" style={{ display: 'none' }}
                      onChange={(e) => { const f = e.target.files?.[0]; if (f) importDraft(f); e.target.value = ''; }} />
             </label>
             <label className="link-btn topbar-link" title="Daha önce indirilen .xlsx dosyasından verileri geri yükler">
-              📊 Excel Yükle
+              <Ico n="table" />Excel Yükle
               <input type="file" accept=".xlsx" style={{ display: 'none' }}
                      onChange={async (e) => {
                        const f = e.target.files?.[0]; e.currentTarget.value = ''; if (!f) return;
@@ -369,11 +381,34 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
           </div>
           <div className="progress-label">{isResult ? 'SONUÇ' : `Adım ${step} / ${TOTAL}`}</div>
         </div>
+        <ol className="stepper no-print" aria-label="Analiz adımları">
+          {[...STEPS.map((st) => STEP_SHORT[st.title] ?? st.title), 'Sonuç'].map((label, i) => {
+            const n = i + 1;
+            const state = n === step ? 'current' : n < step ? 'done' : 'todo';
+            return (
+              <li key={label + n} className={`stepper-item stepper-${state}`} aria-current={n === step ? 'step' : undefined}>
+                <button type="button" className="stepper-btn" disabled={n >= step}
+                        onClick={() => { setStep(n); window.scrollTo({ top: 0 }); }}
+                        title={n < step ? 'Bu adıma dön' : undefined}>
+                  <span className="stepper-dot">{n < step ? '✓' : n}</span>
+                  <span className="stepper-label">{label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
       </div>
 
-      {!isResult && input.parcel.area > 0 && result.financial.revenue > 0 && (
+      {!isResult && input.parcel.area > 0 && (result.financial.revenue > 0 || result.capacity.totalArea > 0) && (
         <div className="hotel-summary-sticky no-print">
           <div className="hotel-summary-inner">
+            {result.capacity.totalArea > 0 && !isIsletme && (
+              <>
+                <div><span>Taban Oturumu</span><b>{Math.round(result.capacity.footprintArea).toLocaleString('tr-TR')} m²</b></div>
+                <div><span>Toplam İnşaat</span><b>{Math.round(result.capacity.totalArea).toLocaleString('tr-TR')} m²</b></div>
+              </>
+            )}
+            {result.financial.revenue > 0 && (<>
             <div><span>Hasılat</span><b>{Math.round(result.financial.revenue).toLocaleString('tr-TR')} ₺</b></div>
             <div><span>Toplam Maliyet</span><b>{Math.round(result.financial.totalCost).toLocaleString('tr-TR')} ₺</b></div>
             <div><span>Gelir Projeksiyonu</span><b>{Math.round(result.financial.residualLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
@@ -386,6 +421,7 @@ function ArsaApp({ onBack }: { onBack: () => void }) {
             {input.share.enabled && (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && (
               <div><span>Kat Karş. (İndirgemeli)</span><b>{Math.round(result.share.discountedShareLandValueRounded).toLocaleString('tr-TR')} ₺</b></div>
             )}
+            </>)}
           </div>
         </div>
       )}
@@ -579,6 +615,6 @@ export default function App() {
     <button type="button" className="lang-toggle-fab no-print"
     title={lang === 'tr' ? 'Switch the whole application to English' : 'Uygulamayı Türkçeye döndür'}
     onClick={() => switchLang(lang === 'tr' ? 'en' : 'tr')}>
-    {lang === 'tr' ? '🌐 EN' : '🌐 TR'}
+    <Ico n="globe" />{lang === 'tr' ? 'EN' : 'TR'}
   </button></>);
 }

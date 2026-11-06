@@ -1,5 +1,6 @@
 import { mahalleKisa } from '../geo/mahalle';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { buildSensitivity } from '../engine/sensitivity';
 import type { ProjectInput, AnalysisResult } from '../engine';
 import { fmtTL, fmtTLm2, fmtM2, fmtM2Precise, fmtPct, fmtNum, Row } from './fields';
 import { TEBLIG_KAYNAK } from '../data/yapiSiniflari';
@@ -23,6 +24,7 @@ export function Result({ input, result, version, setInput }: {
   const karma = apt != null && input.assetType !== 'konut';
   const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel'>(null);
   const [err, setErr] = useState<string | null>(null);
+  const sens = useMemo(() => (isletme ? null : buildSensitivity(input)), [input, isletme]);
 
   /** Dışa aktarma modülleri yalnızca tıklandığında yüklenir (dinamik import). */
   async function run(kind: 'pdf' | 'advice' | 'jpeg' | 'excel') {
@@ -301,6 +303,7 @@ export function Result({ input, result, version, setInput }: {
         {f.gardenRevenue > 0 && <Row label="Bahçe Satış Hasılatı" value={fmtTL(f.gardenRevenue)} />}
         <Row label="Toplam Satış Hasılatı" value={fmtTL(f.revenue)} tone="pos" />
         <Row label={`Müteahhit Kârı (${fmtPct(input.residual.profitRate, 0)})`} value={fmtTL(f.developerProfit)} tone="neg" />
+        {f.salesCost > 0 && <Row label={`Satış Giderleri (${fmtPct(input.residual.salesCostRate ?? 0, 0)})`} value={fmtTL(f.salesCost)} tone="neg" />}
         <Row label="ARSA DEĞERİ (GELİR PROJEKSİYONU)" value={fmtTL(f.residualLandValueRounded)} tone="total" />
         <Row label="Arsa m² Birim Değeri" value={fmtTLm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0))} />
         <Row label="Arsa Değeri / Hasılat" value={fmtPct(f.landToRevenue)} />
@@ -336,6 +339,43 @@ export function Result({ input, result, version, setInput }: {
           </div>
         )}
       </div>
+      )}
+
+      {sens && (
+        <div className="card">
+          <div className="card-title">Duyarlılık Analizi — Arsa Değeri (₺)</div>
+          <div className="hint" style={{ marginBottom: 8 }}>
+            Satış birim değeri ve müteahhit kâr oranı değişirse arsa değerinin (Gelir Projeksiyonu) nasıl değişeceğini gösterir.
+          </div>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="rtable" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '6px 8px' }}>Satış fiyatı \ Kâr oranı</th>
+                  {sens.profitRates.map((pr) => (
+                    <th key={pr} style={{ textAlign: 'right', padding: '6px 8px' }}>{fmtPct(pr, 1)}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sens.priceFactors.map((k, i) => (
+                  <tr key={k}>
+                    <th style={{ textAlign: 'left', padding: '6px 8px' }}>
+                      {k === 1 ? 'Mevcut' : `${k > 1 ? '+' : '−'}%${Math.round(Math.abs(k - 1) * 100)}`}
+                    </th>
+                    {sens.values[i].map((v, j) => (
+                      <td key={j} style={{
+                        textAlign: 'right', padding: '6px 8px',
+                        fontWeight: i === 2 && j === 2 ? 700 : 400,
+                        background: i === 2 && j === 2 ? 'var(--accent-soft, rgba(184,134,63,.16))' : undefined,
+                      }}>{fmtTL(v)}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
       )}
 
       <div className="card">
@@ -393,6 +433,13 @@ export function Result({ input, result, version, setInput }: {
                  onChange={(e) => setInput?.((s) => ({ ...s, showReportDate: e.target.checked }))} />
           <span>Rapor Tarihini Göster (opsiyonel)</span>
         </label>
+        {!isletme && (
+          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <input type="checkbox" checked={!!input.showSensitivityInPdf}
+                   onChange={(e) => setInput?.((s) => ({ ...s, showSensitivityInPdf: e.target.checked }))} />
+            <span>Duyarlılık tablosunu PDF'e ekle (opsiyonel)</span>
+          </label>
+        )}
         {input.showReportDate && (
           <label className="pfield" style={{ marginBottom: 10, maxWidth: 220 }}>
             <span>Rapor Tarihi (boş bırakılırsa bugün)</span>

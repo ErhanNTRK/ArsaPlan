@@ -130,6 +130,7 @@ function analyzeIsletme(input: ProjectInput): AnalysisResult {
     landscapeCost: isletme.landscapeCost,
     extrasCost: isletme.wallCost + isletme.infraCost + isletme.otherCost,
     financeCost: 0,
+    salesCost: 0,
     totalCost: isletme.totalCost,
     buildingRevenue: isletme.salesTotal,
     gardenRevenue: 0,

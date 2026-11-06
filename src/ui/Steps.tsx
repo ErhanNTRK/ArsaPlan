@@ -1,4 +1,5 @@
 import type { ProjectInput, AssetType, HousingType } from '../engine';
+import { Ico } from './icons';
 import { computeCapacity, normalizeZoning, computeApartment, floorsFromHmax } from '../engine';
 import { YAPI_SINIFLARI, TEBLIG_KAYNAK, ILLER, LEJANTLAR } from '../data/yapiSiniflari';
 import { Field, Txt, Num, Pct, Sel, Choice, Seg, fmtM2, fmtTLm2 } from './fields';
@@ -45,7 +46,7 @@ export function Step1({ input, setTop, onSample }: P & { onSample?: () => void }
       {onSample && (
         <div style={{ marginTop: 14 }}>
           <button type="button" className="link-btn" onClick={onSample}>
-            🎓 Örnek projeyle doldur
+            <Ico n="spark" />Örnek projeyle doldur
           </button>
           <span className="hint" style={{ marginLeft: 8 }}>
             Sistemi ilk kez kullanıyorsanız dolu bir örnekle gezinin.
@@ -107,7 +108,7 @@ export function Step2({ input, upd, setTop }: P) {
           hiçbir yere gönderilmez.
         </div>
         <label className="link-btn" style={{ display: 'inline-block' }}>
-          📐 KML Dosyası Yükle
+          <Ico n="ruler" />KML Dosyası Yükle
           <input type="file" accept=".kml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
                  onChange={(e) => {
                    const f = e.target.files?.[0];
@@ -558,6 +559,9 @@ export function Step5({ input, upd, setTop }: P) {
           </Field>
           <Field label="Finansman Gideri" hint="İnşaat sürecinde kullanılacak paranın maliyeti — kısa vadeli projelerde %10-20 arası önerilir.">
             <Pct value={r.financeRateOfCost} onChange={(n) => upd('residual', { financeRateOfCost: n })} />
+          </Field>
+          <Field label="Satış Giderleri (opsiyonel)" hint="Pazarlama, komisyon, tapu harcı gibi satış masrafları — hasılatın yüzdesi. Boş/0 ise hesaba katılmaz; tipik %2-4.">
+            <Pct value={r.salesCostRate ?? 0} onChange={(n) => upd('residual', { salesCostRate: n })} />
           </Field>
         </div>
       </div>

@@ -340,6 +340,8 @@ export interface ResidualInput {
   profitRate: number;
   /** Finansman gideri — toplam maliyetin yüzdesi. 0 → hesaba katılmaz. */
   financeRateOfCost: number;
+  /** Satış giderleri (pazarlama, komisyon, tapu harcı vb.) — hasılatın yüzdesi. 0/boş → hesaba katılmaz. */
+  salesCostRate?: number;
 }
 
 export interface ShareInput {
@@ -395,6 +397,8 @@ export interface ProjectInput {
   finalManualValue?: number | null;
   /** Rapor Tarihi — varsayılan gizli. Açılırsa PDF'te gösterilir; boşsa bugünün tarihi kullanılır. */
   showReportDate?: boolean;
+  /** Duyarlılık tablosu PDF'e eklensin mi? (varsayılan: hayır — ekranda her zaman görünür) */
+  showSensitivityInPdf?: boolean;
   reportDate?: string | null;
   /** Banka İsmi / Şube İsmi — opsiyonel, doluysa raporun en başında bir şerit olarak gösterilir. */
   bankName?: string | null;
@@ -457,6 +461,8 @@ export interface FinancialResult {
   landscapeCost: number;
   extrasCost: number;
   financeCost: number;
+  /** Satış giderleri tutarı (hasılat × oran). Oran 0 ise 0. */
+  salesCost: number;
   totalCost: number;
   buildingRevenue: number;
   gardenRevenue: number;

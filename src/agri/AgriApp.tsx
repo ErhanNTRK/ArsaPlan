@@ -12,6 +12,7 @@
  * Amorti yılı varsayılan 25. Değer en yakın 5.000 TL'ye yuvarlanır.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ico } from '../ui/icons';
 import { computeAgri, suggestTreeCount, type AgriInput, type CropRow, type Byproduct } from './engine';
 import { FIELD_CROPS, TREE_CROPS, BYPRODUCTS } from './catalog';
 import { BRAND } from '../brand/brand';
@@ -118,7 +119,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
           ↺ Sayfayı Sıfırla
         </button>
         <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-          📂 Excel Yükle
+          <Ico n="folder" />Excel Yükle
           <input type="file" accept=".xlsx" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const data = await readDataSheet<St>(f);
@@ -288,7 +289,7 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
                       <div className="pfield pfield--ro"><span>Gider</span><b>{TL(r.expense)}</b></div>
                       <div className="pfield pfield--ro"><span>Net Gelir</span><b>{TL(r.netWithByproduct)}</b></div>
                       {r.kind === 'ekili' && !r.byproduct && (
-                        <button type="button" className="btn-ghost" onClick={() => addByproduct(r.id)}>➕ Yan Ürün Ekle</button>
+                        <button type="button" className="btn-ghost" onClick={() => addByproduct(r.id)}><Ico n="plus" />Yan Ürün Ekle</button>
                       )}
                       <button type="button" className="b-del" title="Satırı sil"
                               onClick={() => patch({ rows: state.rows.filter((x) => x.id !== r.id) })}>✕</button>
@@ -366,8 +367,8 @@ export function AgriApp({ onBack }: { onBack: () => void }) {
                   <input value={state.branchName ?? ''} onChange={(e) => patch({ branchName: e.target.value || null })} /></label>
               </div>
                             <div className="export-row no-print">
-                <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
-                <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>
+                <button type="button" className="btn-ghost" onClick={onPdf}><Ico n="file" />PDF İndir</button>
+                <button type="button" className="btn-ghost" onClick={onExcel}><Ico n="table" />Excel İndir</button>
               </div>
             </div>
           </>

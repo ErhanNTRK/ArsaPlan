@@ -1,6 +1,6 @@
 /**
  * FİNANSAL MOTOR — Artık Değer (Residual Land Value)
- *   Hasılat − Toplam Maliyet − Müteahhit Kârı = Arsa Değeri
+ *   Hasılat − Toplam Maliyet − Müteahhit Kârı − Satış Giderleri (opsiyonel) = Arsa Değeri
  * Satış ve maliyet, TOPLAM İNŞAAT ALANI üzerinden yürütülür; kat ayrımı yapılmaz.
  */
 import type {
@@ -34,7 +34,8 @@ export function computeFinancial(
   const revenue = buildingRevenue + gardenRevenue;
 
   const developerProfit = revenue * residual.profitRate;
-  const residualLandValue = revenue - totalCost - developerProfit;
+  const salesCost = revenue * Math.max(0, residual.salesCostRate ?? 0);
+  const residualLandValue = revenue - totalCost - developerProfit - salesCost;
 
   /* İndirgeme: hasılat (ve kâr) proje SONUNDAN, maliyet düzgün yayılım varsayımıyla
      ORTA NOKTADAN bugüne çekilir. Süre 0 → klasik sonuçla birebir. */
@@ -45,14 +46,14 @@ export function computeFinancial(
     const yEnd = months / 12;
     const dEnd = Math.pow(1 + rate, -yEnd);
     const dMid = Math.pow(1 + rate, -yEnd / 2);
-    discountedLandValue = (revenue - developerProfit) * dEnd - totalCost * dMid;
+    discountedLandValue = (revenue - developerProfit - salesCost) * dEnd - totalCost * dMid;
   }
 
-  const denom = revenue * (1 - residual.profitRate);
+  const denom = revenue * (1 - residual.profitRate - Math.max(0, residual.salesCostRate ?? 0));
   const breakEvenFactor = denom > 0 ? totalCost / denom : 0;
 
   return {
-    effectiveUnitCost, constructionCost, landscapeCost, extrasCost, financeCost, totalCost,
+    effectiveUnitCost, constructionCost, landscapeCost, extrasCost, financeCost, salesCost, totalCost,
     buildingRevenue, gardenRevenue, revenue, developerProfit, residualLandValue, discountedLandValue,
     residualLandValueRounded: R5000(residualLandValue),
     discountedLandValueRounded: R5000(discountedLandValue),

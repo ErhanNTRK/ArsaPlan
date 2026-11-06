@@ -5,6 +5,7 @@
  * opsiyonel MALİYET yaklaşımı (arsa + yapılar) → "Gelir 60M · Maliyet 57M" yan yana.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Ico } from '../ui/icons';
 import { computeFuel, daysBetween, type FuelInput, type FuelProductInput, type ExtraIncomeRow } from './engine';
 import { BRAND } from '../brand/brand';
 import { parseKml } from '../geo/kml';
@@ -103,7 +104,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
           ↺ Sayfayı Sıfırla
         </button>
         <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-          📂 Excel Yükle
+          <Ico n="folder" />Excel Yükle
           <input type="file" accept=".xlsx" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const data = await readDataSheet<S>(f);
@@ -233,7 +234,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
           ))}
           <button type="button" className="btn-ghost"
                   onClick={() => patch({ extras: [...state.extras, { id: uid(), name: 'Oto Yıkama', mode: 'ciro', turnover: 0, profitPct: 20, netAmount: 0 }] })}>
-            ➕ Gelir Kalemi Ekle
+            <Ico n="plus" />Gelir Kalemi Ekle
           </button>
           <div className="hrow-labeled" style={{ marginTop: 12 }}>
             <label className="pfield"><span>Diğer Gelirler <em title="Bazı dosyalarda ayrıntı yoktur, yalnız tek bir 'Diğer Gelirler' toplamı bulunur. Ayrıntılı kalemlerle birlikte de kullanılabilir.">(yakıt cirosunun %'si)</em></span>
@@ -331,7 +332,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                       const t0 = BUILDING_TYPES[0]; const suggested = suggestBuildingClass(t0);
                       return { id: uid(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 };
                     })()] } })}>
-              ➕ Yapı Ekle
+              <Ico n="plus" />Yapı Ekle
             </button>
 
             <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12 }}>
@@ -402,7 +403,7 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
                           const t0 = BUILDING_TYPES[0]; const suggested = suggestBuildingClass(t0);
                           return { id: uid(), type: t0, buildingClassCode: suggested, unitCostOverride: suggested ? null : 0, area: 0, depreciationPct: 100 };
                         })()] } })}>
-                  ➕ Mevcut Duruma Yapı Ekle
+                  <Ico n="plus" />Mevcut Duruma Yapı Ekle
                 </button>
               </>
             )}
@@ -479,8 +480,8 @@ export function FuelApp({ onBack }: { onBack: () => void }) {
               <input value={state.branchName ?? ''} onChange={(e) => patch({ branchName: e.target.value || null })} /></label>
           </div>
           <div className="export-row no-print">
-            <button type="button" className="btn-ghost" onClick={() => downloadFuelPdf(engineInput, r)}>📄 PDF İndir</button>
-            <button type="button" className="btn-ghost" onClick={() => downloadFuelExcel(engineInput, r)}>📊 Excel İndir</button>
+            <button type="button" className="btn-ghost" onClick={() => downloadFuelPdf(engineInput, r)}><Ico n="file" />PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={() => downloadFuelExcel(engineInput, r)}><Ico n="table" />Excel İndir</button>
           </div>
         </div>
 

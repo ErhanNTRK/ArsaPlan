@@ -10,6 +10,7 @@
  * nihai değeri sistem hiçbir zaman dayatmaz, kullanıcı seçer.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { Ico } from '../ui/icons';
 import { computeUstHakki, suggestRemainingYears, type UstHakkiInput } from './engine';
 import { BRAND } from '../brand/brand';
 import { downloadUstHakkiPdf } from './pdf';
@@ -230,8 +231,8 @@ export function UstHakkiApp({ onBack }: { onBack: () => void }) {
           </div>
           {r.warnings.map((w, i) => <div className="warn-line" key={i}>{w}</div>)}
           <div className="export-row no-print">
-            <button type="button" className="btn-ghost" onClick={() => downloadUstHakkiPdf(state, r)}>📄 PDF İndir</button>
-            <button type="button" className="btn-ghost" onClick={() => downloadUstHakkiExcel(state, r)}>📊 Excel İndir</button>
+            <button type="button" className="btn-ghost" onClick={() => downloadUstHakkiPdf(state, r)}><Ico n="file" />PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={() => downloadUstHakkiExcel(state, r)}><Ico n="table" />Excel İndir</button>
           </div>
         </div>
 

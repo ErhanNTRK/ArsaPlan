@@ -63,6 +63,8 @@ const D: Record<string, string> = {
   'Yeni Analiz': 'New Analysis', 'Düzenle': 'Edit',
   '↺ Bu adımı sıfırla': '↺ Reset this step',
   '💾 Taslağı Kaydet': '💾 Save Draft', '📂 Taslak Yükle': '📂 Load Draft',
+  'Taslağı Kaydet': 'Save Draft', 'Taslak Yükle': 'Load Draft', 'Örnek projeyle doldur': 'Fill with sample project',
+  'KML Dosyası Yükle': 'Load KML File',
   '🎓 Örnek projeyle doldur': '🎓 Fill with sample project',
   'Sistemi ilk kez kullanıyorsanız dolu bir örnekle gezinin.': 'New to the system? Explore it with a pre-filled example.',
   'Raporu İndir': 'Download Report', 'Rapor PDF': 'Report PDF', 'Excel': 'Excel',

@@ -6,6 +6,7 @@
  * --text vb.) koyu karşılıklarıyla ezer.
  */
 import { useEffect, useState } from 'react';
+import { Ico } from './icons';
 
 const KEY = 'arsaplan-theme';
 type Theme = 'light' | 'dark';
@@ -33,7 +34,7 @@ export function ThemeToggle() {
       title={theme === 'light' ? 'Koyu Temaya Geç' : 'Açık Temaya Geç'}
       onClick={() => setTheme((t) => (t === 'light' ? 'dark' : 'light'))}
     >
-      {theme === 'light' ? '🌙' : '☀️'}
+      {theme === 'light' ? <Ico n="moon" /> : <Ico n="sun" />}
     </button>
   );
 }

@@ -5,6 +5,7 @@
  * (2/3, oranlama) PDF/Excel'de gösterilmez — yalnız nihai değer(ler).
  */
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { Ico } from '../ui/icons';
 import {
   computeWholeValueMethod, computeLandOnlyMethod, BUILDING_TYPES,
   type BuildingValueRow,
@@ -94,7 +95,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
           ↺ Sayfayı Sıfırla
         </button>
         <label className="btn-ghost" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-          📂 Excel Yükle
+          <Ico n="folder" />Excel Yükle
           <input type="file" accept=".xlsx" hidden onChange={async (e) => {
             const f = e.target.files?.[0]; if (!f) return;
             const data = await readDataSheet<S>(f);
@@ -188,7 +189,7 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
               ))}
             </RTable>
           )}
-          <button type="button" className="btn-ghost" onClick={() => patch({ buildings: [...state.buildings, { ...DEFAULT_BUILDING, id: uid() }] })}>➕ Yapı Ekle</button>
+          <button type="button" className="btn-ghost" onClick={() => patch({ buildings: [...state.buildings, { ...DEFAULT_BUILDING, id: uid() }] })}><Ico n="plus" />Yapı Ekle</button>
 
           <div className="hrow-labeled" style={{ marginTop: 12 }}>
             <div className="pfield pfield--ro"><span>Toplam Yapı Değeri</span><b>{TL(r.cost.buildingValues)}</b></div>
@@ -250,8 +251,8 @@ export function SimpleUstHakkiApp({ method, onBack }: { method: Method; onBack: 
               <input value={state.branchName ?? ''} onChange={(e) => setState((s) => ({ ...s, branchName: e.target.value || null }))} /></label>
           </div>
           <div className="export-row no-print">
-            <button type="button" className="btn-ghost" onClick={onPdf}>📄 PDF İndir</button>
-            <button type="button" className="btn-ghost" onClick={onExcel}>📊 Excel İndir</button>
+            <button type="button" className="btn-ghost" onClick={onPdf}><Ico n="file" />PDF İndir</button>
+            <button type="button" className="btn-ghost" onClick={onExcel}><Ico n="table" />Excel İndir</button>
           </div>
         </div>
 
