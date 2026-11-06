@@ -29,3 +29,21 @@ describe('Satış giderleri (opsiyonel)', () => {
     expect(r0.residualLandValue - r1.residualLandValue).toBeCloseTo(r1.revenue * 0.03, 4);
   });
 });
+
+describe('Duyarlılık / senaryo — indirgeme tutarlılığı', () => {
+  it('indirgeme açıkken orta hücre İNDİRGEMELİ arsa değerine eşittir', () => {
+    const input = makeMinimalProjectInput();
+    input.residual = { ...input.residual, projectMonths: 24, timeDiscountRate: 0.10 };
+    const f = analyze(input).financial;
+    const g = buildSensitivity(input);
+    expect(g.discounted).toBe(true);
+    expect(g.baseValue).toBe(f.discountedLandValueRounded);
+    expect(g.baseValue).not.toBe(f.residualLandValueRounded);
+  });
+  it('indirgeme kapalıyken klasik değerle aynıdır', () => {
+    const input = makeMinimalProjectInput();
+    const g = buildSensitivity(input);
+    expect(g.discounted).toBe(false);
+    expect(g.baseValue).toBe(analyze(input).financial.residualLandValueRounded);
+  });
+});

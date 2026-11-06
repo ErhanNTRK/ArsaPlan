@@ -1,6 +1,8 @@
 /**
  * DUYARLILIK ANALİZİ — satış fiyatı ve müteahhit kâr oranı değiştiğinde
  * arsa değerinin (Gelir Projeksiyonu, 5.000'e yuvarlı) nasıl değiştiğini gösterir.
+ * Proje süresi + indirgeme oranı girilmişse değerler İNDİRGEMELİ arsa değeridir
+ * (rapordaki ana değerle tutarlı); girilmemişse indirgemesiz klasik değerdir.
  * Hesap motoru aynen çalıştırılır; girdi kopyası üzerinde oynanır, asıl girdi değişmez.
  */
 import { analyze } from './index';
@@ -14,6 +16,8 @@ export interface SensitivityGrid {
   /** values[i][j]: priceFactors[i] ve profitRates[j] için arsa değeri (₺) */
   values: number[][];
   baseValue: number;
+  /** Değerler indirgemeli mi? */
+  discounted: boolean;
 }
 
 const PRICE_FACTORS = [0.9, 0.95, 1, 1.05, 1.1];
@@ -26,6 +30,7 @@ function scaledSales(sales: ProjectInput['sales'], k: number): ProjectInput['sal
 }
 
 export function buildSensitivity(input: ProjectInput): SensitivityGrid {
+  const discounted = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
   const base = input.residual.profitRate;
   const profitRates = PROFIT_DELTAS.map((d) => Math.max(0, Math.round((base + d) * 10000) / 10000));
   const values = PRICE_FACTORS.map((k) =>
@@ -35,7 +40,7 @@ export function buildSensitivity(input: ProjectInput): SensitivityGrid {
         sales: scaledSales(input.sales, k),
         residual: { ...input.residual, profitRate: pr },
       });
-      return r.financial.residualLandValueRounded;
+      return discounted ? r.financial.discountedLandValueRounded : r.financial.residualLandValueRounded;
     }));
-  return { priceFactors: PRICE_FACTORS, profitRates, values, baseValue: values[2][2] };
+  return { priceFactors: PRICE_FACTORS, profitRates, values, baseValue: values[2][2], discounted };
 }

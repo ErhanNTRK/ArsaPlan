@@ -407,7 +407,7 @@ export function Result({ input, result, version, setInput }: {
 
       {sens && (
         <div className="card">
-          <div className="card-title">Duyarlılık Analizi — Arsa Değeri (₺)</div>
+          <div className="card-title">Duyarlılık Analizi — Arsa Değeri (₺){sens.discounted ? ' · İndirgemeli' : ''}</div>
           <div className="hint" style={{ marginBottom: 8 }}>
             Satış birim değeri ve müteahhit kâr oranı değişirse arsa değerinin (Gelir Projeksiyonu) nasıl değişeceğini gösterir.
           </div>
@@ -444,7 +444,7 @@ export function Result({ input, result, version, setInput }: {
 
       {scen && (
         <div className="card">
-          <div className="card-title">Senaryo Analizi — Kötümser / Baz / İyimser</div>
+          <div className="card-title">Senaryo Analizi — Kötümser / Baz / İyimser{scen[0]?.discounted ? ' · İndirgemeli' : ''}</div>
           <div className="hint" style={{ marginBottom: 8 }}>
             Satış birim değeri ve yapım birim maliyeti yüzde olarak değiştirilerek arsa değeri yeniden hesaplanır.
             Kötümser ve iyimser varsayımları düzenleyebilirsiniz.
@@ -558,13 +558,6 @@ export function Result({ input, result, version, setInput }: {
         )}
         {!isletme && (
           <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <input type="checkbox" checked={input.showGlossaryInPdf !== false}
-                   onChange={(e) => setInput?.((s) => ({ ...s, showGlossaryInPdf: e.target.checked }))} />
-            <span>Terimler sözlüğünü PDF'e ekle (TAKS, KAKS, emsal, hasılat gibi terimlerin kısa açıklamaları)</span>
-          </label>
-        )}
-        {!isletme && (
-          <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <input type="checkbox" checked={!!input.showScenariosInPdf}
                    onChange={(e) => setInput?.((s) => ({ ...s, showScenariosInPdf: e.target.checked }))} />
             <span>Senaryo tablosunu PDF'e ekle (kötümser / baz / iyimser satış fiyatı ve maliyet varsayımlarıyla arsa değeri)</span>
@@ -585,14 +578,14 @@ export function Result({ input, result, version, setInput }: {
         </div>
         {(() => {
           const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-          const method = input.finalMethod ?? 'gelir';
+          const method = input.finalMethod ?? (discountActive ? 'gelir-indirgemeli' : 'gelir');
           return (
             <div className="grid-2" style={{ marginBottom: 10 }}>
               <label className="pfield">
                 <span>Nihai Değer — PDF'te ana kutuda hangisi görünsün?</span>
                 <select value={method} onChange={(e) => setInput?.((s) => ({ ...s, finalMethod: e.target.value as typeof method }))}>
-                  <option value="gelir">Gelir Projeksiyonu (varsayılan)</option>
-                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri</option>}
+                  <option value="gelir">Gelir Projeksiyonu{discountActive ? '' : ' (varsayılan)'}</option>
+                  {discountActive && <option value="gelir-indirgemeli">İndirgemeli Gelir Projeksiyonu Değeri (varsayılan)</option>}
                   {input.share.enabled && discountActive && <option value="kat-karsiligi-indirgemeli">İndirgemeli Kat Karşılığı Değeri</option>}
                   <option value="manuel">Manuel — elle giriş</option>
                 </select>

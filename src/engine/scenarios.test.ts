@@ -25,3 +25,13 @@ describe('Senaryo analizi', () => {
     expect(b).toBeGreaterThan(a);
   });
 });
+
+describe('Senaryo — indirgeme tutarlılığı', () => {
+  it('indirgeme açıkken baz senaryo indirgemeli değeri verir', () => {
+    const input = makeMinimalProjectInput();
+    input.residual = { ...input.residual, projectMonths: 24, timeDiscountRate: 0.10 };
+    const rows = buildScenarios(input);
+    expect(rows[1].discounted).toBe(true);
+    expect(rows[1].landValue).toBe(analyze(input).financial.discountedLandValueRounded);
+  });
+});

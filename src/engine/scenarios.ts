@@ -21,6 +21,8 @@ export interface ScenarioRow {
   landValue: number;
   /** Tapu alanı başına ₺ */
   unitValue: number;
+  /** landValue indirgemeli mi? (proje süresi + oran girilmişse evet) */
+  discounted: boolean;
 }
 
 function scaleSales(sales: ProjectInput['sales'], k: number): ProjectInput['sales'] {
@@ -31,6 +33,7 @@ function scaleSales(sales: ProjectInput['sales'], k: number): ProjectInput['sale
 
 export function buildScenarios(input: ProjectInput, scenarios?: Scenario[]): ScenarioRow[] {
   const list = scenarios && scenarios.length === 3 ? scenarios : DEFAULT_SCENARIOS;
+  const discounted = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
   return list.map((sc) => {
     const r = analyze({
       ...input,
@@ -38,11 +41,13 @@ export function buildScenarios(input: ProjectInput, scenarios?: Scenario[]): Sce
       cost: { ...input.cost, unitCost: input.cost.unitCost * (1 + sc.costDelta) },
     });
     const f = r.financial;
+    const land = discounted ? f.discountedLandValueRounded : f.residualLandValueRounded;
     return {
       name: sc.name, priceDelta: sc.priceDelta, costDelta: sc.costDelta,
       revenue: f.revenue, totalCost: f.totalCost,
-      landValue: f.residualLandValueRounded,
-      unitValue: input.parcel.area > 0 ? f.residualLandValueRounded / input.parcel.area : 0,
+      landValue: land,
+      unitValue: input.parcel.area > 0 ? land / input.parcel.area : 0,
+      discounted,
     };
   });
 }

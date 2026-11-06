@@ -167,8 +167,9 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   /* ── Sonuç şeridi ── */
   function hero() {
-    const method = input.finalMethod ?? 'gelir';
     const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+    /* Kullanıcı yöntem seçmediyse: indirgeme girilmişse indirgemeli değer, yoksa klasik değer. */
+    const method = input.finalMethod ?? (discountActive ? 'gelir-indirgemeli' : 'gelir');
     let heroValue = f.residualLandValueRounded;
     let heroLabel = 'ARSA DEĞERİ (GELİR PROJEKSİYONU)';
     if (method === 'manuel' && input.finalManualValue != null && input.finalManualValue > 0) {
@@ -221,21 +222,15 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
     const showKKIndirgemeli = (input.showKatKarsiligiIndirgemeli ?? true) && discountActive;
     const showGelirIndirgemeli = (input.showGelirIndirgemeli ?? true) && discountActive;
-    pageBreak(75); // başlık ve satırlar aynı sayfada kalsın
-    section('ARSA DEĞERİ — İKİ YÖNTEMİN KARŞILAŞTIRMASI',
-      'Arsanın değeri iki farklı yoldan bulunabilir: (1) projenin gelirinden maliyet ve müteahhit kazancı düşülerek, ' +
-      '(2) arsa sahibine verilecek bağımsız bölüm payının satış değeri üzerinden. İki sonucun birbirine yakın çıkması, ' +
-      'kat karşılığı oranının projenin ekonomisiyle uyumlu olduğunu gösterir.');
-    row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValueRounded),
-        { bold: true, note: 'Hasılat − proje maliyeti − müteahhit kazancı' });
-    row(`Kat Karşılığına Göre Arsa Değeri (arsa sahibi payı ${pct(s.ownerShare, 0)})`, tl(s.shareLandValueRounded),
-        { bold: true, note: `Arsa sahibine verilecek ${pct(s.ownerShare, 0)} payın hasılat karşılığı` });
-    row('Gelir Projeksiyonuna Denk Gelen Arsa Payı', pct(s.balancedShare, 1),
-        { note: 'Arsa sahibine bu oranda pay verilirse iki yöntem aynı sonucu verir' });
-    if (showKKIndirgemeli) row('İndirgemeli Kat Karşılığı Değeri', tl(s.discountedShareLandValueRounded),
-        { bold: true, note: 'Proje süresince paranın zaman değeri dikkate alınmış (bugüne indirgenmiş) değer' });
-    if (showGelirIndirgemeli) row('İndirgemeli Gelir Projeksiyonu Değeri', tl(f.discountedLandValueRounded),
-        { bold: true, note: 'Proje süresince paranın zaman değeri dikkate alınmış (bugüne indirgenmiş) değer' });
+    if (discountActive && !showKKIndirgemeli && !showGelirIndirgemeli) return;
+    section('ARSA DEĞERİ — YÖNTEM KARŞILAŞTIRMASI');
+    if (discountActive) {
+      if (showKKIndirgemeli) row('İndirgemeli Kat Karşılığı Değeri', tl(s.discountedShareLandValueRounded), { bold: true });
+      if (showGelirIndirgemeli) row('İndirgemeli Gelir Projeksiyonu Değeri', tl(f.discountedLandValueRounded), { bold: true });
+    } else {
+      row('Kat Karşılığı Yöntemine Göre Arsa Değeri', tl(s.shareLandValueRounded), { bold: true });
+      row('Gelir Projeksiyonuna Göre Arsa Değeri', tl(f.residualLandValueRounded), { bold: true });
+    }
     y += 4;
   }
 
@@ -243,34 +238,22 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
      indirgemeli versiyonları) dayandığı oranları tek yerde, şeffaf gösterir.
      Yöntem Karşılaştırması'nın hemen altında — bulgu ile gerekçesi yan yana. ── */
   function assumptionsSummary() {
-    section('HESAP VARSAYIMLARI', 'Hesabın dayandığı oranlar. Bunlar raporu hazırlayan tarafından belirlenen varsayımlardır; değişirse sonuç da değişir.');
-    row('Müteahhit Kazanç Oranı', pct(input.residual.profitRate, 0),
-        { note: 'Projeyi yapan müteahhidin hasılat üzerinden beklediği kazanç' });
-    if (input.share.enabled) row('Kat Karşılığı Oranı (Arsa Sahibi Payı)', pct(s.ownerShare, 0),
-        { note: 'Arsa sahibine verilecek bağımsız bölüm payı' });
-    row('Finansman Gideri Oranı', pct(input.residual.financeRateOfCost, 0),
-        { note: 'İnşaat süresince kullanılan paranın maliyeti (toplam maliyetin yüzdesi)' });
-    row('Proje, Ruhsat, Harç, Müşavirlik Oranı', pct(input.cost.extrasRate, 0),
-        { note: 'İnşaat maliyetine oranla proje, ruhsat, harç ve müşavirlik giderleri' });
-    if ((input.residual.salesCostRate ?? 0) > 0) row('Satış Giderleri Oranı', pct(input.residual.salesCostRate ?? 0, 1),
-        { note: 'Pazarlama, komisyon, tapu harcı gibi satış masrafları (hasılatın yüzdesi)' });
+    section('HESAP VARSAYIMLARI');
+    row('Müteahhit Kazanç Oranı', pct(input.residual.profitRate, 0));
+    if (input.share.enabled) row('Kat Karşılığı Oranı (Arsa Sahibi Payı)', pct(s.ownerShare, 0));
+    row('Finansman Gideri Oranı', pct(input.residual.financeRateOfCost, 0));
+    row('Proje, Ruhsat, Harç, Müşavirlik Oranı', pct(input.cost.extrasRate, 0));
+    if ((input.residual.salesCostRate ?? 0) > 0) row('Satış Giderleri Oranı', pct(input.residual.salesCostRate ?? 0, 1));
     if ((input.residual.projectMonths ?? 0) > 0) {
-      row('Proje Süresi (indirgeme için)', `${input.residual.projectMonths} ay`,
-          { note: 'İnşaatın başlangıcından satışların bitimine kadar geçen süre' });
-      row('Yıllık İndirgeme Oranı (reel)', pct(input.residual.timeDiscountRate ?? 0, 0),
-          { note: 'Gelecekteki gelir ve giderleri bugünkü değere çevirmekte kullanılan oran' });
+      row('Proje Süresi (indirgeme için)', `${input.residual.projectMonths} ay`);
+      row('Yıllık İndirgeme Oranı (reel)', pct(input.residual.timeDiscountRate ?? 0, 0));
     }
     y += 4;
   }
 
   /* ── Bölüm başlığı ── */
-  function section(title: string, intro?: string) {
-    let introLines: string[] = [];
-    if (intro) {
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(8);
-      introLines = doc.splitTextToSize(t(intro), W - 2) as string[];
-    }
-    pageBreak(22 + introLines.length * 3.9);
+  function section(title: string) {
+    pageBreak(22);
     doc.setFillColor(...GOLD);
     doc.rect(M, y - 3.4, 1.8, 5.4, 'F');
     doc.setFont('NTRK', 'bold'); doc.setFontSize(9.6); doc.setTextColor(...NAVY);
@@ -278,25 +261,14 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setDrawColor(...LINE);
     doc.line(M, y + 3.2, PW - M, y + 3.2);
     y += 8.4;
-    if (introLines.length) {
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(8); doc.setTextColor(...GRAY);
-      for (const ln of introLines) { doc.text(ln, M + 1, y); y += 3.9; }
-      y += 2;
-    }
     zebra = false;
   }
 
   /* ── Veri satırı — zebra + bant desteği ── */
   let zebra = false;
-  function row(label: string, value: string, o: { bold?: boolean; color?: [number, number, number]; band?: boolean; note?: string } = {}) {
-    /* Not: etiketin altına küçük gri açıklama (formül / ne demek) yazılır. */
-    let noteLines: string[] = [];
-    if (o.note && !o.band) {
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(7.3);
-      noteLines = doc.splitTextToSize(t(o.note), W * 0.64) as string[];
-    }
-    pageBreak(14 + noteLines.length * 3.3);
-    const h = 6.4 + noteLines.length * 3.3;
+  function row(label: string, value: string, o: { bold?: boolean; color?: [number, number, number]; band?: boolean } = {}) {
+    pageBreak();
+    const h = 6.4;
     if (o.band) {
       doc.setFillColor(...NAVY);
       doc.rect(M, y - 4.4, W, h, 'F');
@@ -315,54 +287,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     doc.setFont('NTRK', 'bold');
     doc.setTextColor(...(o.color ?? INK));
     doc.text(t(value), PW - M - 3, y, { align: 'right' });
-    if (noteLines.length) {
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(7.3); doc.setTextColor(120, 132, 146);
-      noteLines.forEach((ln, i) => doc.text(ln, M + 3, y + 3.5 + i * 3.3));
-    }
     y += h;
-  }
-
-  /* ── Terimler sözlüğü — konuya yabancı okuyucu için ── */
-  function glossary() {
-    if (input.showGlossaryInPdf === false) return;
-    const discountActive = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
-    const items: [string, string][] = [
-      ['TAKS (Taban Alanı Kat Sayısı)', 'Binanın zemine oturan alanının parsel alanına oranı. Örneğin 0,30 ise parselin %30\'una bina oturabilir.'],
-      ['KAKS / Emsal', 'Toplam inşaat alanının parsel alanına oranı. Örneğin 2,70 ise parsel alanının 2,7 katı kadar inşaat yapılabilir.'],
-      ['Hmax', 'İmar planında izin verilen en yüksek yapı yüksekliği.'],
-      ['Net parsel alanı', 'Yol, park gibi kamusal alanlara terk edilen kısım düşüldükten sonra, imar haklarının hesaplandığı alan.'],
-      ['Taban oturumu', 'Binanın zemin katta parselden kapladığı alan (net parsel alanı × TAKS).'],
-      ['Emsale dahil alan', 'İmar haklarına (KAKS) sayılan inşaat alanı (net parsel alanı × KAKS).'],
-      ['Emsal dışı alan', 'Mevzuata göre emsale sayılmayan, ancak inşa edilen ve (varsa) satılabilen ek alanlar.'],
-      ['Satılabilir alan', 'Toplam inşaat alanından ortak alanlar düşüldükten sonra satışa konu olan alan. Hasılat bu alan üzerinden hesaplanır.'],
-      ['Ortak alan', 'Merdiven, asansör, koridor, sığınak gibi tüm bağımsız bölümlerin ortak kullandığı alanlar.'],
-      ['Hasılat', 'Projedeki bağımsız bölümlerin satışından elde edilecek toplam gelir.'],
-      ['Birim maliyet', 'Yapının metrekare başına inşaat maliyeti. Çevre, Şehircilik ve İklim Değişikliği Bakanlığı\'nın yıllık yapı yaklaşık birim maliyetleri tebliğindeki değerler esas alınır.'],
-      ['Müteahhit kazancı', 'Projeyi üstlenen yüklenicinin, risk ve emeğine karşılık hasılat üzerinden beklediği kazanç.'],
-      ['Arsa değeri (artık değer)', 'Hasılattan proje maliyeti ve müteahhit kazancı düşüldükten sonra kalan tutar; yani bu proje için arsaya ödenebilecek en yüksek bedel.'],
-    ];
-    if (input.share.enabled) items.push(['Kat karşılığı', 'Arsa sahibinin arsasını müteahhide verip, karşılığında yapılacak binadan belirli oranda bağımsız bölüm (pay) almasıdır.']);
-    if (discountActive) items.push(['İndirgeme', 'İleride elde edilecek gelir ve yapılacak harcamaların, belirli bir oranla bugünkü değerine çevrilmesi.']);
-    if (input.showSensitivityInPdf) items.push(['Duyarlılık analizi', 'Satış fiyatı ve kazanç oranı değiştiğinde arsa değerinin nasıl değişeceğini gösteren tablo.']);
-    if (input.showScenariosInPdf) items.push(['Senaryo analizi', 'Kötümser, baz ve iyimser varsayımlarla hesaplanan alternatif arsa değerleri.']);
-
-    section('TERİMLER SÖZLÜĞÜ', 'Raporda geçen başlıca terimlerin kısa açıklamaları.');
-    const colX = M + W * 0.30;
-    for (const [term, def] of items) {
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(8.2);
-      const lines = doc.splitTextToSize(t(def), W * 0.69) as string[];
-      const termLines = doc.splitTextToSize(t(term), W * 0.27) as string[];
-      const hh = Math.max(lines.length, termLines.length) * 3.9 + 2.4;
-      pageBreak(hh + 2);
-      if (zebra) { doc.setFillColor(...FAINT); doc.rect(M, y - 4.2, W, hh, 'F'); }
-      zebra = !zebra;
-      doc.setFont('NTRK', 'bold'); doc.setFontSize(8.4); doc.setTextColor(...NAVY);
-      termLines.forEach((ln, i) => doc.text(ln, M + 3, y + i * 3.9));
-      doc.setFont('NTRK', 'normal'); doc.setFontSize(8.2); doc.setTextColor(...GRAY);
-      lines.forEach((ln, i) => doc.text(ln, colX, y + i * 3.9));
-      y += hh;
-    }
-    y += 3;
   }
 
   /* ── Kat tablosu ── */
@@ -501,14 +426,31 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     };
 
     doc.setLineWidth(0.35);
+    /* Asma kat, zemin katın çift yükseklikli hacminin İÇİNDE, kısmi bir kat olarak çizilir
+       (ayrı bir daralan kat değil) — aksi hâlde bina ince bir boyun üzerinde duruyor gibi görünür. */
+    const hasAsma = above.some((r) => r.kind === 'asma');
+    const zeminRow = above.find((r) => r.kind === 'zemin');
     above.forEach((r, i) => {
       const yy = groundY - (i + 1) * FH;
       let wdt = propW(r.area);
       let x = cxm - wdt / 2;
       const commercial = r.kind === 'zemin' || r.kind === 'asma';
-      if (r.kind === 'asma') { wdt *= 0.6; x = cxm - wdt / 2; }
       doc.setDrawColor(...NAVY);
-      if (r.kind === 'piyes') {
+      if (r.kind === 'asma') {
+        const zW = propW(zeminRow?.area ?? r.area);
+        const ratio = zeminRow && zeminRow.area > 0 ? r.area / zeminRow.area : 0.5;
+        const aW = Math.max(zW * 0.35, Math.min(zW * 0.9, zW * ratio));
+        const aX = cxm + zW / 2 - aW;
+        doc.setFillColor(232, 221, 198);
+        doc.rect(aX, yy, aW, FH, 'FD');
+        if (FH >= 3.2) drawWindows(aX, yy, aW, true);
+      } else if (r.kind === 'zemin' && hasAsma) {
+        // çift yükseklikli zemin: üst yarı asma katla paylaşılır
+        const topY = yy - FH;
+        doc.setFillColor(244, 236, 221);
+        doc.rect(x, topY, wdt, 2 * FH, 'FD');
+        if (FH >= 3.2) drawWindows(x, yy, wdt, true);
+      } else if (r.kind === 'piyes') {
         const pw = Math.max(propW(r.area), BW2 * 0.5);
         const px = cxm - pw / 2, eave = 2.2;
         doc.setFillColor(226, 232, 240);
@@ -745,35 +687,34 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   hero();
 
-  section('DEĞER NASIL BULUNDU?',
-    'Bu rapor, parselde imar planının izin verdiği proje yapılsaydı elde edilecek satış geliri ile katlanılacak maliyeti ' +
-    'karşılaştırarak arsanın değerini bulur (Gelir Projeksiyonu / Artık Değer Yöntemi). Hasılattan proje maliyeti ve ' +
-    'müteahhit kazancı düşüldüğünde kalan tutar, bu proje için arsaya ödenebilecek en yüksek bedeldir.');
-  row('1. Toplam satış geliri (hasılat)', tl(f.revenue),
-      { bold: true, color: GREEN, note: 'Projedeki satılabilir alanların satış değerleri toplamı' });
-  row('2. Proje maliyeti', '− ' + tl(f.totalCost),
-      { color: RED, note: 'İnşaat, proje / ruhsat / harç, peyzaj' + (f.financeCost > 0 ? ' ve finansman' : '') + ' giderleri' });
-  row(`3. Müteahhit kazancı (${pct(input.residual.profitRate, 0)})`, '− ' + tl(f.developerProfit),
-      { color: RED, note: 'Projeyi yapan yüklenicinin makul kazancı (hasılat üzerinden)' });
-  if (f.salesCost > 0) row(`4. Satış giderleri (${pct(input.residual.salesCostRate ?? 0, 0)})`, '− ' + tl(f.salesCost),
-      { color: RED, note: 'Pazarlama, komisyon, tapu harcı gibi satış masrafları' });
-  row('= ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValueRounded), { band: true });
-  paragraph('Arsa değeri 5.000 ₺\'nin katlarına yuvarlanarak gösterilmiştir. Ayrıntılı hesap, sonraki sayfalarda "Fizibilite" bölümündedir.', 7.8, GRAY);
-  y += 3;
+  {
+    const discountOn = (input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0;
+    section('ARSA DEĞERİ HESABI');
+    row('Toplam Satış Geliri', tl(f.revenue), { bold: true, color: GREEN });
+    row('Toplam Proje Maliyeti', '- ' + tl(f.totalCost), { color: RED });
+    row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, '- ' + tl(f.developerProfit), { color: RED });
+    if (f.salesCost > 0) row(`Satış Giderleri (${pct(input.residual.salesCostRate ?? 0, 0)})`, '- ' + tl(f.salesCost), { color: RED });
+    row(discountOn ? 'ARSA DEĞERİ (İNDİRGEMESİZ)' : 'ARSA DEĞERİ', tl(f.residualLandValueRounded), { band: true });
+    if (discountOn) {
+      row(`İndirgeme Etkisi (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
+          '- ' + tl(Math.max(0, f.residualLandValueRounded - f.discountedLandValueRounded)), { color: RED });
+      row('ARSA DEĞERİ (İNDİRGEMELİ)', tl(f.discountedLandValueRounded), { band: true });
+    }
+    y += 4;
+  }
 
-  section('PARSEL VE İMAR', 'Parselin alanı ve imar planının getirdiği yapılaşma koşulları. Sonraki alan hesapları bu verilere dayanır.');
-  row('Parsel Alanı (tapu)', m2p(p.area), { note: 'Tapu kaydındaki alan' });
-  row('Net Parsel Alanı', m2p(p.netArea), { note: 'Terk (yol, park vb.) düşüldükten sonra imar haklarının hesaplandığı alan' });
-  row('Plan Lejantı', input.zoning.lejant.trim() || '—', { note: 'İmar planında parsele verilen kullanım türü' });
+  section('PARSEL VE İMAR');
+  row('Parsel Alanı (tapu)', m2p(p.area));
+  row('Net Parsel Alanı', m2p(p.netArea));
+  row('Plan Lejantı', input.zoning.lejant.trim() || '—');
   row('Hesap Yöntemi', input.zoning.mode === 'cekme' ? 'Çekme Mesafesi' : input.zoning.mode === 'taks-kaks' ? 'TAKS / KAKS' : 'Alan Bilgisi Girilerek');
   if (input.zoning.mode === 'cekme') {
     row('Bahçe Mesafeleri (ön/yan/arka)', `${input.zoning.cekmeFront.toLocaleString(LOC())} / ${input.zoning.cekmeSide.toLocaleString(LOC())} / ${input.zoning.cekmeRear.toLocaleString(LOC())} m`);
     if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
   }
   if (input.zoning.mode === 'taks-kaks') {
-    row('TAKS / KAKS', `${input.zoning.taks != null ? num2(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? num2(input.zoning.kaks) : '—'}`,
-        { note: 'TAKS: parselin ne kadarına bina oturabilir. KAKS (emsal): parsel alanının kaç katı inşaat yapılabilir.' });
-    if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`, { note: 'İzin verilen en yüksek yapı yüksekliği' });
+    row('TAKS / KAKS', `${input.zoning.taks != null ? num2(input.zoning.taks) : '—'} / ${input.zoning.kaks != null ? num2(input.zoning.kaks) : '—'}`);
+    if (input.zoning.hmax) row('Hmax', `${input.zoning.hmax.toLocaleString(LOC())} m`);
   }
   y += 4;
 
@@ -782,25 +723,25 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
   visualsRow();
 
   if (apt) {
-    section('KAT TABLOSU', 'Binanın her katının brüt alanı, satışa konu olan net (satılabilir) alanı ve ortak alanı. Hasılat, satılabilir alanlar üzerinden hesaplanır.');
+    section('KAT TABLOSU');
     floorTable();
     if (apt.mode === 'taks-kaks') {
-      row('Taban Oturumu Limiti (parsel x TAKS)', m2(apt.footprintArea), { note: 'Zemin katın parselde kaplayabileceği en büyük alan' });
-      if (apt.extraSaleableArea > 0) row('İlave Satılabilir Alan (emsal dışı)', m2(apt.extraSaleableArea), { note: 'Emsale sayılmayan ancak satılabilen ek alan' });
+      row('Taban Oturumu Limiti (parsel x TAKS)', m2(apt.footprintArea));
+      if (apt.extraSaleableArea > 0) row('İlave Satılabilir Alan (emsal dışı)', m2(apt.extraSaleableArea));
     }
-    row('Bahçe / Açık Alan', m2(apt.gardenArea), { note: 'Net parsel alanından taban oturumu çıkarılarak bulunur' });
+    row('Bahçe / Açık Alan', m2(apt.gardenArea));
     y += 4;
   } else {
-    section('ALAN ÜRETİMİ', 'İmar haklarından (TAKS / KAKS) yola çıkarak üretilen inşaat alanları. Toplam inşaat alanı, maliyet hesabının dayanağıdır.');
-    row('Taban Oturumu', m2(c.footprintArea), { note: 'Binanın zeminde kapladığı alan (net parsel × TAKS)' });
-    row('Emsale Dahil Alan', m2(c.emsalArea), { note: 'İmar planının izin verdiği toplam inşaat hakkı (net parsel × KAKS)' });
+    section('ALAN ÜRETİMİ');
+    row('Taban Oturumu', m2(c.footprintArea));
+    row('Emsale Dahil Alan', m2(c.emsalArea));
     if (c.extraArea > 0) row('Emsal Dışı Satılabilir Alan', m2(c.extraArea));
     if (c.atticArea > 0) row(`Çatı Katı (${input.emsal.atticInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.atticArea));
     if (c.basementArea > 0) row(`Bodrum Kat (${input.emsal.basementInEmsal ? 'emsale dahil' : 'emsal dışı'})`, m2(c.basementArea));
     if (c.emsalConsumedByExtras > 0) row('Emsalden Kullanılan (çatı/bodrum)', m2(c.emsalConsumedByExtras), { color: RED });
     row('Zemin Üstü Katlara Kalan', m2(c.aboveGroundArea));
     row('TOPLAM İNŞAAT ALANI', m2(c.totalArea), { band: true });
-    row('Bahçe / Açık Alan', m2(c.gardenArea), { note: 'Net parsel alanından taban oturumu çıkarılarak bulunur' });
+    row('Bahçe / Açık Alan', m2(c.gardenArea));
     if (c.unitCount > 0) {
       row('Villa Adedi', `${c.unitCount} adet`);
       row('Villa Başına Toplam Alan', m2(c.areaPerUnit));
@@ -808,14 +749,14 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     y += 4;
   }
 
-  pageBreak(120); // Fizibilite iki sayfaya bölünmesin
-  section('FİZİBİLİTE', 'Projenin maliyeti ve satış geliri. Arsa değeri bu bölümdeki hesabın sonucudur: hasılattan maliyet ve müteahhit kazancı düşülür.');
-  row('Yapı Sınıfı', `${input.cost.buildingClass}${sinif ? ' — ' + sinif.label : ''}`, { note: 'Bakanlık tebliğindeki yapı sınıfı; birim maliyeti belirler' });
-  row('Güncel Birim Maliyet', tlm2(f.effectiveUnitCost), { note: 'Tebliğdeki m² maliyeti (güncelleme oranı varsa artırılmış hali)' });
-  row('İnşaat Maliyeti', tl(f.constructionCost), { note: `${m2(c.totalArea)} × ${tlm2(f.effectiveUnitCost)}` });
-  if (f.landscapeCost > 0) row('Peyzaj ve Bahçe Düzenlemesi', tl(f.landscapeCost), { note: 'Bahçe / açık alan × peyzaj birim maliyeti' });
-  if (f.extrasCost > 0) row(`Proje, Ruhsat, Harç, Müşavirlik (${pct(input.cost.extrasRate, 0)})`, tl(f.extrasCost), { note: 'İnşaat maliyetinin belirtilen oranı' });
-  if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost), { note: 'İnşaat süresince kullanılan paranın maliyeti' });
+  pageBreak(105); // Fizibilite iki sayfaya bölünmesin
+  section('FİZİBİLİTE');
+  row('Yapı Sınıfı', `${input.cost.buildingClass}${sinif ? ' — ' + sinif.label : ''}`);
+  row('Güncel Birim Maliyet', tlm2(f.effectiveUnitCost));
+  row('İnşaat Maliyeti', tl(f.constructionCost));
+  if (f.landscapeCost > 0) row('Peyzaj ve Bahçe Düzenlemesi', tl(f.landscapeCost));
+  if (f.extrasCost > 0) row(`Proje, Ruhsat, Harç, Müşavirlik (${pct(input.cost.extrasRate, 0)})`, tl(f.extrasCost));
+  if (f.financeCost > 0) row('Finansman Gideri', tl(f.financeCost));
   row('TOPLAM MALİYET', tl(f.totalCost), { band: true });
   if (apt) {
     if (karma) {
@@ -829,19 +770,18 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     row('Normal Kat Satış Birim Değeri', tlm2(input.sales.apt.normal));
     if (apt.saleableByKind.piyes > 0) row('Piyes Satış Birim Değeri', tlm2(input.sales.apt.piyes));
   }
-  row('Yapı Satış Hasılatı', tl(f.buildingRevenue),
-      { note: apt ? 'Her kat tipinin satılabilir alanı × birim satış değeri toplamı' : `${m2(c.saleableArea)} × ${tlm2(input.sales.unitPrice)}` });
+  row('Yapı Satış Hasılatı', tl(f.buildingRevenue));
   if (f.gardenRevenue > 0) row('Bahçe Satış Hasılatı', tl(f.gardenRevenue));
   row('TOPLAM SATIŞ HASILATI', tl(f.revenue), { bold: true, color: GREEN });
-  row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED, note: 'Hasılatın belirtilen oranı' });
+  row(`Müteahhit Kazancı (${pct(input.residual.profitRate, 0)})`, tl(f.developerProfit), { color: RED });
   if (f.salesCost > 0) row(`Satış Giderleri (${pct(input.residual.salesCostRate ?? 0, 0)})`, tl(f.salesCost), { color: RED });
   row('ARSA DEĞERİ (GELİR PROJEKSİYONU)', tl(f.residualLandValueRounded), { band: true });
   if ((input.residual.projectMonths ?? 0) > 0 && (input.residual.timeDiscountRate ?? 0) > 0 && f.discountedLandValue != null) {
     row(`İndirgemeli Arsa Değeri (${input.residual.projectMonths} ay · ${pct(input.residual.timeDiscountRate ?? 0, 0)})`,
-        tl(f.discountedLandValue), { bold: true, note: 'Gelir ve giderler proje süresine göre bugüne indirgenmiş değer' });
+        tl(f.discountedLandValue), { bold: true });
   }
-  row('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), { bold: true, note: 'Arsa değeri ÷ tapu alanı' });
-  row('Arsa Değeri / Hasılat', pct(f.landToRevenue), { note: 'Arsa değerinin projenin toplam satış gelirine oranı' });
+  row('Arsa m² Birim Değeri', tlm2((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), { bold: true });
+  row('Arsa Değeri / Hasılat', pct(f.landToRevenue));
   for (const l of fxLines(input.fx, f.residualLandValueRounded, (p.area > 0 ? f.residualLandValueRounded / p.area : 0))) {
     row(`Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, tarih)}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, { bold: true });
@@ -850,9 +790,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   if (input.showSensitivityInPdf) {
     const g = buildSensitivity(input);
-    section('DUYARLILIK ANALİZİ — ARSA DEĞERİ',
-      'Satış fiyatı ve müteahhit kazanç oranı değişirse arsa değerinin ne olacağını gösterir. Satırlar satış fiyatındaki değişimi, ' +
-      'sütunlar kazanç oranını gösterir; vurgulu hücre bu raporun sonucudur.');
+    section('DUYARLILIK ANALİZİ — ARSA DEĞERİ' + (g.discounted ? ' (İNDİRGEMELİ)' : ''));
     pageBreak(50);
     const colW = W / 6;
     const cell = (txt: string, col: number, bold: boolean, hl = false) => {
@@ -874,9 +812,7 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
 
   if (input.showScenariosInPdf) {
     const rows = buildScenarios(input, input.scenarios);
-    section('SENARYO ANALİZİ — ARSA DEĞERİ',
-      'Satış fiyatı ve inşaat maliyeti kötümser, baz ve iyimser varsayımlarla değiştirilerek arsa değeri yeniden hesaplanmıştır. ' +
-      '"Satış" ve "Maliyet" sütunları baz duruma göre yüzde değişimi gösterir.');
+    section('SENARYO ANALİZİ — ARSA DEĞERİ' + (rows[0]?.discounted ? ' (İNDİRGEMELİ)' : ''));
     pageBreak(40);
     const cw = [W * 0.17, W * 0.13, W * 0.13, W * 0.19, W * 0.19, W * 0.19];
     const heads = ['Senaryo', 'Satış', 'Maliyet', 'Hasılat', 'Toplam Maliyet', 'Arsa Değeri'];
@@ -908,8 +844,6 @@ export async function buildPdf(input: ProjectInput, r: AnalysisResult, version: 
     section('PLAN NOTLARI');
     paragraph(input.zoning.planNotes);
   }
-
-  glossary();
 
   drawFooter(doc, version);
 
