@@ -26,7 +26,7 @@ export function Result({ input, result, version, setInput }: {
   const neg = f.residualLandValue < 0;
   const karma = apt != null && input.assetType !== 'konut';
   const [busy, setBusy] = useState<null | 'pdf' | 'advice' | 'jpeg' | 'excel' | 'summary'>(null);
-  const [tab, setTab] = useState<'ozet' | 'detay'>('ozet');
+  const [tab, setTab] = useState<'ozet' | 'detay'>('detay');
   const summary = useMemo(() => buildSummary(input, result), [input, result]);
   const [err, setErr] = useState<string | null>(null);
   const sens = useMemo(() => (isletme ? null : buildSensitivity(input)), [input, isletme]);
