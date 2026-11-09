@@ -8,4 +8,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   base: './',
+  // PDF/Excel üreten testler yavaş makinelerde 5 sn'yi aşabiliyor
+  test: { testTimeout: 30000 },
 });

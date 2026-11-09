@@ -1,5 +1,5 @@
 import { mahalleUzun } from '../geo/mahalle';
-import { resolveFinal } from '../engine/finalValue';
+import { isDiscountOn, resolveFinal } from '../engine/finalValue';
 /**
  * EXCEL ÇIKTISI (.xlsx)
  * Bu modül yalnızca "Excel indir" tıklandığında yüklenir (dinamik import),
@@ -172,7 +172,7 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
   hsub.alignment = { indent: 1, vertical: 'middle' };
   ws1.mergeCells(`C${row}:D${row}`);
   const hbir = ws1.getCell(`C${row}`);
-  hbir.value = Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0));
+  hbir.value = Math.round((p.area > 0 ? heroValueXl / p.area : 0));
   hbir.numFmt = TLM2;
   hbir.font = { name: 'Arial', size: 10.5, bold: true, color: { argb: 'FFFFFFFF' } };
   hbir.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } };
@@ -451,14 +451,15 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
       ['Müteahhit Kazancı', Math.round(f.developerProfit), TL, false],
       ...(f.salesCost > 0 ? [['Satış Giderleri', Math.round(f.salesCost), TL, false] as [string, number | string, string, boolean]] : []),
       ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded), TL, true],
-      ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0)), TLM2, false],
+      ...(isDiscountOn(input) ? [['ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)', Math.round(f.discountedLandValueRounded), TL, true] as [string, number, string, boolean]] : []),
+      ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? heroValueXl / p.area : 0)), TLM2, false],
       ...(p.area !== p.netArea ? [
-        ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0)).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
-        ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
+        ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round((p.area > 0 ? heroValueXl / p.area : 0)).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
+        ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? heroValueXl / p.netArea : 0).toLocaleString(LOC())} TL/m²`, '', false] as [string, number | string, string, boolean],
       ] : []),
       ['Arsa Değeri / Hasılat', f.landToRevenue, PCT, false],
       ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2), TLM2, false],
-      ...fxLines(input.fx, f.residualLandValueRounded, (p.area > 0 ? f.residualLandValueRounded / p.area : 0)).map((l): [string, number | string, string, boolean] => [
+      ...fxLines(input.fx, heroValueXl, (p.area > 0 ? heroValueXl / p.area : 0)).map((l): [string, number | string, string, boolean] => [
         `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
         `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`, '', true,
       ]),
@@ -499,14 +500,15 @@ export async function downloadExcel(input: ProjectInput, r: AnalysisResult, vers
     ['Müteahhit Kazancı', Math.round(f.developerProfit)],
     ...(f.salesCost > 0 ? [['Satış Giderleri', Math.round(f.salesCost)] as Row] : []),
     ['ARSA DEĞERİ (GELİR PROJEKSİYONU)', Math.round(f.residualLandValueRounded)],
-    ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0))],
+    ...(isDiscountOn(input) ? [['ARSA DEĞERİ (İNDİRGEMELİ GELİR PROJEKSİYONU)', Math.round(f.discountedLandValueRounded)] as Row] : []),
+    ['Arsa m² Birim Değeri', Math.round((p.area > 0 ? heroValueXl / p.area : 0))],
     ...(p.area !== p.netArea ? [
-      ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round((p.area > 0 ? f.residualLandValueRounded / p.area : 0)).toLocaleString(LOC())} TL/m²`] as Row,
-      ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? f.residualLandValueRounded / p.netArea : 0).toLocaleString(LOC())} TL/m²`] as Row,
+      ['Tapu Alanı → Birim Değer', `${Math.round(p.area).toLocaleString(LOC())} m² → ${Math.round((p.area > 0 ? heroValueXl / p.area : 0)).toLocaleString(LOC())} TL/m²`] as Row,
+      ['Net Alan (terk sonrası) → Birim Değer', `${Math.round(p.netArea).toLocaleString(LOC())} m² → ${Math.round(p.netArea > 0 ? heroValueXl / p.netArea : 0).toLocaleString(LOC())} TL/m²`] as Row,
     ] : []),
     ['Arsa Değeri / Hasılat', f.landToRevenue],
     ['Satılabilir m² Başına Maliyet', Math.round(f.costPerSaleableM2)],
-    ...fxLines(input.fx, f.residualLandValueRounded, (p.area > 0 ? f.residualLandValueRounded / p.area : 0)).map((l): Row => [
+    ...fxLines(input.fx, heroValueXl, (p.area > 0 ? heroValueXl / p.area : 0)).map((l): Row => [
       `Arsa Değeri (${l.code}) · ${fxRateNote(l.rate, new Date().toLocaleDateString(LOC()))}`,
       `${fxMoney(l.symbol, l.value)} · ${fxMoney(l.symbol, l.unitValue)}/m²`,
     ]),
