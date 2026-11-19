@@ -613,6 +613,13 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
   const fmt = useFmt();
   const sym = useCurSym();
   const isTl = (input.currency ?? 'TRY') === 'TRY';
+  /** Tebliğ birim maliyetleri TL'dir; para birimi döviz ise kurla o birime çevrilir. */
+  const suggestUnit = (t: string): number | null => {
+    const tl = suggestedHotelUnitCost(t);
+    if (tl == null) return null;
+    const fx = input.fxRate ?? 0;
+    return !isTl && fx > 0 ? Math.round((tl / fx) * 100) / 100 : tl;
+  };
   return (
     <div className="cols">
       <div className="card card-wide">
@@ -752,7 +759,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             <Num value={input.costParcelArea ?? 0} onChange={(n) => setInput((p) => ({ ...p, costParcelArea: n, costFromKml: false }))} suffix="m²" />
           </Field>
           <Field label="Arsa m² Birim Değeri">
-            <Num value={input.costLandUnitValue ?? 0} onChange={(n) => setInput((p) => ({ ...p, costLandUnitValue: n }))} suffix="₺/m²" />
+            <Num value={input.costLandUnitValue ?? 0} onChange={(n) => setInput((p) => ({ ...p, costLandUnitValue: n }))} suffix={`${sym}/m²`} />
           </Field>
         </div>
         <div className="hint" style={{ marginTop: 4 }}>
@@ -771,7 +778,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                   <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
                        onChange={(v) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => {
                          if (j !== i) return x;
-                         const suggested = suggestedHotelUnitCost(v);
+                         const suggested = suggestUnit(v);
                          return suggested != null ? { ...x, type: v, unitCost: suggested } : { ...x, type: v };
                        }) }))}
                        options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
@@ -784,7 +791,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                   <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
                 </RCell>
                 <RCell label="Birim Maliyet">
-                  <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
+                  <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix={`${sym}/m²`} />
                 </RCell>
                 <RCell label="Amortisman %">
                   <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, costBuildings: (p.costBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
@@ -798,7 +805,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         )}
         <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => {
           const t0 = BUILDING_TYPES[0];
-          const suggested = suggestedHotelUnitCost(t0);
+          const suggested = suggestUnit(t0);
           return { ...p, costBuildings: [...(p.costBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
         })}><Ico n="plus" />Yapı Ekle</button>
 
@@ -845,7 +852,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                       <Sel value={BUILDING_TYPES.includes(b.type) ? b.type : 'Diğer'}
                            onChange={(v) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => {
                              if (j !== i) return x;
-                             const suggested = suggestedHotelUnitCost(v);
+                             const suggested = suggestUnit(v);
                              return suggested != null ? { ...x, type: v, unitCost: suggested } : { ...x, type: v };
                            }) }))}
                            options={BUILDING_TYPES.map((t) => ({ value: t, label: t }))} />
@@ -858,7 +865,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
                       <Num value={b.area} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, area: n } : x) }))} suffix="m²" />
                     </RCell>
                     <RCell label="Birim Maliyet">
-                      <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix="₺/m²" />
+                      <Num value={b.unitCost} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, unitCost: n } : x) }))} suffix={`${sym}/m²`} />
                     </RCell>
                     <RCell label="Amortisman %">
                       <Num value={b.depreciationPct} onChange={(n) => setInput((p) => ({ ...p, mevcutCostBuildings: (p.mevcutCostBuildings ?? []).map((x, j) => j === i ? { ...x, depreciationPct: n } : x) }))} suffix="%" />
@@ -872,7 +879,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
             )}
             <button type="button" className="btn-ghost btn-sm" onClick={() => setInput((p) => {
               const t0 = BUILDING_TYPES[0];
-              const suggested = suggestedHotelUnitCost(t0);
+              const suggested = suggestUnit(t0);
               return { ...p, mevcutCostBuildings: [...(p.mevcutCostBuildings ?? []), { id: newId(), type: t0, area: 0, unitCost: suggested ?? 0, depreciationPct: 0 }] };
             })}><Ico n="plus" />Mevcut Duruma Yapı Ekle</button>
 
@@ -912,7 +919,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         </details>
       </div>
 
-      <LandProjectCard input={input} setInput={setInput} result={result} fmt={fmt} sym={sym} suggestCost={suggestedHotelUnitCost} />
+      <LandProjectCard input={input} setInput={setInput} result={result} fmt={fmt} sym={sym} suggestCost={suggestUnit} />
 
       {result.ina && (
       <div className="card card-wide">

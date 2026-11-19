@@ -125,6 +125,7 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
   const [focused, setFocused] = useState(false);
   const [raw, setRaw] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+  const justFocused = useRef(false);
   /** Düzenleme sonrası imlecin solunda kalması gereken rakam sayısı */
   const caretDigits = useRef<number | null>(null);
   useEffect(() => { if (!focused) setRaw(value === 0 ? '' : String(value)); }, [value, focused]);
@@ -158,8 +159,14 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
           /* Alana girince mevcut değer (örn. varsayılan kur "1") seçili gelir; yazılan
              sayı onun sonuna eklenmez, üzerine yazılır. */
           const el = e.currentTarget;
+          justFocused.current = true;
+          try { el.select(); } catch { /* yoksay */ }
           setTimeout(() => { try { el.select(); } catch { /* yoksay */ } }, 0);
         }}
+        /* Tıklamayla odaklanınca fare bırakılırken tarayıcı imleci yeniden yerleştirip seçimi
+           bozar; ilk bırakmada bunu engelle (sonraki tıklamalar normal çalışır). */
+        onMouseUp={(e) => { if (justFocused.current) { e.preventDefault(); justFocused.current = false; } }}
+        onBlurCapture={() => { justFocused.current = false; }}
         onChange={(e) => {
           const el = e.target;
           const cleaned = el.value.replace(/[^\d.,-]/g, '');

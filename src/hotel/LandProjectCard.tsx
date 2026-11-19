@@ -74,7 +74,7 @@ export function LandProjectCard({ input, setInput, result, fmt, sym, suggestCost
                     )}
                   </RCell>
                   <RCell label="Alan m²"><Num value={b.area} suffix="m²" onChange={(n) => setB(i, { area: n })} /></RCell>
-                  <RCell label="Birim Maliyet"><Num value={b.unitCost} suffix="₺/m²" onChange={(n) => setB(i, { unitCost: n })} /></RCell>
+                  <RCell label="Birim Maliyet"><Num value={b.unitCost} suffix={`${sym}/m²`} onChange={(n) => setB(i, { unitCost: n })} /></RCell>
                   <RCell label="Maliyete Esas Oran %"><Num value={b.ratePct} suffix="%" onChange={(n) => setB(i, { ratePct: n })} /></RCell>
                   <RCell label="Maliyet"><b>{fmt(Math.max(0, b.area) * Math.max(0, b.unitCost) * (b.ratePct > 0 ? Math.min(100, b.ratePct) : 100) / 100)}</b></RCell>
                   <RCell label="">
@@ -98,7 +98,7 @@ export function LandProjectCard({ input, setInput, result, fmt, sym, suggestCost
             )}
           </div>
           <div className="hint" style={{ marginTop: 4 }}>
-            Birim maliyet tür seçilince tebliğden önerilir, değiştirebilirsiniz. Güçlendirme/tadilat yeni yapım kadar pahalı değilse
+            Birim maliyet tür seçilince tebliğden önerilir (para birimi döviz ise kurla çevrilir; kuru önce girin), değiştirebilirsiniz. Güçlendirme/tadilat yeni yapım kadar pahalı değilse
             "Maliyete Esas Oran %" ile yapım maliyetinin yalnız ilgili kısmını (örn. %40) esas alabilirsiniz.
           </div>
 
