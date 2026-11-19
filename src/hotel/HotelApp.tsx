@@ -84,6 +84,7 @@ import type {
   HotelIncomeInput, RoomRevenueRow, AncillaryIncomeRow, CommercialLeaseRow,
 } from './types';
 import { downloadHotelPdf } from './pdf';
+import { LandProjectCard } from './LandProjectCard';
 import { downloadHotelExcel } from './excel';
 import { HOTEL_PROFILES, type HotelProfile } from './profiles';
 import { RTable, RRow, RCell } from '../ui/RTable';
@@ -911,6 +912,8 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         </details>
       </div>
 
+      <LandProjectCard input={input} setInput={setInput} result={result} fmt={fmt} sym={sym} />
+
       {result.ina && (
       <div className="card card-wide">
         <div className="card-title">Yıllık Projeksiyon Tablosu</div>
@@ -949,6 +952,7 @@ function HotelResult({ input, result, setFinal }: {
   const finalValue = input.finalMethod === 'ina' && result.ina ? result.ina.npv
     : input.finalMethod === 'maliyet' && result.cost ? result.cost.totalValueRounded
     : input.finalMethod === 'manuel' ? (input.finalManualValue ?? 0)
+    : input.finalMethod === 'arsa' && result.landFromProject ? result.landFromProject.landValueRounded
     : result.capitalizedValue;
   const [busy, setBusy] = useState(false);
   return (
@@ -986,6 +990,19 @@ function HotelResult({ input, result, setFinal }: {
               <em>Arsa + Yapı Değerleri</em>
             </div>
           )}
+          {result.landFromProject && (
+            <div className={`dual-box${input.finalMethod === 'arsa' ? ' dual-box--chosen' : ''}`}>
+              <span>PROJEDEN ARSA DEĞERİ</span>
+              <TlValueDisplay value={result.landFromProject.landValueRounded} parts={fmtTlParts} />
+              <em>{result.landFromProject.basisName} − maliyet − girişimci kârı{result.landFromProject.discountOn ? ' · indirgemeli' : ''}</em>
+              {result.landFromProject.unitValue != null && (
+                <div style={{ marginTop: 6, fontSize: 12 }}>
+                  <span style={{ color: 'var(--text-3)' }}>Birim değer ({Math.round(result.landFromProject.parcelArea ?? 0).toLocaleString('tr-TR')} m²): </span>
+                  <b>{fmt(result.landFromProject.unitValue)}/m²</b>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="hrow-labeled" style={{ margin: '12px 0' }}>
           <label className="pfield"><span>Nihai Değer Seçimi (uzman takdiri)</span>
@@ -994,6 +1011,7 @@ function HotelResult({ input, result, setFinal }: {
               <option value="direkt">Direkt Kapitalizasyon</option>
               {result.ina && <option value="ina">İNA (NBD)</option>}
               {result.cost && <option value="maliyet">Maliyet Yaklaşımı</option>}
+              {result.landFromProject && <option value="arsa">Projeden Arsa Değeri (Artık Değer)</option>}
               <option value="manuel">Elle tutar</option>
             </select></label>
           {input.finalMethod === 'manuel' && (
@@ -1052,6 +1070,10 @@ function HotelResult({ input, result, setFinal }: {
                    onChange={(e) => setFinal({ showInaInPdf: e.target.checked })} /> İNA</label>
           <label className="pdf-toggle"><input type="checkbox" checked={input.showCostInPdf ?? true}
                    onChange={(e) => setFinal({ showCostInPdf: e.target.checked })} /> Maliyet Yaklaşımı</label>
+          {result.landFromProject && (
+            <label className="pdf-toggle"><input type="checkbox" checked={input.showLandProjectInPdf ?? true}
+                     onChange={(e) => setFinal({ showLandProjectInPdf: e.target.checked })} /> Projeden Arsa Değeri</label>
+          )}
         </div>
         <label className="chk-row" style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <input type="checkbox" checked={!!input.showReportDate}

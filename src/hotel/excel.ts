@@ -84,11 +84,12 @@ export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelI
   const method = input.finalMethod ?? 'direkt';
   const methodLabel: Record<string, string> = {
     direkt: 'Gelir (Direkt Kapitalizasyon)', ina: 'İNA (NBD)',
-    maliyet: 'Maliyet Yaklaşımı', manuel: 'Uzman Takdiri',
+    maliyet: 'Maliyet Yaklaşımı', manuel: 'Uzman Takdiri', arsa: 'Projeden Arsa Değeri (Artık Değer)',
   };
   const heroValue = method === 'ina' && r.ina ? r.ina.npv
     : method === 'maliyet' && r.cost ? r.cost.totalValueRounded
     : method === 'manuel' ? (input.finalManualValue ?? 0)
+    : method === 'arsa' && r.landFromProject ? r.landFromProject.landValueRounded
     : r.capitalizedValue;
 
   section('SEÇİLEN NİHAİ YÖNTEM: ' + (methodLabel[method] ?? methodLabel.direkt).toUpperCase());
@@ -114,6 +115,7 @@ export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelI
   section('YÖNTEMLERİN KARŞILAŞTIRMASI');
   kv('Gelir (Direkt Kapitalizasyon)', showTl ? `${cur(r.capitalizedValue)} (≈ ${tlEq(r.capitalizedValue)})` : cur(r.capitalizedValue));
   if (r.ina) kv('İNA (NBD)', showTl ? `${cur(r.ina.npv)} (≈ ${tlEq(r.ina.npv)})` : cur(r.ina.npv));
+  if (r.landFromProject) kv('Projeden Arsa Değeri (Artık Değer)', cur(r.landFromProject.landValueRounded));
   if (r.cost) kv('Maliyet Yaklaşımı', showTl ? `${cur(r.cost.totalValueRounded)} (≈ ${tlEq(r.cost.totalValueRounded)})` : cur(r.cost.totalValueRounded));
   row++;
 
@@ -133,6 +135,23 @@ export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelI
       kv('Maliyet Yaklaşımı Değeri', cur(r.cost.current.totalValueRounded));
       row++;
     }
+  }
+
+  if (r.landFromProject) {
+    const l = r.landFromProject;
+    const p1 = (v: number) => (v * 100).toFixed(1).replace('.', ',');
+    section('PROJEDEN ARSA DEĞERİ (ARTIK DEĞER)');
+    kv(`Tamamlanmış Proje Değeri (${l.basisName})`, cur(l.completedValue));
+    for (const c of (input.landProject?.costs ?? []).filter((x) => x.amount > 0)) kv('- ' + (c.name || 'Maliyet'), cur(c.amount));
+    kv('Toplam Yatırım Maliyeti', cur(l.investment));
+    kv(`Girişimci Kârı (%${p1(l.profitRate)})`, cur(l.profit));
+    kv(l.discountOn ? 'Arsa Değeri (İndirgemesiz)' : 'Arsa Değeri', cur(l.landBeforeDiscountRounded), !l.discountOn);
+    if (l.discountOn) {
+      kv(`İndirgeme (${l.months} ay · %${p1(l.rate)})`, cur(l.landValueRounded - l.landBeforeDiscountRounded));
+      kv('Arsa Değeri (İndirgemeli)', cur(l.landValueRounded), true);
+    }
+    if (l.unitValue != null) kv('Arsa m² Birim Değeri', cur(l.unitValue) + '/m²');
+    row++;
   }
 
   section('YILLIK PROJEKSİYON TABLOSU');

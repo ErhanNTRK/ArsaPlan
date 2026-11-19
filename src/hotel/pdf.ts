@@ -59,10 +59,12 @@ export async function buildHotelPdf(
     ina: 'İNA (İNDİRGENMİŞ NAKİT AKIMI) DEĞERİ',
     maliyet: 'MALİYET YAKLAŞIMINA GÖRE PİYASA DEĞERİ',
     manuel: 'UZMAN TAKDİRİYLE BELİRLENEN NİHAİ DEĞER',
+    arsa: 'ARSA DEĞERİ (PROJE GELİŞTİRME — ARTIK DEĞER)',
   };
   const heroValue = method === 'ina' && r.ina ? r.ina.npv
     : method === 'maliyet' && r.cost ? r.cost.totalValueRounded
     : method === 'manuel' ? (input.finalManualValue ?? 0)
+    : method === 'arsa' && r.landFromProject ? r.landFromProject.landValueRounded
     : r.capitalizedValue;
 
   const H = 27;
@@ -96,6 +98,9 @@ export async function buildHotelPdf(
   } else if (method === 'maliyet' && r.cost) {
     stat('ARSA DEĞERİ', cur(r.cost.landValue), y + 10.5);
     stat('YAPI DEĞERLERİ', cur(r.cost.buildingsValue), y + 21.5);
+  } else if (method === 'arsa' && r.landFromProject) {
+    stat('TAMAMLANMIŞ PROJE DEĞERİ', cur(r.landFromProject.completedValue), y + 10.5);
+    stat('YATIRIM MALİYETİ + KÂR', cur(r.landFromProject.investment + r.landFromProject.profit), y + 21.5);
   } else if (method === 'manuel') {
     // Elle girilen bir değerin NOI/Kapitalizasyon Oranı ile doğrudan bir
     // ilişkisi yok — o istatistikleri burada göstermek yanıltıcı olur.
@@ -116,6 +121,9 @@ export async function buildHotelPdf(
   }
   if (method !== 'ina' && (input.showInaInPdf ?? true) && r.ina) {
     secondary.push({ label: `İNA (NBD), %${((input.projection.discountRate ?? 0) * 100).toFixed(1).replace('.', ',')} iskonto`, value: r.ina.npv });
+  }
+  if (method !== 'arsa' && (input.showLandProjectInPdf ?? true) && r.landFromProject) {
+    secondary.push({ label: 'Projeden Arsa Değeri (Artık Değer)', value: r.landFromProject.landValueRounded });
   }
   if (method !== 'maliyet' && (input.showCostInPdf ?? true) && r.cost) secondary.push({ label: 'Maliyet Yaklaşımı', value: r.cost.totalValueRounded });
 
@@ -279,6 +287,28 @@ export async function buildHotelPdf(
         [110, 70],
       );
     }
+  }
+
+  if ((input.showLandProjectInPdf ?? true) && r.landFromProject) {
+    const l = r.landFromProject;
+    const p1 = (v: number) => (v * 100).toFixed(1).replace('.', ',');
+    sectionTitle('Projeden Arsa Değeri (Artık Değer)');
+    table(
+      ['Kalem', 'Tutar'],
+      [
+        [`Tamamlanmış Proje Değeri (${l.basisName})`, cur(l.completedValue)],
+        ...(input.landProject?.costs ?? []).filter((c) => c.amount > 0).map((c) => [`- ${c.name || 'Maliyet'}`, cur(c.amount)]),
+        ['Toplam Yatırım Maliyeti', cur(l.investment)],
+        [`Girişimci Kârı (%${p1(l.profitRate)})`, cur(l.profit)],
+        [l.discountOn ? 'ARSA DEĞERİ (İNDİRGEMESİZ)' : 'ARSA DEĞERİ', cur(l.landBeforeDiscountRounded)],
+        ...(l.discountOn ? [
+          [`İndirgeme (${l.months} ay · %${p1(l.rate)})`, cur(l.landValueRounded - l.landBeforeDiscountRounded)],
+          ['ARSA DEĞERİ (İNDİRGEMELİ)', cur(l.landValueRounded)],
+        ] : []),
+        ...(l.unitValue != null ? [[`Arsa m² Birim Değeri (${Math.round(l.parcelArea ?? 0).toLocaleString('tr-TR')} m²)`, cur(l.unitValue) + '/m²']] : []),
+      ],
+      [110, 70],
+    );
   }
 
   if (secondary.length > 0) {

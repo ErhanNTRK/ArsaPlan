@@ -10,6 +10,7 @@
  * Kural: sistem kullanıcıyı uyarır ama hesaplamayı engellemez — nihai karar
  * her zaman değerleme uzmanına aittir (kullanıcının kendi belirlediği ilke).
  */
+import { computeLandFromProject } from './landFromProject';
 import type {
   HotelIncomeInput, HotelIncomeResult, RoomRevenueRow, RoomRevenueCalc,
   CommercialLeaseRow, CommercialLeaseCalc, HotelProjectionYear, HotelWarning,
@@ -329,6 +330,21 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     }
   }
 
+  const capitalizedRounded = Math.round(capitalizedValue / 5000) * 5000;
+  const prospectiveRounded = prospectiveValue != null ? Math.round(prospectiveValue / 5000) * 5000 : null;
+  const landFromProject = computeLandFromProject(input, {
+    capitalizedValue: capitalizedRounded, prospectiveValue: prospectiveRounded,
+    inaNpv: ina ? ina.npv : null, costLandValue: costLandValue > 0 ? costLandValue : null,
+  });
+  if (landFromProject) {
+    if (landFromProject.negative) {
+      warnings.push({ level: 'dikkat', message: 'Projeden arsa değeri sıfır veya negatif çıktı: tamamlanmış proje değeri, yatırım maliyeti ve kârı karşılamıyor. Maliyet ve kâr varsayımlarını gözden geçirin.' });
+    }
+    if (landFromProject.investment <= 0) {
+      warnings.push({ level: 'uyari', message: 'Projeden arsa değeri için yatırım maliyeti girilmedi; sonuç tamamlanmış proje değerine eşit çıkar.' });
+    }
+  }
+
   return {
     roomRows: roomCalc.rows,
     totalRoomRevenue: roomCalc.total,
@@ -345,6 +361,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
     projectionTable,
     ina,
     cost,
+    landFromProject,
     warnings,
     summaryText,
   };

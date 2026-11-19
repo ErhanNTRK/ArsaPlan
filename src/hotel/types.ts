@@ -134,7 +134,43 @@ export interface HotelProjectionInput {
 }
 
 /** Tüm otel geliri modülü girdisi — tek kaynak (Single Source of Truth). */
-export type HotelFinalMethod = 'direkt' | 'ina' | 'maliyet' | 'manuel';
+export type HotelFinalMethod = 'direkt' | 'ina' | 'maliyet' | 'manuel' | 'arsa';
+
+/** Projeden Arsa Değeri (artık değer) girdisi — bkz. landFromProject.ts */
+export interface HotelProjectCostRow { id: string; name: string; amount: number }
+export interface HotelLandProjectInput {
+  enabled: boolean;
+  /** Tamamlanmış proje değeri hangi yöntemden alınsın */
+  basis: 'ina' | 'direkt';
+  /** Yatırım maliyetleri (arsa ve mevcut bina hariç) */
+  costs: HotelProjectCostRow[];
+  /** Girişimci kârı — toplam yatırım üzerinden */
+  profitRate: number;
+  /** Güçlendirme + ruhsat + açılışa kadar süre (ay) */
+  months: number;
+  /** Yıllık reel indirgeme oranı */
+  discountRate: number | null;
+}
+
+export interface HotelLandFromProject {
+  basisName: string;
+  completedValue: number;
+  investment: number;
+  profitRate: number;
+  profit: number;
+  discountOn: boolean;
+  months: number;
+  rate: number;
+  landBeforeDiscount: number;
+  landBeforeDiscountRounded: number;
+  landValue: number;
+  landValueRounded: number;
+  unitValue: number | null;
+  parcelArea: number | null;
+  /** Maliyet Yaklaşımı'nda takdir edilen arsa değeri (karşılaştırma için) */
+  appraisedLandValue: number | null;
+  negative: boolean;
+}
 
 export interface HotelIncomeInput {
   /** Hesap para birimi ve TL kuru (yalnız gösterim; 'TRY' → kur 1) */
@@ -186,6 +222,9 @@ export interface HotelIncomeInput {
   /** Nihai değer seçimi: uzman takdiri */
   finalMethod?: HotelFinalMethod;
   finalManualValue?: number | null;
+  /** Projeden arsa değeri (artık değer) — opsiyonel */
+  landProject?: HotelLandProjectInput;
+  showLandProjectInPdf?: boolean;
   general: HotelGeneralInfo;
   rooms: RoomRevenueRow[];
   ancillary: AncillaryIncomeRow[];
@@ -281,6 +320,8 @@ export interface HotelIncomeResult {
     /** Mevcut Durum sonucu — opsiyon kapalıysa Yasal Durum'un birebir kopyası. */
     current: { buildingsValue: number; goodwill: number; totalValue: number; totalValueRounded: number };
   } | null;
+  /** Projeden arsa değeri (artık değer) — kapalıysa null */
+  landFromProject: HotelLandFromProject | null;
 
   warnings: HotelWarning[];
   summaryText: string;
