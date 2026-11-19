@@ -912,7 +912,7 @@ function StepProjection({ projection, setProjection, result, input, setInput, co
         </details>
       </div>
 
-      <LandProjectCard input={input} setInput={setInput} result={result} fmt={fmt} sym={sym} />
+      <LandProjectCard input={input} setInput={setInput} result={result} fmt={fmt} sym={sym} suggestCost={suggestedHotelUnitCost} />
 
       {result.ina && (
       <div className="card card-wide">

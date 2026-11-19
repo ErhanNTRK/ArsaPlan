@@ -16,8 +16,8 @@ function makeInput() {
   input.projection.discountRate = 0.20;
   input.costParcelArea = 500;
   const lp = defaultLandProject();
-  lp.costs[0].amount = 20_000_000;
-  lp.costs[1].amount = 5_000_000;
+  lp.buildings = [{ id: 'b1', type: 'Otel', area: 1000, unitCost: 20_000, ratePct: 100 }]; // 20.000.000
+  lp.costs[0].amount = 5_000_000;
   lp.profitRate = 0.15;
   input.landProject = lp;
   return input;
@@ -37,6 +37,7 @@ describe('Projeden arsa değeri (artık değer)', () => {
     const r = analyzeHotel(i);
     const l = r.landFromProject!;
     expect(l.completedValue).toBe(r.capitalizedValue);
+    expect(l.buildingCost).toBe(20_000_000);
     expect(l.investment).toBe(25_000_000);
     expect(l.profit).toBeCloseTo(3_750_000, 2);
     expect(l.landBeforeDiscount).toBeCloseTo(r.capitalizedValue - 25_000_000 - 3_750_000, 2);
@@ -44,6 +45,28 @@ describe('Projeden arsa değeri (artık değer)', () => {
     expect(l.landValue).toBeCloseTo(l.landBeforeDiscount, 6);
     expect(l.landValueRounded % 5000).toBe(0);
     expect(l.unitValue).toBeCloseTo(l.landValueRounded / 500, 6);
+  });
+
+  it('şerefiye düşülür; yapı maliyeti alan × birim maliyet × oran', () => {
+    const i = makeInput();
+    i.landProject!.basis = 'direkt';
+    i.landProject!.buildings[0].ratePct = 50; // güçlendirme: yapım maliyetinin %50'si
+    i.landProject!.goodwill = 2_000_000;
+    const l = analyzeHotel(i).landFromProject!;
+    expect(l.buildingCost).toBe(10_000_000);
+    expect(l.investment).toBe(15_000_000);
+    expect(l.profit).toBeCloseTo(2_250_000, 2); // kâr yapı + diğer üzerinden, şerefiye hariç
+    expect(l.landBeforeDiscount).toBeCloseTo(l.completedValue - 15_000_000 - 2_000_000 - 2_250_000, 2);
+  });
+
+  it('indirgemede şerefiye ve kâr proje sonu değerinden düşülür', () => {
+    const i = makeInput();
+    i.landProject!.basis = 'direkt';
+    i.landProject!.goodwill = 2_000_000;
+    i.landProject!.months = 12;
+    i.landProject!.discountRate = 0.1;
+    const l = analyzeHotel(i).landFromProject!;
+    expect(l.landValue).toBeCloseTo((l.completedValue - l.profit - 2_000_000) / 1.1 - l.investment / Math.sqrt(1.1), 4);
   });
 
   it('esas yöntem İNA seçilince İNA NBD kullanılır', () => {
@@ -68,7 +91,7 @@ describe('Projeden arsa değeri (artık değer)', () => {
 
   it('maliyet ve kâr tamamlanmış değeri aşarsa uyarı verir', () => {
     const i = makeInput();
-    i.landProject!.costs[0].amount = 900_000_000;
+    i.landProject!.buildings[0].unitCost = 900_000_000;
     const r = analyzeHotel(i);
     expect(r.landFromProject!.negative).toBe(true);
     expect(r.warnings.some((w) => w.message.includes('Projeden arsa değeri'))).toBe(true);

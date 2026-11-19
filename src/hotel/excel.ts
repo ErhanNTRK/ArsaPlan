@@ -142,8 +142,12 @@ export async function buildHotelExcelWorkbook(input: HotelIncomeInput, r: HotelI
     const p1 = (v: number) => (v * 100).toFixed(1).replace('.', ',');
     section('PROJEDEN ARSA DEĞERİ (ARTIK DEĞER)');
     kv(`Tamamlanmış Proje Değeri (${l.basisName})`, cur(l.completedValue));
+    for (const b of l.buildingRows.filter((x) => x.amount > 0)) {
+      kv(`- Yapı: ${b.type || 'Yapı'} (${Math.round(b.area).toLocaleString('tr-TR')} m² x ${Math.round(b.unitCost).toLocaleString('tr-TR')}${b.ratePct < 100 ? ` x %${b.ratePct}` : ''})`, cur(b.amount));
+    }
     for (const c of (input.landProject?.costs ?? []).filter((x) => x.amount > 0)) kv('- ' + (c.name || 'Maliyet'), cur(c.amount));
     kv('Toplam Yatırım Maliyeti', cur(l.investment));
+    if (l.goodwill > 0) kv('Şerefiye / Düzeltme', cur(l.goodwill));
     kv(`Girişimci Kârı (%${p1(l.profitRate)})`, cur(l.profit));
     kv(l.discountOn ? 'Arsa Değeri (İndirgemesiz)' : 'Arsa Değeri', cur(l.landBeforeDiscountRounded), !l.discountOn);
     if (l.discountOn) {

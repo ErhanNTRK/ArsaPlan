@@ -1,14 +1,15 @@
 /**
  * PROJEDEN ARSA DEĞERİ (ARTIK / RESIDUAL DEĞER) — otel projesi üzerinden arsaya dönüş.
  *
- * Mantık, arsa modülündeki Gelir Projeksiyonu ile aynıdır; hasılat yerine otelin
- * (ve varsa dükkânın) tamamlanmış, istikrara kavuşmuş değeri esas alınır:
- *   Arsa = Tamamlanmış proje değeri − Yatırım maliyetleri (arsa hariç) − Girişimci kârı
- * Süre ve indirgeme oranı girilirse arsa modülündeki formül uygulanır:
- *   Arsa = (Tamamlanmış değer − Kâr) × dSon − Maliyetler × dOrta
- *
- * Mevcut yapının değeri hesaba katılmaz (güçlendirme projesinde bina arsaya dahil kabul edilir);
- * bu varsayım raporda açıkça yazılmalıdır.
+ * Tamamlanmış (istikrara kavuşmuş) proje değerinden:
+ *   • yapı maliyeti (alan × birim maliyet × maliyete esas oran),
+ *   • diğer yatırım maliyetleri (FF&E, proje/ruhsat, finansman…),
+ *   • şerefiye / düzeltme bedeli,
+ *   • girişimci kârı (yapı + diğer maliyetler üzerinden)
+ * düşülerek arsa değerine dönülür. Gelir projenin bitiminde oluşacağı için süre ve yıllık reel
+ * oran girilirse arsa modülündeki indirgeme mantığı uygulanır:
+ *   Arsa = (Tamamlanmış değer − Kâr − Şerefiye) × dSon − (Yapı + Diğer maliyetler) × dOrta
+ * Mevcut yapının değeri hesaba katılmaz (bina arsaya dahil kabul edilir); bu raporda yazılmalıdır.
  */
 import type { HotelIncomeInput, HotelLandFromProject, HotelLandProjectInput } from './types';
 
@@ -16,12 +17,13 @@ export function defaultLandProject(): HotelLandProjectInput {
   return {
     enabled: true,
     basis: 'ina',
+    buildings: [],
     costs: [
-      { id: 'c1', name: 'Güçlendirme ve tadilat inşaat maliyeti', amount: 0 },
       { id: 'c2', name: 'Otel donanımı (FF&E) ve açılış öncesi giderler', amount: 0 },
       { id: 'c3', name: 'Proje, ruhsat, harç ve müşavirlik', amount: 0 },
       { id: 'c4', name: 'Finansman gideri', amount: 0 },
     ],
+    goodwill: 0,
     profitRate: 0,
     months: 0,
     discountRate: null,
@@ -43,26 +45,34 @@ export function computeLandFromProject(
     ? 'İNA (NBD)'
     : v.prospectiveValue != null ? 'Direkt Kapitalizasyon (oturma indirgemeli)' : 'Direkt Kapitalizasyon';
 
-  const investment = lp.costs.reduce((s, c) => s + Math.max(0, c.amount || 0), 0);
+  const buildingRows = (lp.buildings ?? []).map((b) => {
+    const ratePct = b.ratePct > 0 ? Math.min(100, b.ratePct) : 100;
+    return { type: b.type, area: Math.max(0, b.area || 0), unitCost: Math.max(0, b.unitCost || 0), ratePct,
+      amount: Math.max(0, b.area || 0) * Math.max(0, b.unitCost || 0) * ratePct / 100 };
+  });
+  const buildingCost = buildingRows.reduce((s, b) => s + b.amount, 0);
+  const otherCosts = (lp.costs ?? []).reduce((s, c) => s + Math.max(0, c.amount || 0), 0);
+  const goodwill = Math.max(0, lp.goodwill || 0);
+  const investment = buildingCost + otherCosts;
   const profitRate = Math.max(0, lp.profitRate || 0);
   const profit = investment * profitRate;
   const months = Math.max(0, lp.months || 0);
   const rate = Math.max(0, lp.discountRate ?? 0);
   const discountOn = months > 0 && rate > 0;
 
-  const landBeforeDiscount = completedValue - investment - profit;
+  const landBeforeDiscount = completedValue - investment - goodwill - profit;
   let landValue = landBeforeDiscount;
   if (discountOn) {
     const years = months / 12;
     const dEnd = Math.pow(1 + rate, -years);
     const dMid = Math.pow(1 + rate, -years / 2);
-    landValue = (completedValue - profit) * dEnd - investment * dMid;
+    landValue = (completedValue - profit - goodwill) * dEnd - investment * dMid;
   }
   const landValueRounded = R5(landValue);
   const area = input.costParcelArea ?? 0;
 
   return {
-    basisName, completedValue, investment, profitRate, profit,
+    basisName, completedValue, buildingRows, buildingCost, otherCosts, goodwill, investment, profitRate, profit,
     discountOn, months, rate,
     landBeforeDiscount, landBeforeDiscountRounded: R5(landBeforeDiscount),
     landValue, landValueRounded,

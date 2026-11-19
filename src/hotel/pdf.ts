@@ -297,8 +297,11 @@ export async function buildHotelPdf(
       ['Kalem', 'Tutar'],
       [
         [`Tamamlanmış Proje Değeri (${l.basisName})`, cur(l.completedValue)],
+        ...l.buildingRows.filter((b) => b.amount > 0).map((b) => [
+          `- Yapı: ${b.type || 'Yapı'} · ${Math.round(b.area).toLocaleString('tr-TR')} m² x ${Math.round(b.unitCost).toLocaleString('tr-TR')}${b.ratePct < 100 ? ` x %${b.ratePct}` : ''}`, cur(b.amount)]),
         ...(input.landProject?.costs ?? []).filter((c) => c.amount > 0).map((c) => [`- ${c.name || 'Maliyet'}`, cur(c.amount)]),
         ['Toplam Yatırım Maliyeti', cur(l.investment)],
+        ...(l.goodwill > 0 ? [['Şerefiye / Düzeltme', cur(l.goodwill)]] : []),
         [`Girişimci Kârı (%${p1(l.profitRate)})`, cur(l.profit)],
         [l.discountOn ? 'ARSA DEĞERİ (İNDİRGEMESİZ)' : 'ARSA DEĞERİ', cur(l.landBeforeDiscountRounded)],
         ...(l.discountOn ? [

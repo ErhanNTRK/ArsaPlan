@@ -138,13 +138,19 @@ export type HotelFinalMethod = 'direkt' | 'ina' | 'maliyet' | 'manuel' | 'arsa';
 
 /** Projeden Arsa Değeri (artık değer) girdisi — bkz. landFromProject.ts */
 export interface HotelProjectCostRow { id: string; name: string; amount: number }
+/** Yapı maliyeti satırı: alan × birim maliyet × maliyete esas oran (güçlendirmede yapım maliyetinin yüzdesi) */
+export interface HotelProjectBuildingRow { id: string; type: string; area: number; unitCost: number; ratePct: number }
 export interface HotelLandProjectInput {
   enabled: boolean;
   /** Tamamlanmış proje değeri hangi yöntemden alınsın */
   basis: 'ina' | 'direkt';
-  /** Yatırım maliyetleri (arsa ve mevcut bina hariç) */
+  /** Yapı maliyeti — alan sorulup hesaplanır */
+  buildings: HotelProjectBuildingRow[];
+  /** Diğer yatırım maliyetleri (FF&E, proje/ruhsat, finansman…) */
   costs: HotelProjectCostRow[];
-  /** Girişimci kârı — toplam yatırım üzerinden */
+  /** Şerefiye / düzeltme bedeli — değerden düşülür */
+  goodwill: number;
+  /** Girişimci kârı — yapı + diğer maliyetler üzerinden */
   profitRate: number;
   /** Güçlendirme + ruhsat + açılışa kadar süre (ay) */
   months: number;
@@ -155,6 +161,11 @@ export interface HotelLandProjectInput {
 export interface HotelLandFromProject {
   basisName: string;
   completedValue: number;
+  buildingRows: { type: string; area: number; unitCost: number; ratePct: number; amount: number }[];
+  buildingCost: number;
+  otherCosts: number;
+  goodwill: number;
+  /** Yapı + diğer maliyetler (kâr bunun üzerinden) */
   investment: number;
   profitRate: number;
   profit: number;

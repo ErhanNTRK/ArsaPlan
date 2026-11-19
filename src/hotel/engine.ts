@@ -341,7 +341,7 @@ export function analyzeHotel(input: HotelIncomeInput): HotelIncomeResult {
       warnings.push({ level: 'dikkat', message: 'Projeden arsa değeri sıfır veya negatif çıktı: tamamlanmış proje değeri, yatırım maliyeti ve kârı karşılamıyor. Maliyet ve kâr varsayımlarını gözden geçirin.' });
     }
     if (landFromProject.investment <= 0) {
-      warnings.push({ level: 'uyari', message: 'Projeden arsa değeri için yatırım maliyeti girilmedi; sonuç tamamlanmış proje değerine eşit çıkar.' });
+      warnings.push({ level: 'uyari', message: 'Projeden arsa değeri için yapı alanı/maliyeti girilmedi; sonuç tamamlanmış proje değerine yakın çıkar.' });
     }
   }
 

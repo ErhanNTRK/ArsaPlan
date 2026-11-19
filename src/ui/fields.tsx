@@ -152,7 +152,14 @@ export function Num({ value, onChange, suffix, step, placeholder, plain }: {
         placeholder={placeholder}
         title={step ? `Adım: ${step}` : undefined}
         value={display}
-        onFocus={() => { setFocused(true); setRaw(plain ? (value === 0 ? '' : String(value)) : toEditText(value)); }}
+        onFocus={(e) => {
+          setFocused(true);
+          setRaw(plain ? (value === 0 ? '' : String(value)) : toEditText(value));
+          /* Alana girince mevcut değer (örn. varsayılan kur "1") seçili gelir; yazılan
+             sayı onun sonuna eklenmez, üzerine yazılır. */
+          const el = e.currentTarget;
+          setTimeout(() => { try { el.select(); } catch { /* yoksay */ } }, 0);
+        }}
         onChange={(e) => {
           const el = e.target;
           const cleaned = el.value.replace(/[^\d.,-]/g, '');
