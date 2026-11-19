@@ -309,6 +309,10 @@ export async function buildHotelPdf(
           ['ARSA DEĞERİ (İNDİRGEMELİ)', cur(l.landValueRounded)],
         ] : []),
         ...(l.unitValue != null ? [[`Arsa m² Birim Değeri (${Math.round(l.parcelArea ?? 0).toLocaleString('tr-TR')} m²)`, cur(l.unitValue) + '/m²']] : []),
+        ...(showTl ? [
+          [`ARSA DEĞERİ — TL KARŞILIĞI (1 ${sym} = ${input.fxRate!.toLocaleString('tr-TR')} ₺)`, tlEq(l.landValueRounded)],
+          ...(l.unitValue != null ? [['Arsa m² Birim Değeri — TL Karşılığı', tlEq(l.unitValue) + '/m²']] : []),
+        ] : []),
       ],
       [110, 70],
     );
@@ -316,7 +320,7 @@ export async function buildHotelPdf(
 
   if (secondary.length > 0) {
     sectionTitle('Yöntemlerin Karşılaştırması');
-    pageBreak(6 * (secondary.length + 1) + 8);
+    pageBreak((showTl ? 9.5 : 6.5) * (secondary.length + 1) + 8);
     const allMethods = [{ label: methodLabel[method]?.split('(')[0].trim() ?? 'Seçilen Yöntem', value: heroValue }, ...secondary];
     doc.setFont('NTRK', 'normal'); doc.setFontSize(8.6); doc.setTextColor(...INK);
     for (const m of allMethods) {
@@ -325,6 +329,12 @@ export async function buildHotelPdf(
       doc.text(cur(m.value), PW - M - 3, y, { align: 'right' });
       doc.setFont('NTRK', 'normal');
       y += 6.5;
+      if (showTl) {
+        doc.setFontSize(7.6); doc.setTextColor(...GRAY);
+        doc.text(`≈ ${tlEq(m.value)}`, PW - M - 3, y - 1.4, { align: 'right' });
+        doc.setFontSize(8.6); doc.setTextColor(...INK);
+        y += 2.6;
+      }
     }
     y += 4;
   }
